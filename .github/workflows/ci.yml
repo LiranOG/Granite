@@ -1,0 +1,118 @@
+name: GRANITE CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ============================================================
+  # Build & Unit Tests (CPU only)
+  # ============================================================
+  build-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [gcc-12, clang-15]
+        build_type: [Debug, Release]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y \
+            cmake ninja-build \
+            libopenmpi-dev openmpi-bin \
+            libhdf5-mpi-dev libhdf5-dev \
+            libomp-15-dev \
+            ${{ matrix.compiler == 'gcc-12' && 'g++-12' || 'clang-15' }}
+
+      - name: Configure
+        run: |
+          if [ "${{ matrix.compiler }}" = "gcc-12" ]; then
+            export CC=gcc-12 CXX=g++-12
+          else
+            export CC=clang-15 CXX=clang++-15
+          fi
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -DGRANITE_ENABLE_MPI=ON \
+            -DGRANITE_ENABLE_GPU=OFF \
+            -DGRANITE_ENABLE_TESTS=ON \
+            -DCMAKE_CXX_FLAGS="-Wno-unused-parameter -Wno-sign-conversion"
+
+      - name: Build
+        run: cmake --build build -j$(nproc)
+
+      - name: Run tests
+        run: cd build && ctest --output-on-failure --timeout 120
+
+  # ============================================================
+  # Code formatting check
+  # ============================================================
+  formatting:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install clang-format
+        run: sudo apt-get update && sudo apt-get install -y clang-format-15
+
+      - name: Check formatting
+        run: |
+          find src include tests -name '*.cpp' -o -name '*.hpp' | \
+            xargs clang-format-15 --dry-run --Werror 2>&1 || true
+          echo "Formatting check complete (non-blocking)"
+
+  # ============================================================
+  # Static analysis
+  # ============================================================
+  static-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake cppcheck libopenmpi-dev libhdf5-mpi-dev
+
+      - name: Run cppcheck
+        run: |
+          cppcheck --enable=all \
+            --suppress=missingIncludeSystem \
+            --suppress=unusedFunction \
+            --suppress=shadowVariable \
+            --suppress=constVariable \
+            --suppress=constParameter \
+            --suppress=unreadVariable \
+            --std=c++17 \
+            --error-exitcode=0 \
+            -I include/ src/ 2>&1 | tee cppcheck_output.txt
+          # Fail only on actual errors, not style warnings
+          if grep -q "\[error\]" cppcheck_output.txt; then
+            echo "ERROR: cppcheck found errors"
+            exit 1
+          fi
+
+  # ============================================================
+  # Documentation build
+  # ============================================================
+  docs:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Sphinx
+        run: pip install sphinx breathe sphinx-rtd-theme
+
+      - name: Build docs
+        run: cd docs && make html || true

@@ -1,0 +1,53 @@
+# ===========================================================================
+# GRANITE Benchmark: single_puncture — Schwarzschild BH stability
+# ===========================================================================
+
+scenario:
+  name: single_puncture
+  description: >
+    Single Schwarzschild black hole (M=1) evolved in puncture gauge.
+    This is the minimum validation test — the horizon must remain
+    stable for 10^4 M with constraint drift < 10^{-6}.
+
+black_holes:
+  count: 1
+  per_bh:
+    mass_msun: 1.0
+    position: [0.0, 0.0, 0.0]
+    spin: [0.0, 0.0, 0.0]
+    momentum: [0.0, 0.0, 0.0]
+
+initial_data:
+  type: brill_lindquist
+
+grid:
+  domain: [-50, 50, -50, 50, -50, 50]
+  coarse_ncells: [64, 64, 64]
+  ghost_cells: 4
+  amr_levels: 5
+  refinement_criteria:
+    - variable: chi
+      threshold: 0.1
+
+evolution:
+  cfl: 0.25
+  t_final: 10000.0
+  ccz4:
+    kappa1: 0.02
+    kappa2: 0.0
+    eta: 2.0
+    ko_sigma: 0.2
+
+output:
+  interval_steps: 50
+  checkpoint_interval: 2000
+  diagnostics:
+    - hamiltonian_constraint
+    - momentum_constraint
+    - horizon_mass
+    - lapse_minimum
+
+pass_criteria:
+  horizon_mass_drift: 1.0e-4
+  constraint_l2_max: 1.0e-6
+  lapse_collapse: false

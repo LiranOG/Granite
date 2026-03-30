@@ -1,0 +1,38 @@
+# ===========================================================================
+# GRANITE Benchmark Configurations (abridged — B2_eq, B3_eq, B5_eq)
+# ===========================================================================
+
+# --- B2_eq: Binary equal-mass, non-spinning, no stars ---
+scenario:
+  name: B2_eq
+  description: Baseline binary BH validation.
+
+black_holes:
+  count: 2
+  arrangement: regular_polygon
+  radius_pc: 1.0
+  per_bh:
+    mass_msun: 1.0e8
+    spin: [0.0, 0.0, 0.0]
+
+stars:
+  count: 0
+
+grid:
+  domain_pc: [-2.0, 2.0, -2.0, 2.0, -2.0, 2.0]
+  coarse_ncells: [64, 64, 64]
+  amr_levels: 10
+
+evolution:
+  t_final_yr: 5.0e4
+  cfl: 0.25
+
+physics:
+  spacetime: ccz4
+  grmhd: false
+  radiation_m1: false
+
+expected_results:
+  final_mass_msun: [1.85e8, 1.95e8]
+  final_spin: [0.65, 0.72]
+  gw_energy_fraction: [0.04, 0.06]

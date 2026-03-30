@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+title: "GRANITE: General-Relativistic Adaptive N-body Integrated Tool for Extreme Astrophysics"
+message: "If you use GRANITE in your research, please cite the following paper."
+type: software
+license: GPL-3.0-or-later
+repository-code: "https://github.com/granite-nr/granite"
+url: "https://granite-nr.org"
+version: 0.1.0
+date-released: "2026-03-28"
+keywords:
+  - numerical-relativity
+  - general-relativity
+  - black-holes
+  - GRMHD
+  - gravitational-waves
+  - adaptive-mesh-refinement
+authors:
+  - name: "GRANITE Collaboration"
+preferred-citation:
+  type: article
+  title: "GRANITE: A General-Relativistic Adaptive N-body Integrated Tool for Extreme Astrophysical Simulations"
+  authors:
+    - name: "GRANITE Collaboration"
+  journal: "Physical Review D"
+  year: 2026
+  status: "in preparation"
