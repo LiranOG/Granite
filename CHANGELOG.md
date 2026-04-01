@@ -8,6 +8,99 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > **A Note on Commit Granularity**  
 > Each commit in this repository represents a major integration milestone, not an individual line-edit. The work described below spans thousands of lines of C++ physics code, multiple debugging and stabilization sessions, and a rigorous, multi-phase audit. This changelog enumerates every significant change in granular detail so the full scope of the engineering effort is transparent to contributors, reviewers, and the scientific community.
 
+## [v0.5.0] — Repository Reorganization and Professionalization (2026-04-02)
+
+### Summary
+
+Performed a top-tier structural reorganization of the repository to meet professional production standards. The root directory was stripped of non-essential clutter, moving utility scripts, auxiliary documentation, and community health files into a strictly categorized folder hierarchy. All internal documentation references and script path logic were updated to maintain full compatibility.
+
+---
+
+### Changed — Repository Architecture
+
+- **Root Directory Cleanup:** Reduced root clutter to 8 essential files (`README.md`, `CHANGELOG.md`, `LICENSE`, `CMakeLists.txt`, `pyproject.toml`, `CITATION.cff`, `.gitignore`, `.clang-format`).
+- **Scripts Categorization:** Created `scripts/` directory and relocated core Python utilities:
+  - `run_granite.py` → `scripts/run_granite.py`
+  - `dev_benchmark.py` → `scripts/dev_benchmark.py`
+  - `dev_stability_test.py` → `scripts/dev_stability_test.py`
+- **Documentation Restructuring:**
+  - `INSTALL.md` → `docs/INSTALL.md`
+  - Internal developer notes (`GRANITE_FULL_AUDIT.md`, `GRANITE_CLAUDE_TASK_CATALOG.md`, `NAN_DEBUG_BRIEF.md`) → `docs/internal/`
+- **GitHub Community Standards:** Relocated community health files to the `.github/` directory:
+  - `CONTRIBUTING.md` → `.github/CONTRIBUTING.md`
+  - `CODE_OF_CONDUCT.md` → `.github/CODE_OF_CONDUCT.md`
+  - `SECURITY.md` → `.github/SECURITY.md`
+
+---
+
+### Fixed — Path Compatibility
+
+- **Path Synchronization:** Performed a global search-and-replace across `README.md`, `docs/INSTALL.md`, and `docs/user_guide/installation.rst` to ensure all command-line instructions (`python scripts/run_granite.py`) reflect the new structure.
+- **Diagnostic Tool Geometry:** Patched `scripts/dev_benchmark.py` to use `os.path.dirname(os.path.dirname(...))` for `DEV_LOGS_DIR` resolution, ensuring diagnostic logs continue to be generated in `dev_logs/` at the repository root rather than inside the `scripts/` folder.
+
+-
+
+## Phase 7: Selective Upwinding & Radiative Boundary Conditions (2026-04-02)
+
+### Summary
+
+This update implements critical stability upgrades for the moving-puncture evolution, successfully resolving the `t ≈ 6.25M` crash. The two-prong approach combines **Selective Upwinding** (to handle super-unity advection CFL in the far-field) with **Sommerfeld Radiative BCs** (to allow gauge waves to exit the domain without reflection). Runtime stability is further reinforced via algebraic constraint enforcement and an adaptive CFL guardian.
+
+---
+
+### Added — Selective Advection Upwinding
+
+**File:** `src/spacetime/ccz4.cpp`
+
+- **Chi-Weighted Scheme:** Implemented a hybrid advection stencil that switches based on distance from the puncture:
+  - **Near-Puncture ($\chi < 0.05$):** Uses 4th-order **Centered** finite differences. This prevents "overshoot" instabilities and NaN generation at the puncture where the shift $\beta^i$ vanishes but derivatives are steep.
+  - **Far-Field ($\chi \geq 0.05$):** Uses 4th-order **Upwinded** stencils (`d1up`). This ensures stability when the shift grows large and the local advection CFL exceeds 1.
+- **Stencil Safety:** The $\hat{\Gamma}^i$ (T7) advection term remains centered at all times to ensure numerical robustness at the puncture singularity.
+- **Fixed Laplacian:** Corrected the conformal Laplacian coefficient for $\alpha$ to $-0.5$ (Baumgarte & Shapiro standard), ensuring correct physical propagation of the lapse.
+
+---
+
+### Added — Sommerfeld Radiative Boundary Conditions
+
+**File:** `src/main.cpp`
+
+- **Outgoing Wave Condition:** Replaced static Copy/Neumann BCs with a radiative $1/r$ falloff condition.
+- **Physics:** Allows outgoing gauge waves (traveling at $v=\sqrt{2}$) to exit the domain at $r = \pm 16M$ with minimal reflection, preventing the constraint-reflection shock that caused the previous $t=6.25M$ crash.
+- **Asymptotic Matching:** Ghost cells are populated by matching interior data to $f(r,t) \approx f_\infty + u(t-r)/r$ behavior.
+
+---
+
+### Added — Runtime Stability Guardians
+
+**File:** `src/main.cpp`
+
+- **Algebraic Constraint Enforcement:** Added a post-step hook that enforces $\det(\tilde{\gamma}) = 1$ and $\text{tr}(\tilde{A}) = 0$ after every RK3 stage. This prevents "metric drift" where numerical errors accumulate and cause the metric to become non-physical.
+- **Adaptive CFL Monitoring:** Implemented a runtime monitor for the advection CFL number ($|v|_{max} \cdot dt / dx$). If the shift grows too fast and exceeds $CFL = 0.95$, the engine triggers an **Emergency $dt$ Reduction** (20%) to keep the simulation within the stable regime.
+- **Numerical Floors:** Added safety floors for $\chi$ and $\alpha$ ($10^{-6}$) with automatic NaN-guard diagnostics to catch gauge collapse before it propagates.
+
+---
+
+### Changed — Single Puncture Benchmark Configuration
+
+**File:** `benchmarks/single_puncture/params.yaml`
+
+- **Resolution:** Increased to **$128^3$** (keeping $dx=0.25M$).
+- **Domain Size:** Doubled to **$\pm 16M$**. This delays the boundary interaction and provides a larger buffer for the trumpet transition.
+- **CFL Factor:** Reduced to **$0.08$** ($dt=0.02M$). This provides a wider stability margin for the high-speed shift near the horizon.
+- **KO Dissipation:** Increased $\sigma$ to **$0.35$** to more aggressively damp high-frequency noise generated during the initial lapse collapse.
+
+---
+
+### Added — Automated Stability Testing
+
+**File:** `dev_stability_test.py` (updated)
+
+- **Failure Diagnostics:** Fixed regex to handle Linux-specific `-nan`/`-inf` output strings.
+- **Criteria:** Script now monitors for three specific success targets:
+  1. $\alpha_{center}$ must stabilize between $0.1$ and $0.4$ after the initial collapse.
+  2. $\|H\|_2$ must remain $< 1.0$ beyond the critical $t=6.25M$ window.
+  3. Advection CFL must remain bounded by the upwinding threshold.
+
 ---
 
 ## [v0.5.0] — Security and Code Scanning Configuration (2026-04-01)
