@@ -102,6 +102,11 @@ python3 scripts/dev_benchmark.py
 python3 scripts/dev_benchmark.py --verbose
 ```
 
+```bash
+# Stability run
+python3 dev_stability_test.py --t-target 50
+```
+
 ### Step 3 — Run a Simulation
 ```bash
 # Basic benchmark run
