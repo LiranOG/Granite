@@ -107,7 +107,7 @@ python3 scripts/dev_benchmark.py --verbose
 python3 dev_stability_test.py --t-target 50
 ```
 
-### Step 3 — Run a Simulation
+### Step 5 — Run a Simulation
 ```bash
 # Basic benchmark run
 python3 scripts/run_granite.py run --benchmark single_puncture
