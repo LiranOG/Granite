@@ -24,6 +24,7 @@ jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
     runs-on: ubuntu-latest
+    timeout-minutes: 45
 
     permissions:
       security-events: write
@@ -46,7 +47,7 @@ jobs:
 
       # Initializes the CodeQL tools for scanning.
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
@@ -62,7 +63,8 @@ jobs:
             g++-12 \
             libopenmpi-dev openmpi-bin \
             libhdf5-mpi-dev libhdf5-dev \
-            libomp-dev
+            libomp-dev \
+            libyaml-cpp-dev
 
       # Build the project so CodeQL can trace the compilation
       - name: Build (C/C++ only)
@@ -76,11 +78,11 @@ jobs:
             -DGRANITE_ENABLE_MPI=ON \
             -DGRANITE_ENABLE_OPENMP=ON \
             -DGRANITE_ENABLE_GPU=OFF \
-            -DGRANITE_ENABLE_TESTS=ON \
+            -DGRANITE_ENABLE_TESTS=OFF \
             -DCMAKE_CXX_FLAGS="-w"
           cmake --build build -j$(nproc)
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         with:
           category: "/language:${{ matrix.language }}"

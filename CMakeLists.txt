@@ -124,16 +124,24 @@ if(GRANITE_ENABLE_PETSC)
 endif()
 
 # yaml-cpp (Required for parameter parsing)
-include(FetchContent)
-FetchContent_Declare(
-    yaml-cpp
-    GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
-    GIT_TAG        0.8.0
-)
-set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "Disable yaml-cpp tests" FORCE)
-set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "Disable yaml-cpp tools" FORCE)
-set(YAML_CPP_BUILD_CONTRIB OFF CACHE BOOL "Disable yaml-cpp contrib" FORCE)
-FetchContent_MakeAvailable(yaml-cpp)
+# Prefer a system-installed yaml-cpp (e.g. from apt/Homebrew/conda) to avoid
+# a slow network fetch during CI. Fall back to FetchContent only if not found.
+find_package(yaml-cpp QUIET)
+if(NOT yaml-cpp_FOUND)
+    include(FetchContent)
+    FetchContent_Declare(
+        yaml-cpp
+        GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
+        GIT_TAG        0.8.0
+    )
+    set(YAML_CPP_BUILD_TESTS   OFF CACHE BOOL "Disable yaml-cpp tests"   FORCE)
+    set(YAML_CPP_BUILD_TOOLS   OFF CACHE BOOL "Disable yaml-cpp tools"   FORCE)
+    set(YAML_CPP_BUILD_CONTRIB OFF CACHE BOOL "Disable yaml-cpp contrib" FORCE)
+    FetchContent_MakeAvailable(yaml-cpp)
+    message(STATUS "yaml-cpp: using FetchContent (system package not found)")
+else()
+    message(STATUS "yaml-cpp: using system installation (${yaml-cpp_VERSION})")
+endif()
 
 # ---------------------------------------------------------------------------
 # Include directories
