@@ -105,7 +105,7 @@ python3 scripts/dev_benchmark.py --verbose
 <<<<<<< HEAD
 ```bash
 # Stability run
-python3 dev_stability_test.py --t-target 50
+python3 scripts/dev_stability_test.py --t-target 50
 ```
 
 =======
