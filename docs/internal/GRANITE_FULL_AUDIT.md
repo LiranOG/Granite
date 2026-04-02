@@ -279,7 +279,7 @@ These are upgrades that were **not mentioned** in either the audit PDF or the ID
 **Estimated effort:** 1 week.
 
 ### E.9 CI/CD Integration Testing with Physics Validation
-**Status:** CI runs unit tests (90 tests, 100% pass). No integration tests that validate physics.
+**Status:** CI runs unit tests (92 tests, 100% pass). No integration tests that validate physics.
 
 **What to implement:**
 - Add a CI job that runs a short gauge-wave test (10 crossing times) and checks:

@@ -241,7 +241,7 @@ python3 scripts/run_granite.py clean
 
 After a successful build, always verify the engine is working correctly by running the tests.
 
-### Step 1 — Unit Test Suite (90 tests)
+### Step 1 — Unit Test Suite (92 tests)
 
 ```bash
 # Option A — run directly from the project root (recommended)
@@ -255,8 +255,8 @@ cd ..   # ← IMPORTANT: return to project root before the next step!
 
 **Expected output:**
 ```
-[==========] 90 tests from 16 test suites ran.
-[  PASSED  ] 90 tests.
+[==========] 92 tests from 16 test suites ran.
+[  PASSED  ] 92 tests.
 ```
 
 > [!IMPORTANT]

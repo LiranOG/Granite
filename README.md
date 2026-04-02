@@ -6,7 +6,7 @@
 ![License](https://img.shields.io/badge/license-GPL--3.0-green.svg)
 ![C++ Standard](https://img.shields.io/badge/c%2B%2B-17%2F20-purple.svg)
 
-> **Status: 🟢 Stable Core (v0.5.0)** — CCZ4 spacetime evolution, full GR-MHD with HLLE/HLLD solvers, MP5/PPM reconstruction, Constrained Transport, Tabulated Nuclear EOS, and GW analysis tools are fully implemented and tested (90 tests / 100% pass rate).
+> **Status: 🟢 Stable Core (v0.5.0)** — CCZ4 spacetime evolution, full GR-MHD with HLLE/HLLD solvers, MP5/PPM reconstruction, Constrained Transport, Tabulated Nuclear EOS, and GW analysis tools are fully implemented and tested (92 tests / 100% pass rate).
 
 GRANITE is a high-performance, next-generation numerical relativity and General-Relativistic Magnetohydrodynamics (GRMHD) engine. Designed from the ground up to model extreme astrophysical events—such as the inspiral and merger of multiple Supermassive Black Holes (SMBHs) interacting with dense stellar environments and accretion discs—GRANITE brings state-of-the-art multi-scale physics into a cohesive, open-source framework.
 
@@ -86,7 +86,7 @@ build/bin/granite_tests
 cd build && ctest --output-on-failure
 cd ..   # ← IMPORTANT: return to project root before Step 5!
 ```
-Expected output: `[  PASSED  ] 90 tests.` (90 tests from 16 test suites)
+Expected output: `[  PASSED  ] 92 tests.` (92 tests from 16 test suites)
 
 ### Step 4 — Run the Developer Benchmark (Recommended)
 
@@ -102,11 +102,14 @@ python3 scripts/dev_benchmark.py
 python3 scripts/dev_benchmark.py --verbose
 ```
 
+<<<<<<< HEAD
 ```bash
 # Stability run
 python3 dev_stability_test.py --t-target 50
 ```
 
+=======
+>>>>>>> 3146498 (docs: update test count 90 -> 92 across all documentation)
 ### Step 5 — Run a Simulation
 ```bash
 # Basic benchmark run
