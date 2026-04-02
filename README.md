@@ -157,7 +157,8 @@ Granite/
 ├── python/              # granite_analysis Python post-processing package
 ├── scripts/             # Python wrapper scripts
 │   ├── run_granite.py   # Unified build/run/format wrapper
-│   └── dev_benchmark.py # ⭐ Developer diagnostic benchmark (see above)
+│   └── dev_benchmark.py # Developer diagnostic benchmark
+│   └── dev_stability_test.py # Developer diagnostic benchmark 
 ├── src/                 # C++ source implementations
 └── tests/               # 90 GoogleTest unit & integration tests
 ```
