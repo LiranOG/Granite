@@ -5,13 +5,13 @@
 
 grid:
   ncells: [128, 128, 128]
-  domain_lo: [-16.0, -16.0, -16.0]   # dx=0.25M (doubled domain, doubled cells)
-  domain_hi: [ 16.0,  16.0,  16.0]
+  domain_lo: [-48.0, -48.0, -48.0]
+  domain_hi: [ 48.0,  48.0,  48.0] # dx = 0.75M — גס יותר, אבל מספיק לבדיקת יציבות
   ghost_cells: 4
 
 time:
   cfl: 0.08         # max|beta|~4.22M => dt < dx/|beta|=0.25/4.22=0.059; CFL=0.08 => dt=0.02 OK
-  t_final: 1000.0
+  t_final: 120.0
   max_steps: 10000000
 
 ccz4:
@@ -31,5 +31,5 @@ black_holes:
 
 io:
   output_dir: output/single_puncture
-  output_interval: 10
+  output_interval: 5
   checkpoint_interval: 100

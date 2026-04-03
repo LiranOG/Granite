@@ -102,14 +102,11 @@ python3 scripts/dev_benchmark.py
 python3 scripts/dev_benchmark.py --verbose
 ```
 
-<<<<<<< HEAD
 ```bash
 # Stability run
 python3 scripts/dev_stability_test.py --t-target 50
 ```
 
-=======
->>>>>>> 3146498 (docs: update test count 90 -> 92 across all documentation)
 ### Step 5 — Run a Simulation
 ```bash
 # Basic benchmark run
@@ -163,7 +160,7 @@ Granite/
 │   └── dev_benchmark.py # Developer diagnostic benchmark
 │   └── dev_stability_test.py # Developer diagnostic benchmark 
 ├── src/                 # C++ source implementations
-└── tests/               # 90 GoogleTest unit & integration tests
+└── tests/               # 92 GoogleTest unit & integration tests
 ```
 
 ## 📋 Versioning Policy (Pre-1.0.0)
@@ -180,6 +177,15 @@ Granite/
 
 ---
 
+## 📝 A Personal Note from the Creator
+
+> As the sole creator and developer of this project, I have built every single component of this repository from the ground up. Being a solo developer—regardless of professional expertise—makes it incredibly challenging to track and document every minor change. I do my absolute best to maintain the highest possible standard of documentation, but writing documentation is a full-time job in itself. When you are single-handedly programming, building, engineering, and documenting a physics engine of this magnitude, it's natural that occasional minor updates might slip through the cracks.
+> 
+> I warmly welcome and encourage constructive criticism from anyone and everyone—that is a core part of this project's purpose. However, I ask that you don't solely look for flaws. If you search for flaws in *any* codebase, you will always find them, but they pale in comparison to everything that works beautifully here. If your only goal is to find shortcomings, doubt the capabilities of a solo developer, or spread negativity—then this repository is simply not the place for you. 
+> 
+> But to everyone who takes the time to look through the project, test it, and offer genuine feedback (whether positive or critical): **Thank you.** Your input is deeply appreciated and warmly welcomed.
+
+---
 ## 🤝 Contributing
 We welcome contributions from the scientific and open-source communities! Please check our `.github/CONTRIBUTING.md` and adhere to the `.github/CODE_OF_CONDUCT.md`. 
 To automatically format your C++ contributions to our guidelines, run:

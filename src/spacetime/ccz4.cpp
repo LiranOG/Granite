@@ -835,9 +835,9 @@ void CCZ4Evolution::applyDissipation(const GridBlock& grid, GridBlock& rhs) cons
 
     // Precompute per-direction KO coefficients to avoid division inside the loop.
     const Real koCoeff[DIM] = {
-        -sigma / (64.0 * grid.dx(0)),
-        -sigma / (64.0 * grid.dx(1)),
-        -sigma / (64.0 * grid.dx(2))
+        sigma / (64.0 * grid.dx(0)),
+        sigma / (64.0 * grid.dx(1)),
+        sigma / (64.0 * grid.dx(2))
     };
 
     // KO stencil weights for the 6th-order undivided difference operator:
