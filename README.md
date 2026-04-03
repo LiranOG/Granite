@@ -32,7 +32,7 @@ cd Granite
 
 ### Step 2 — Install Dependencies & Build
 
-#### 🪟 Windows — WSL2 (Ubuntu) ⭐ Recommended
+#### 💎 Windows — WSL2 (Ubuntu) | Recommended ⭐
 *Use for: WSL2 terminal inside Windows*
 ```bash
 sudo apt update && sudo apt install -y build-essential cmake libhdf5-dev libopenmpi-dev libyaml-cpp-dev
