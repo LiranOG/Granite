@@ -57,10 +57,10 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GRANITE_WARNING_FLAGS}")
 
 if(MSVC)
     set(CMAKE_CXX_FLAGS_DEBUG "/Zi /Od /DGRANITE_DEBUG")
-    set(CMAKE_CXX_FLAGS_RELEASE "/O2 /DNDEBUG")
+    set(CMAKE_CXX_FLAGS_RELEASE "/O2 /Ob2 /arch:AVX2 /fp:fast /MT /DNDEBUG")
 else()
     set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -DGRANITE_DEBUG")
-    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -march=x86-64")
+    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -march=native -ffast-math")
     set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g -DNDEBUG")
 endif()
 
@@ -74,6 +74,11 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 # ---------------------------------------------------------------------------
 # Find required and optional dependencies
 # ---------------------------------------------------------------------------
+
+# WINDOWS NATIVE HINT:
+# If compiling natively on Windows with MSVC, use vcpkg to install dependencies.
+# Run cmake with -DCMAKE_TOOLCHAIN_FILE=[path_to_vcpkg]/scripts/buildsystems/vcpkg.cmake
+# so that HDF5, MPI, and YAML-CPP are found natively.
 
 # MPI
 if(GRANITE_ENABLE_MPI)

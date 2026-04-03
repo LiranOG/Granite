@@ -115,19 +115,28 @@ Select the **"Desktop development with C++"** workload. This installs the MSVC c
 **Step 4: Install Python**
 Download from [python.org](https://www.python.org/downloads/). During installation check: **"Add Python to PATH"**.
 
-> [!WARNING]
-> HDF5, OpenMPI, and yaml-cpp are **difficult to install natively on Windows without Conda or vcpkg**.
-> If you encounter errors about missing libraries, switch to **Option A (WSL2)** or **Option B (Conda)** instead.
-> For advanced users: install HDF5 via [vcpkg](https://vcpkg.io/) and point CMake to it.
+> [!IMPORTANT]
+> To compile natively on Windows, you **must** use `vcpkg` to manage C++ dependencies.
 
-**Step 5: Clone & Build** (in PowerShell or CMD)
+**Step 5: Install vcpkg & Dependencies**
+```powershell
+git clone https://github.com/microsoft/vcpkg.git
+cd vcpkg
+.\bootstrap-vcpkg.bat
+.\vcpkg install hdf5 mpi yaml-cpp
+cd ..
+```
+
+**Step 6: Clone & Build** (in PowerShell or CMD)
 ```powershell
 git clone https://github.com/LiranOG/Granite.git
 cd Granite
-python scripts/run_granite.py build
+# Tell CMake where vcpkg is located so it finds the packages natively
+cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE="../vcpkg/scripts/buildsystems/vcpkg.cmake" -DCMAKE_BUILD_TYPE=Release
+cmake --build build --config Release
 ```
 
-**Step 6: Run a benchmark simulation:**
+**Step 7: Run a benchmark simulation:**
 ```powershell
 python scripts/run_granite.py run --benchmark single_puncture
 ```
@@ -241,7 +250,16 @@ python3 scripts/run_granite.py clean
 
 After a successful build, always verify the engine is working correctly by running the tests.
 
-### Step 1 — Unit Test Suite (92 tests)
+### Step 1 — Pre-Flight Diagnostic (Health Check)
+
+Ensure your build hit the required "Maximum Power" targets and your system CPU thread saturation is properly configured.
+
+```bash
+python scripts/health_check.py
+```
+*(On WSL2/macOS/Ubuntu use `python3`)*
+
+### Step 2 — Unit Test Suite (92 tests)
 
 ```bash
 # Option A — run directly from the project root (recommended)

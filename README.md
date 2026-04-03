@@ -6,7 +6,7 @@
 ![License](https://img.shields.io/badge/license-GPL--3.0-green.svg)
 ![C++ Standard](https://img.shields.io/badge/c%2B%2B-17%2F20-purple.svg)
 
-> **Status: 🟢 Stable Core (v0.5.0)** — CCZ4 spacetime evolution, full GR-MHD with HLLE/HLLD solvers, MP5/PPM reconstruction, Constrained Transport, Tabulated Nuclear EOS, and GW analysis tools are fully implemented and tested (92 tests / 100% pass rate).
+> **Status: 🟢 Universal Deployment & Tracking (v0.6.0)** — CCZ4 spacetime evolution, full GR-MHD, dynamic Berger-Oliger AMR subcycling, moving-puncture tracking, and diagnostic Python dashboards are fully integrated. 92 tests / 100% pass rate.
 
 GRANITE is a high-performance, next-generation numerical relativity and General-Relativistic Magnetohydrodynamics (GRMHD) engine. Designed from the ground up to model extreme astrophysical events—such as the inspiral and merger of multiple Supermassive Black Holes (SMBHs) interacting with dense stellar environments and accretion discs—GRANITE brings state-of-the-art multi-scale physics into a cohesive, open-source framework.
 
@@ -36,7 +36,7 @@ cd Granite
 *Use for: WSL2 terminal inside Windows*
 ```bash
 sudo apt update && sudo apt install -y build-essential cmake libhdf5-dev libopenmpi-dev libyaml-cpp-dev
-python3 scripts/run_granite.py build
+python scripts/run_granite.py build
 ```
 
 #### 🐍 Windows — Miniforge / Conda
@@ -57,7 +57,7 @@ python scripts/run_granite.py build
 *Use for: Ubuntu, Debian, any apt-based distro*
 ```bash
 sudo apt update && sudo apt install -y build-essential cmake libhdf5-dev libopenmpi-dev libyaml-cpp-dev
-python3 scripts/run_granite.py build
+python scripts/run_granite.py build
 ```
 
 #### 🐧 Linux — Fedora / RHEL / Rocky
@@ -66,17 +66,23 @@ python3 scripts/run_granite.py build
 sudo dnf groupinstall -y "Development Tools"
 sudo dnf install -y cmake hdf5-devel openmpi-devel yaml-cpp-devel
 module load mpi/openmpi-x86_64
-python3 scripts/run_granite.py build
+python scripts/run_granite.py build
 ```
 
 #### 🍎 macOS — Homebrew
 *Use for: macOS Terminal, iTerm2*
 ```bash
 brew install cmake hdf5 open-mpi yaml-cpp
-python3 scripts/run_granite.py build
+python scripts/run_granite.py build
 ```
 
-### Step 3 — Run the Unit Tests
+### Step 3 — Run the Health Check (Pre-Flight)
+Ensure your build successfully hit the optimization targets and that OpenMP thread saturation is working correctly:
+```bash
+python scripts/health_check.py
+```
+
+### Step 4 — Run the Unit Tests
 ```bash
 # Option A — run directly from the project root (recommended)
 build/bin/granite_tests
@@ -90,32 +96,30 @@ Expected output: `[  PASSED  ] 92 tests.` (92 tests from 16 test suites)
 
 ### Step 4 — Run the Developer Benchmark (Recommended)
 
-The `scripts/dev_benchmark.py` script runs the `single_puncture` benchmark with **real-time physics diagnostics** — lapse monitoring, Hamiltonian constraint tracking, NaN forensics, and advection CFL monitoring. It is the primary tool for verifying that the engine is working correctly after a fresh build.
+The `scripts/dev_benchmark.py` script runs the `single_puncture` benchmark with **real-time physics diagnostics** — lapse monitoring, Hamiltonian constraint tracking, NaN forensics, and advection CFL monitoring.
 
 > **Make sure you are in the project root directory** before running.
 
 ```bash
 # Standard run (10-step summary every 0.625M)
-python3 scripts/dev_benchmark.py
+python scripts/dev_benchmark.py
 
 # Verbose mode — step-by-step NaN detection + propagation tracking
-python3 scripts/dev_benchmark.py --verbose
-```
+python scripts/dev_benchmark.py --verbose
 
-```bash
 # Stability run
-python3 scripts/dev_stability_test.py --t-target 50
+python scripts/dev_stability_test.py --t-target 50
 ```
 
 ### Step 5 — Run a Simulation
 ```bash
 # Basic benchmark run
-python3 scripts/run_granite.py run --benchmark single_puncture
+python scripts/run_granite.py run --benchmark single_puncture
 
 # Flagship: 5 SMBHs + 2 stars [Not Released]
-python3 scripts/run_granite.py run --benchmark B5_star
+python scripts/run_granite.py run --benchmark B5_star
 ```
-> **Windows (PowerShell/CMD/Conda):** use `python` instead of `python3`.
+> **Note:** If `python` fails, use `python3`.
 
 
 **What healthy output looks like:**

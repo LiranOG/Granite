@@ -16,6 +16,17 @@ This mega-release consolidates Phase 8 stability hardening of the CCZ4 evolution
 
 ---
 
+### Changed — Universal Deployment & Performance Phase
+
+- **Files:** `CMakeLists.txt`, `README.md`, `docs/INSTALL.md`, `INSTALLATION.md` _(new)_, `DEPLOYMENT_AND_PERFORMANCE.md` _(new)_, `scripts/health_check.py` _(new)_.
+- **Performance:** Enforced state-of-the-art native release optimizations in `CMakeLists.txt`. MSVC now triggers `/O2 /Ob2 /arch:AVX2 /fp:fast /MT`, ensuring explosive loop-unrolling and AVX2 vectorization natively on Windows. GCC/Clang now explicitly uses `-march=native -O3 -ffast-math`.
+- **Packaging:** Solved native Windows dependency issues by explicitly wiring the build chain instructions for `vcpkg` HDF5/MPI/yaml-cpp installations.
+- **Documentation Harmonization:** Built a complete, zero-failure technical onboarding sequence. Generated `INSTALLATION.md` for bare-metal cross-platform `cd / build` workflows and preserved deep technical Q&A troubleshooting in `docs/INSTALL.md`. Stripped all faulty bash scripting (`python3` vs `python` conditionals mapped per OS) to prevent native console breaking.
+- **Maximum Power Protocols:** Authored authoritative master-level guides targeting OpenMP thread saturation bounding and memory checks inside `DEPLOYMENT_AND_PERFORMANCE.md`.
+- **Pre-Flight Diagnostics:** Created Python `scripts/health_check.py` tool. Pre-analyzes `.CMakeCache.txt` configuration and logical `omp_get_max_threads()` constraints to prevent catastrophic user-side runtime bottlenecks and flags sub-optimal compiler flags before simulations execute.
+
+---
+
 ### Added — Universal Append-Only Simulation Dashboard (`sim_tracker.py`)
 
 - **File:** `scripts/sim_tracker.py`
