@@ -183,7 +183,10 @@ Granite/
 > 
 > I warmly welcome and encourage constructive criticism from anyone and everyone—that is a core part of this project's purpose. However, I ask that you don't solely look for flaws. If you search for flaws in *any* codebase, you will always find them, but they pale in comparison to everything that works beautifully here. If your only goal is to find shortcomings, doubt the capabilities of a solo developer, or spread negativity—then this repository is simply not the place for you. 
 > 
-> But to everyone who takes the time to look through the project, test it, and offer genuine feedback (whether positive or critical): **Thank you.** Your input is deeply appreciated and warmly welcomed.
+> But to everyone who takes the time to look through the project, test it,
+> and offer genuine feedback (whether positive or critical):
+> 
+> **Thank you.** Your input is deeply appreciated and warmly welcomed.
 
 ---
 ## 🤝 Contributing
