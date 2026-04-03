@@ -32,95 +32,163 @@ cd Granite
 
 ### Step 2 — Install Dependencies & Build
 
-#### 💎 Windows — WSL2 (Ubuntu) | Recommended ⭐
+#### 💎 Windows — WSL2 / Ubuntu (Recommended ⭐)
 *Use for: WSL2 terminal inside Windows*
 ```bash
 sudo apt update && sudo apt install -y build-essential cmake libhdf5-dev libopenmpi-dev libyaml-cpp-dev
-python scripts/run_granite.py build
+python3 scripts/run_granite.py build
+```
+
+#### 🪟 Windows — Native PowerShell / CMD
+*Use for: Native terminal without WSL2. Requires CMake + VS Build Tools + vcpkg (see [INSTALLATION.md](./INSTALLATION.md))*
+```powershell
+cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE="../vcpkg/scripts/buildsystems/vcpkg.cmake" -DCMAKE_BUILD_TYPE=Release
+cmake --build build --config Release
 ```
 
 #### 🐍 Windows — Miniforge / Conda
-*Use for: Miniforge Prompt, Anaconda Prompt*
-> Requires Visual Studio Build Tools 2022 ("Desktop development with C++" workload) installed separately.
+*Use for: Miniforge Prompt, Anaconda Prompt. Requires VS Build Tools 2022 installed separately.*
 ```bash
 conda install -c conda-forge cmake hdf5 openmpi yaml-cpp
 python scripts/run_granite.py build
 ```
 
-#### 🐚 Windows — PowerShell / CMD / VS Code / Node.js
-*Use for: Any native Windows terminal — requires CMake + VS Build Tools installed manually (see INSTALL.md)*
-```powershell
-python scripts/run_granite.py build
-```
-
 #### 🐧 Linux — Ubuntu / Debian
-*Use for: Ubuntu, Debian, any apt-based distro*
 ```bash
 sudo apt update && sudo apt install -y build-essential cmake libhdf5-dev libopenmpi-dev libyaml-cpp-dev
-python scripts/run_granite.py build
+python3 scripts/run_granite.py build
 ```
 
 #### 🐧 Linux — Fedora / RHEL / Rocky
-*Use for: dnf-based distros*
 ```bash
 sudo dnf groupinstall -y "Development Tools"
 sudo dnf install -y cmake hdf5-devel openmpi-devel yaml-cpp-devel
 module load mpi/openmpi-x86_64
-python scripts/run_granite.py build
+python3 scripts/run_granite.py build
 ```
 
 #### 🍎 macOS — Homebrew
-*Use for: macOS Terminal, iTerm2*
 ```bash
 brew install cmake hdf5 open-mpi yaml-cpp
-python scripts/run_granite.py build
+python3 scripts/run_granite.py build
 ```
 
+---
+
 ### Step 3 — Run the Health Check (Pre-Flight)
-Ensure your build successfully hit the optimization targets and that OpenMP thread saturation is working correctly:
-```bash
+
+Verify that your binary used the correct Release optimization flags and that all CPU cores are properly allocated to OpenMP before running any simulation.
+
+#### 🪟 Windows (PowerShell / CMD / Conda)
+```powershell
 python scripts/health_check.py
 ```
 
+#### 🐧 Linux / 💎 WSL2 / 🍎 macOS
+```bash
+python3 scripts/health_check.py
+```
+
+---
+
 ### Step 4 — Run the Unit Tests
+
+#### 🪟 Windows — PowerShell / CMD
+```powershell
+# Option A — run directly (recommended)
+.\build\bin\Release\granite_tests.exe
+
+# Option B — via CTest
+cd build
+ctest --output-on-failure
+cd ..
+```
+
+#### 🪟 Windows — Conda / 🐧 Linux / 💎 WSL2 / 🍎 macOS
 ```bash
 # Option A — run directly from the project root (recommended)
 build/bin/granite_tests
 
-# Option B — run via CTest
-# ⚠️  WARNING: This changes your working directory into build/!
+# Option B — via CTest
+# ⚠️ WARNING: This changes your working directory into build/!
 cd build && ctest --output-on-failure
 cd ..   # ← IMPORTANT: return to project root before Step 5!
 ```
+
 Expected output: `[  PASSED  ] 92 tests.` (92 tests from 16 test suites)
 
-### Step 4 — Run the Developer Benchmark (Recommended)
+---
 
-The `scripts/dev_benchmark.py` script runs the `single_puncture` benchmark with **real-time physics diagnostics** — lapse monitoring, Hamiltonian constraint tracking, NaN forensics, and advection CFL monitoring.
+### Step 5 — Run the Developer Benchmark
 
-> **Make sure you are in the project root directory** before running.
+The `scripts/dev_benchmark.py` script provides **real-time physics diagnostics** — lapse monitoring, Hamiltonian constraint tracking, NaN forensics, and advection CFL monitoring.
 
-```bash
+> Run this from the **project root directory** at all times.
+
+#### 🪟 Windows (PowerShell / CMD / Conda)
+```powershell
 # Standard run (10-step summary every 0.625M)
 python scripts/dev_benchmark.py
 
 # Verbose mode — step-by-step NaN detection + propagation tracking
 python scripts/dev_benchmark.py --verbose
 
-# Stability run
+# Extended stability run
 python scripts/dev_stability_test.py --t-target 50
 ```
 
-### Step 5 — Run a Simulation
+#### 🐧 Linux / 💎 WSL2 / 🍎 macOS
 ```bash
-# Basic benchmark run
+# Standard run (10-step summary every 0.625M)
+python3 scripts/dev_benchmark.py
+
+# Verbose mode — step-by-step NaN detection + propagation tracking
+python3 scripts/dev_benchmark.py --verbose
+
+# Extended stability run
+python3 scripts/dev_stability_test.py --t-target 50
+```
+
+---
+
+### Step 6 — Run a Full Simulation
+
+GRANITE is driven by YAML parameter files (`params.yaml`) in the `benchmarks/` directory. Use the wrapper script to select and launch physics scenarios.
+
+#### 🪟 Windows (PowerShell / CMD / Conda)
+```powershell
+# 1. Gauge Wave Validation (fast advection test)
+python scripts/run_granite.py run --benchmark gauge_wave
+
+# 2. Single Moving Puncture (standard 3D setup)
 python scripts/run_granite.py run --benchmark single_puncture
 
-# Flagship: 5 SMBHs + 2 stars [Not Released]
-python scripts/run_granite.py run --benchmark B5_star
-```
-> **Note:** If `python` fails, use `python3`.
+# 3. Equal-Mass BBH Merger (flagship — production-grade, run health_check.py first!)
+python scripts/run_granite.py run --benchmark B2_eq
 
+# 4. Custom scenario (create benchmarks/my_sim/params.yaml first)
+python scripts/run_granite.py run --benchmark my_sim
+```
+
+#### 🐧 Linux / 💎 WSL2 / 🍎 macOS
+```bash
+# 1. Gauge Wave Validation (fast advection test)
+python3 scripts/run_granite.py run --benchmark gauge_wave
+
+# 2. Single Moving Puncture (standard 3D setup)
+python3 scripts/run_granite.py run --benchmark single_puncture
+
+# 3. Equal-Mass BBH Merger (flagship — production-grade, run health_check.py first!)
+python3 scripts/run_granite.py run --benchmark B2_eq
+
+# 4. Custom scenario (create benchmarks/my_sim/params.yaml first)
+python3 scripts/run_granite.py run --benchmark my_sim
+```
+
+> [!IMPORTANT]
+> Before launching `B2_eq` or any long-running simulation, always run `health_check.py` first (Step 3) and review [`DEPLOYMENT_AND_PERFORMANCE.md`](./DEPLOYMENT_AND_PERFORMANCE.md) to maximize native hardware utilization.
+
+---
 
 **What healthy output looks like:**
 ```
