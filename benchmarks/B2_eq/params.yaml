@@ -22,10 +22,9 @@
 # ===========================================================================
 
 grid:
-  ncells: [256, 256, 256]
-  domain_lo: [-200.0, -200.0, -200.0]   # dx = 400/256 = 1.5625M (coarsest)
+  ncells: [64, 64, 64]          # זה יוריד את צריכת הזיכרון הבסיסית מ-12GB ל-200MB!
+  domain_lo: [-200.0, -200.0, -200.0]
   domain_hi: [ 200.0,  200.0,  200.0]
-  ghost_cells: 4
 
 amr:
   max_levels: 6             # 6 levels: dx = 1.5625, 0.781, 0.391, 0.195, 0.098, 0.049M
@@ -48,7 +47,7 @@ ccz4:
                              # 0.35 is standard; >0.5 destroys physical gradients
 
 initial_data:
-  type: bowen_york          # Bowen-York puncture data with elliptic solve
+  type: two_punctures          # Bowen-York puncture data with elliptic solve
 
 black_holes:
   - mass: 1.0
@@ -62,6 +61,6 @@ black_holes:
 
 io:
   output_dir: output/B2_eq
-  output_interval: 10       # every 10 steps = ~3.9M between outputs
+  output_interval: 2       # every 10 steps = ~3.9M between outputs
   checkpoint_interval: 500  # checkpoint every ~195M
   gw_extraction_radii: [50.0, 75.0, 100.0]  # Psi4 extraction spheres

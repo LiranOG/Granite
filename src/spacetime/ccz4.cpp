@@ -511,20 +511,18 @@ void CCZ4Evolution::computeRHS(
                 //
                 // Keep Γ̂^i (T7 term) always centered — its near-puncture
                 // gradients caused the original step-9 NaN.
-                constexpr Real chi_thresh = 0.05; // ~ r < 2M from puncture
+                Real chi_c = params_.chi_blend_center;
+                Real chi_w = params_.chi_blend_width;
+                Real blend_w = 0.5 * (1.0 + std::tanh((chi - chi_c) / chi_w));
 
                 auto advec = [&](int var) -> Real {
-                    if (chi >= chi_thresh) {
-                        // Upwinded: stable for CFL > 1, safe far from puncture
-                        return beta[0] * d1up(grid, var, 0, beta[0], i, j, k)
-                             + beta[1] * d1up(grid, var, 1, beta[1], i, j, k)
-                             + beta[2] * d1up(grid, var, 2, beta[2], i, j, k);
-                    } else {
-                        // Centered: stable near puncture where β ≈ 0
-                        return beta[0] * d1(grid, var, 0, i, j, k)
-                             + beta[1] * d1(grid, var, 1, i, j, k)
-                             + beta[2] * d1(grid, var, 2, i, j, k);
-                    }
+                    Real adv_up = beta[0] * d1up(grid, var, 0, beta[0], i, j, k)
+                                + beta[1] * d1up(grid, var, 1, beta[1], i, j, k)
+                                + beta[2] * d1up(grid, var, 2, beta[2], i, j, k);
+                    Real adv_cen = beta[0] * d1(grid, var, 0, i, j, k)
+                                 + beta[1] * d1(grid, var, 1, i, j, k)
+                                 + beta[2] * d1(grid, var, 2, i, j, k);
+                    return blend_w * adv_up + (1.0 - blend_w) * adv_cen;
                 };
 
                 // ──────────────────────────────────────────
@@ -543,16 +541,14 @@ void CCZ4Evolution::computeRHS(
                     for (int jj = ii; jj < 3; ++jj) {
                         int ij = symIdx(ii, jj);
                         // Lie derivative transport: β^k ∂_k γ̃_{ij}
-                        // Use selective upwinding (same chi threshold as advec)
+                        // Use selective upwinding (smooth blending)
                         int gt_var = iGXX + ij; // variable index for this metric component
-                        Real Lie_gt = 0.0;
-                        if (chi >= chi_thresh) {
-                            for (int idx = 0; idx < 3; ++idx)
-                                Lie_gt += beta[idx] * d1up(grid, gt_var, idx, beta[idx], i, j, k);
-                        } else {
-                            for (int idx = 0; idx < 3; ++idx)
-                                Lie_gt += beta[idx] * d_gt[ij][idx];
+                        Real adv_up_gt = 0.0, adv_cen_gt = 0.0;
+                        for (int idx = 0; idx < 3; ++idx) {
+                            adv_up_gt += beta[idx] * d1up(grid, gt_var, idx, beta[idx], i, j, k);
+                            adv_cen_gt += beta[idx] * d_gt[ij][idx];
                         }
+                        Real Lie_gt = blend_w * adv_up_gt + (1.0 - blend_w) * adv_cen_gt;
                         // Deformation terms (centered — not advection)
                         for (int idx = 0; idx < 3; ++idx) {
                             Lie_gt += gt[symIdx(ii, idx)] * d_beta[idx][jj] + gt[symIdx(jj, idx)] * d_beta[idx][ii];
@@ -649,15 +645,14 @@ void CCZ4Evolution::computeRHS(
                         Real term2 = alpha * (K * At[ij] - 2.0 * A_sq_ij);
                                                 
                         Real Lie_At = 0.0;
-                        // Transport term β^k ∂_k Ã_{ij}: selective upwinding
+                        // Transport term β^k ∂_k Ã_{ij}: selective upwinding (smooth blending)
                         int at_var = iAXX + ij;
-                        if (chi >= chi_thresh) {
-                            for(int idx=0; idx<3; ++idx)
-                                Lie_At += beta[idx] * d1up(grid, at_var, idx, beta[idx], i, j, k);
-                        } else {
-                            for(int idx=0; idx<3; ++idx)
-                                Lie_At += beta[idx] * d_At[ij][idx];
+                        Real adv_up_at = 0.0, adv_cen_at = 0.0;
+                        for(int idx=0; idx<3; ++idx) {
+                            adv_up_at += beta[idx] * d1up(grid, at_var, idx, beta[idx], i, j, k);
+                            adv_cen_at += beta[idx] * d_At[ij][idx];
                         }
+                        Lie_At = blend_w * adv_up_at + (1.0 - blend_w) * adv_cen_at;
                         // Deformation terms (centered — not advection)
                         for(int idx=0; idx<3; ++idx) {
                             Lie_At += At[symIdx(ii, idx)] * d_beta[idx][jj] + At[symIdx(jj, idx)] * d_beta[idx][ii];
@@ -749,14 +744,17 @@ void CCZ4Evolution::computeRHS(
 
                     // Term 7: Lie derivative terms:
                     //   -Γ̃^j ∂_j β^i + (2/3)Γ̃^i ∂_j β^j + β^j ∂_j Γ̃^i
-                    // Note: β^j ∂_j Γ̃^i uses pre-computed centered d_Ghat[ii][jj].
-                    // Upwinding d1up for this term caused NaN in A_XX at step 9
-                    // because Γ̃^i has steep near-puncture gradients.
                     Real T7 = 0.0;
                     for (int jj = 0; jj < 3; ++jj) {
                         T7 -= Ghat[jj] * d_beta[ii][jj];
-                        T7 += beta[jj] * d_Ghat[ii][jj];
                     }
+                    int gh_var = iGHX + ii;
+                    Real adv_up_gh = 0.0, adv_cen_gh = 0.0;
+                    for (int jj = 0; jj < 3; ++jj) {
+                        adv_up_gh += beta[jj] * d1up(grid, gh_var, jj, beta[jj], i, j, k);
+                        adv_cen_gh += beta[jj] * d_Ghat[ii][jj];
+                    }
+                    T7 += blend_w * adv_up_gh + (1.0 - blend_w) * adv_cen_gh;
                     T7 += (2.0 / 3.0) * Ghat[ii] * div_beta;
 
                     // Term 8: CCZ4 damping: -2κ₁ α Γ̃^i

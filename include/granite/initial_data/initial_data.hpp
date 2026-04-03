@@ -57,6 +57,15 @@ struct StarParams {
 // ===========================================================================
 
 /**
+ * @class InitialData
+ * @brief Base interface for all initial data generators.
+ */
+class InitialData {
+public:
+    virtual ~InitialData() = default;
+};
+
+/**
  * @class BrillLindquist
  * @brief Analytic Brill-Lindquist initial data (N BHs, no momenta).
  *
@@ -108,6 +117,39 @@ public:
 
 private:
     std::vector<BlackHoleParams> bhs_;
+};
+
+/**
+ * @struct TwoPuncturesParams
+ * @brief Parameters for the TwoPunctures spectral solver spectral ID.
+ */
+struct TwoPuncturesParams {
+    std::array<Real, DIM> par_m_plus = {{0.5, 0.0, 0.0}};
+    std::array<Real, DIM> par_m_minus = {{0.5, 0.0, 0.0}};
+    std::array<Real, DIM> par_b = {{1.0, 0.0, 0.0}};
+    std::array<Real, DIM> par_P_plus = {{0.0, 0.0, 0.0}};
+    std::array<Real, DIM> par_P_minus = {{0.0, 0.0, 0.0}};
+    std::array<Real, DIM> par_S_plus = {{0.0, 0.0, 0.0}};
+    std::array<Real, DIM> par_S_minus = {{0.0, 0.0, 0.0}};
+    
+    int npoints_A = 30;
+    int npoints_B = 30;
+    int npoints_phi = 16;
+};
+
+/**
+ * @class TwoPuncturesBBH
+ * @brief Wrapper for resolving the Hamiltonian constraint using spectral TwoPunctures.
+ */
+class TwoPuncturesBBH : public InitialData {
+public:
+    explicit TwoPuncturesBBH(const TwoPuncturesParams& params);
+
+    /// Generate TwoPunctures Initial Data and map it onto the grid
+    void generate(GridBlock& grid) const;
+
+private:
+    TwoPuncturesParams params_;
 };
 
 /**

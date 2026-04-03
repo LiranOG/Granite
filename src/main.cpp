@@ -82,7 +82,8 @@ struct BlockBundle {
  */
 class TimeIntegrator {
 public:
-    static void sspRK3Step(std::vector<BlockBundle>& bundles,
+    static void sspRK3Step(std::vector<BlockBundle*>& bundles,
+                           std::vector<BlockBundle>& active_bundles,
                            const std::unordered_map<int, size_t>& id_to_index,
                            const spacetime::CCZ4Evolution& ccz4,
                            const grmhd::GRMHDEvolution& grmhd,
@@ -97,7 +98,8 @@ public:
             // Pre-count number of message buffers to avoid reallocation during MPI_Isend
             int num_send_msgs = 0;
             int num_recv_msgs = 0;
-            for (auto& bundle : bundles) {
+            for (auto* bundle_ptr : bundles) {
+                auto& bundle = *bundle_ptr;
                 GridBlock* st = use_stage ? bundle.st_stage.get() : bundle.st;
                 for (int dir = 0; dir < 6; ++dir) {
                     if (st->getNeighborId(dir) >= 0 && st->getNeighborRank(dir) != my_rank) {
@@ -112,7 +114,8 @@ public:
             int s_idx = 0;
             int r_idx = 0;
 
-            for (auto& bundle : bundles) {
+            for (auto* bundle_ptr : bundles) {
+                auto& bundle = *bundle_ptr;
                 GridBlock* st = use_stage ? bundle.st_stage.get() : bundle.st;
                 GridBlock* hy = use_stage ? bundle.hydro_stage.get() : bundle.hydro.get();
                 for (int dir = 0; dir < 6; ++dir) {
@@ -124,9 +127,9 @@ public:
                     if (nbr_rank == my_rank) {
                         size_t nbr_idx = id_to_index.at(nbr_id);
                         GridBlock* nbr_st =
-                            use_stage ? bundles[nbr_idx].st_stage.get() : bundles[nbr_idx].st;
-                        GridBlock* nbr_hy = use_stage ? bundles[nbr_idx].hydro_stage.get()
-                                                      : bundles[nbr_idx].hydro.get();
+                            use_stage ? active_bundles[nbr_idx].st_stage.get() : active_bundles[nbr_idx].st;
+                        GridBlock* nbr_hy = use_stage ? active_bundles[nbr_idx].hydro_stage.get()
+                                                      : active_bundles[nbr_idx].hydro.get();
 
                         std::vector<Real> buf_st, buf_hy;
                         st->packBoundary(dir, buf_st);
@@ -195,7 +198,8 @@ public:
             }
 
             r_idx = 0; // Reset existing r_idx instead of redeclaring
-            for (auto& bundle : bundles) {
+            for (auto* bundle_ptr : bundles) {
+                auto& bundle = *bundle_ptr;
                 GridBlock* st = use_stage ? bundle.st_stage.get() : bundle.st;
                 GridBlock* hy = use_stage ? bundle.hydro_stage.get() : bundle.hydro.get();
                 for (int dir = 0; dir < 6; ++dir) {
@@ -210,7 +214,8 @@ public:
                 }
             }
 #else
-            for (auto& bundle : bundles) {
+            for (auto* bundle_ptr : bundles) {
+                auto& bundle = *bundle_ptr;
                 GridBlock* st = use_stage ? bundle.st_stage.get() : bundle.st;
                 GridBlock* hy = use_stage ? bundle.hydro_stage.get() : bundle.hydro.get();
                 for (int dir = 0; dir < 6; ++dir) {
@@ -219,9 +224,9 @@ public:
                         continue;
                     size_t nbr_idx = id_to_index.at(nbr_id);
                     GridBlock* nbr_st =
-                        use_stage ? bundles[nbr_idx].st_stage.get() : bundles[nbr_idx].st;
-                    GridBlock* nbr_hy = use_stage ? bundles[nbr_idx].hydro_stage.get()
-                                                  : bundles[nbr_idx].hydro.get();
+                        use_stage ? active_bundles[nbr_idx].st_stage.get() : active_bundles[nbr_idx].st;
+                    GridBlock* nbr_hy = use_stage ? active_bundles[nbr_idx].hydro_stage.get()
+                                                  : active_bundles[nbr_idx].hydro.get();
 
                     std::vector<Real> buf_st, buf_hy;
                     st->packBoundary(dir, buf_st);
@@ -235,7 +240,8 @@ public:
         };
 
         auto applyRHS = [&](bool use_stage) {
-            for (auto& bundle : bundles) {
+            for (auto* bundle_ptr : bundles) {
+                auto& bundle = *bundle_ptr;
                 GridBlock& st = use_stage ? *(bundle.st_stage) : *(bundle.st);
                 GridBlock& hy = use_stage ? *(bundle.hydro_stage) : *(bundle.hydro);
                 GridBlock& prim = *(bundle.prim);
@@ -295,7 +301,8 @@ public:
 
         auto combine =
             [&](bool write_stage, Real a1, bool s1_stage, Real a2, bool s2_stage, Real a3) {
-                for (auto& bundle : bundles) {
+                for (auto* bundle_ptr : bundles) {
+                    auto& bundle = *bundle_ptr;
                     GridBlock& dst_st = write_stage ? *(bundle.st_stage) : *(bundle.st);
                     GridBlock& dst_hy = write_stage ? *(bundle.hydro_stage) : *(bundle.hydro);
                     GridBlock& s1_st = s1_stage ? *(bundle.st_stage) : *(bundle.st);
@@ -339,7 +346,8 @@ public:
         //   Static Sommerfeld 1/r: made ||H||₂ 8× worse — replaced here
         //   with the time-dependent version that properly absorbs outgoing waves.
         auto applyOuterBC = [&](bool use_stage) {
-            for (auto& bundle : bundles) {
+            for (auto* bundle_ptr : bundles) {
+                auto& bundle = *bundle_ptr;
                 GridBlock* st = use_stage ? bundle.st_stage.get() : bundle.st;
                 GridBlock* hy = use_stage ? bundle.hydro_stage.get() : bundle.hydro.get();
 
@@ -499,7 +507,8 @@ public:
             static bool checked = false;
             if (!checked) {
                 checked = true;
-                for (auto& bundle : bundles) {
+                for (auto* bundle_ptr : bundles) {
+                    auto& bundle = *bundle_ptr;
                     GridBlock& rhs_st = *(bundle.st_rhs);
                     GridBlock& rhs_hy = *(bundle.hydro_rhs);
                     // Scan spacetime RHS
@@ -551,7 +560,8 @@ public:
         // Fast per-substep floors: chi and alpha only (catch NaN/Inf).
         // These run at EVERY substep for numerical safety.
         auto applyFloors = [&](bool use_stage) {
-            for (auto& bundle : bundles) {
+            for (auto* bundle_ptr : bundles) {
+                auto& bundle = *bundle_ptr;
                 GridBlock& g = use_stage ? *(bundle.st_stage) : *(bundle.st);
                 const int tnx = g.totalCells(0);
                 const int tny = g.totalCells(1);
@@ -571,7 +581,8 @@ public:
         // Algebraic constraint enforcement — called ONCE per RK3 step
         // at the final combine (main grid only). det(γ̃)=1 and tr(Ã)=0.
         auto applyAlgebraicConstraints = [&]() {
-            for (auto& bundle : bundles) {
+            for (auto* bundle_ptr : bundles) {
+                auto& bundle = *bundle_ptr;
                 GridBlock& g = *(bundle.st);
                 const int tnx = g.totalCells(0);
                 const int tny = g.totalCells(1);
@@ -785,7 +796,7 @@ int main(int argc, char* argv[]) {
     amr_params.regrid_interval = params.regrid_interval;
     amr::AMRHierarchy hierarchy(amr_params, params);
     std::cout << "Initializing AMR Hierarchy...\n";
-    hierarchy.initialize();
+    hierarchy.initialize(amr::gradientChiTagger(params.refine_threshold));
 
     std::vector<BlockBundle> active_bundles;
     std::unordered_map<int, size_t> id_to_index;
@@ -940,6 +951,38 @@ int main(int argc, char* argv[]) {
             grmhd.conservedToPrimitive(*(bundle.st), *(bundle.hydro), *(bundle.prim));
         }
 
+    } else if (initial_data_type == "two_punctures") {
+        // ---------------------------------------------------------------
+        // Two Punctures: Spectral solver for BBH Initial Data
+        // Best for: Quasi-circular Binary Black Hole mergers
+        // ---------------------------------------------------------------
+        if (bh_params.size() < 2) {
+            // Default: two BHs M=0.5 separated by 2.0 along X
+            initial_data::BlackHoleParams p1, p2;
+            p1.mass = 0.5; p1.position = {1.0, 0.0, 0.0};
+            p2.mass = 0.5; p2.position = {-1.0, 0.0, 0.0};
+            p1.momentum = {0.0, 0.1, 0.0}; p2.momentum = {0.0, -0.1, 0.0};
+            bh_params = {p1, p2};
+        }
+        
+        initial_data::TwoPuncturesParams tp_params;
+        tp_params.par_m_plus[0] = bh_params[0].mass;
+        tp_params.par_m_minus[0] = bh_params[1].mass;
+        tp_params.par_P_plus = bh_params[0].momentum;
+        tp_params.par_P_minus = bh_params[1].momentum;
+        tp_params.par_S_plus = bh_params[0].spin;
+        tp_params.par_S_minus = bh_params[1].spin;
+        tp_params.par_b[0] = std::abs(bh_params[0].position[0] - bh_params[1].position[0]) / 2.0;
+        
+        initial_data::TwoPuncturesBBH tp_id(tp_params);
+        std::cout << "  Two-Punctures: " << bh_params.size()
+                  << " BH(s), generating conformal spectral data...\n";
+        for (auto& bundle : active_bundles) {
+            tp_id.generate(*(bundle.st));
+            setAtmosphere(*(bundle.hydro));
+            grmhd.conservedToPrimitive(*(bundle.st), *(bundle.hydro), *(bundle.prim));
+        }
+
     } else if (initial_data_type == "gauge_wave") {
         // ---------------------------------------------------------------
         // Linear gauge wave: α = 1 + A*sin(2π x / L), flat metric
@@ -1008,71 +1051,99 @@ int main(int argc, char* argv[]) {
     std::cout << "dx = " << dx_min << ", dt = " << dt << "\n";
     std::cout << "t_final = " << params.t_final << "\n\n";
 
+    // --- Inject level-0 dt into AMR hierarchy (fixes zombie state) ---
+    // The hierarchy's level 0 was initialized with dt=0.0. We must set it
+    // to the CFL-computed dt before subcycle() is called, otherwise
+    // evolve_func always receives cur_dt=0 and the state never advances.
+    hierarchy.setLevelDt(0, dt);
+
+    // --- Register BBH tracking spheres (forces AMR around punctures) ---
+    // Without this, the gradient tagger alone cannot detect the puncture
+    // on a coarse initial grid. Tracking spheres guarantee refinement.
+    if (initial_data_type == "two_punctures" || initial_data_type == "brill_lindquist" ||
+        initial_data_type == "bowen_york") {
+        for (const auto& bh : bh_params) {
+            std::array<Real, DIM> center = bh.position;
+            Real sphere_radius = std::max(2.0 * bh.mass, 0.5); // at least 2M radius
+            int min_ref_level = std::min(amr_params.max_levels - 1, 3);
+            hierarchy.addTrackingSphere(center, sphere_radius, min_ref_level);
+            std::cout << "  [AMR] Tracking sphere @ (" << center[0] << "," << center[1]
+                      << "," << center[2] << ") R=" << sphere_radius
+                      << " min_level=" << min_ref_level << "\n";
+        }
+        // Trigger initial regrid to establish refinement before step 0
+        hierarchy.regrid(0, amr::gradientChiTagger(params.refine_threshold));
+        syncBlocks();
+        hierarchy.fillGhostZones(0);
+    }
+
     // --- Evolution loop ---
     Real t = 0.0;
     int step = 0;
     int initial_ncells = params.ncells[0];
 
+    // The physics callback for AMR subcycling
+    auto evolve_func = [&](std::vector<GridBlock*>& cur_blocks, Real cur_dt) {
+        syncBlocks();
+        std::vector<BlockBundle*> cur_bundles;
+        cur_bundles.reserve(cur_blocks.size());
+        for (auto* b : cur_blocks) {
+            auto it = id_to_index.find(b->getId());
+            if (it != id_to_index.end()) {
+                cur_bundles.push_back(&active_bundles[it->second]);
+            }
+        }
+        
+        TimeIntegrator::sspRK3Step(cur_bundles, active_bundles, id_to_index, ccz4, grmhd, cur_dt);
+
+        // ── Adaptive CFL monitoring (Stream C2) ────────────────────
+        Real max_adv_cfl = 0.0;
+        for (auto* bundle_ptr : cur_bundles) {
+            auto& bundle = *bundle_ptr;
+            GridBlock& g = *(bundle.st);
+            const int bx_var = static_cast<int>(SpacetimeVar::SHIFT_X);
+            const int by_var = static_cast<int>(SpacetimeVar::SHIFT_Y);
+            const int bz_var = static_cast<int>(SpacetimeVar::SHIFT_Z);
+            for (int k = g.istart(); k < g.iend(2); ++k)
+            for (int j = g.istart(); j < g.iend(1); ++j)
+            for (int i = g.istart(); i < g.iend(0); ++i) {
+                Real bx = std::abs(g.data(bx_var, i, j, k));
+                Real by = std::abs(g.data(by_var, i, j, k));
+                Real bz = std::abs(g.data(bz_var, i, j, k));
+                Real local_cfl = bx * cur_dt / g.dx(0)
+                               + by * cur_dt / g.dx(1)
+                               + bz * cur_dt / g.dx(2);
+                max_adv_cfl = std::max(max_adv_cfl, local_cfl);
+            }
+        }
+        if (max_adv_cfl > 0.95) {
+            std::cout << "  [CFL-GUARD] Advection CFL=" << max_adv_cfl << " > 0.95 at sub-step!\n";
+        }
+    };
+
     while (t < params.t_final && step < params.max_steps) {
         if (t + dt > params.t_final)
             dt = params.t_final - t;
 
-        if (step > 0 && step % params.regrid_interval == 0) {
-            hierarchy.regrid(amr::gradientChiTagger(params.refine_threshold));
-            syncBlocks();
-            hierarchy.fillGhostZones(0);
-        }
+        // Sync dt into hierarchy level 0 in case dt was reduced by CFL guard
+        hierarchy.setLevelDt(0, dt);
 
-        TimeIntegrator::sspRK3Step(active_bundles, id_to_index, ccz4, grmhd, dt);
-
-        // ── Adaptive CFL monitoring (Stream C2) ────────────────────
-        // After each step, compute max|β|·dt/dx. If approaching unity,
-        // issue warnings or reduce dt for safety.
-        {
-            Real max_adv_cfl = 0.0;
-            for (auto& bundle : active_bundles) {
-                GridBlock& g = *(bundle.st);
-                const int bx_var = static_cast<int>(SpacetimeVar::SHIFT_X);
-                const int by_var = static_cast<int>(SpacetimeVar::SHIFT_Y);
-                const int bz_var = static_cast<int>(SpacetimeVar::SHIFT_Z);
-                for (int k = g.istart(); k < g.iend(2); ++k)
-                for (int j = g.istart(); j < g.iend(1); ++j)
-                for (int i = g.istart(); i < g.iend(0); ++i) {
-                    Real bx = std::abs(g.data(bx_var, i, j, k));
-                    Real by = std::abs(g.data(by_var, i, j, k));
-                    Real bz = std::abs(g.data(bz_var, i, j, k));
-                    Real local_cfl = bx * dt / g.dx(0)
-                                   + by * dt / g.dx(1)
-                                   + bz * dt / g.dx(2);
-                    max_adv_cfl = std::max(max_adv_cfl, local_cfl);
-                }
-            }
-            if (max_adv_cfl > 0.95) {
-                // Emergency dt reduction
-                Real new_dt = dt * 0.8;
-                std::cout << "  [CFL-GUARD] Advection CFL=" << max_adv_cfl
-                          << " > 0.95 — reducing dt: " << dt << " -> " << new_dt << "\n";
-                dt = new_dt;
-            } else if (max_adv_cfl > 0.8 && step % params.output_interval == 0) {
-                std::cout << "  [CFL-WARN] Advection CFL=" << max_adv_cfl << " approaching limit\n";
-            }
-        }
+        // The AMR Hierarchy drives the recursive evolution and regridding
+        hierarchy.subcycle(0, evolve_func, amr::gradientChiTagger(params.refine_threshold));
 
         t += dt;
         step++;
 
-        // Per-step NaN scan (first 20 steps only — remove once stable)
-        // Variable map: 0=CHI, 1-6=GAMMA, 7-12=A, 13=K,
-        //               14-16=GAMMA_HAT, 17=THETA, 18=LAPSE, 19-21=SHIFT
+        // Per-step NaN scan (first 20 loops only — remove once stable)
         if (step <= 20) {
             bool found_nan = false;
-            for (auto& bundle : active_bundles) {
-                GridBlock& g = *(bundle.st);
-                for (int v = 0; v < g.getNumVars() && !found_nan; ++v)
-                for (int k = g.istart(); k < g.iend(2) && !found_nan; ++k)
-                for (int j = g.istart(); j < g.iend(1) && !found_nan; ++j)
-                for (int i = g.istart(); i < g.iend(0) && !found_nan; ++i) {
-                    Real val = g.data(v, i, j, k);
+            for (auto* b : hierarchy.getAllBlocks()) {
+                if (found_nan) break;
+                for (int v = 0; v < b->getNumVars() && !found_nan; ++v)
+                for (int k = b->istart(2); k < b->iend(2) && !found_nan; ++k)
+                for (int j = b->istart(1); j < b->iend(1) && !found_nan; ++j)
+                for (int i = b->istart(0); i < b->iend(0) && !found_nan; ++i) {
+                    Real val = b->data(v, i, j, k);
                     if (std::isnan(val) || std::isinf(val)) {
                         std::cout << "  [NaN@step=" << step << "] ST var=" << v
                             << " (" << i << "," << j << "," << k << ")"
@@ -1095,13 +1166,15 @@ int main(int argc, char* argv[]) {
 
             for (auto* block : hierarchy.getAllBlocks()) {
                 ccz4.computeConstraints(*block, ham, mom);
-                int is = block->istart();
+                int is0 = block->istart(0);
+                int is1 = block->istart(1);
+                int is2 = block->istart(2);
                 int ie0 = block->iend(0);
                 int ie1 = block->iend(1);
                 int ie2 = block->iend(2);
-                for (int k = is; k < ie2; ++k)
-                    for (int j = is; j < ie1; ++j)
-                        for (int i = is; i < ie0; ++i) {
+                for (int k = is2; k < ie2; ++k)
+                    for (int j = is1; j < ie1; ++j)
+                        for (int i = is0; i < ie0; ++i) {
                             int flat = block->totalCells(0) * (block->totalCells(1) * k + j) + i;
                             ham_l2 += ham[flat] * ham[flat];
                             count++;

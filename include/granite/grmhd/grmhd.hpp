@@ -126,6 +126,9 @@ public:
     /// Whether this EOS uses T and Ye as independent variables.
     /// Drives the con2prim pathway selection.
     virtual bool isTabulated() const { return false; }
+
+    /// Adiabatic index for atmosphere fallback.
+    virtual Real gamma() const { return 5.0 / 3.0; }
 };
 
 /**
@@ -226,6 +229,8 @@ struct GRMHDParams {
     int  con2prim_maxiter = 30;      ///< Max iterations for conservative-to-primitive
     Real con2prim_tol   = 1.0e-10;   ///< Convergence tolerance
     bool use_constrained_transport = true;  ///< Enforce ∇·B = 0 via CT
+    Real excision_chi_thresh = 1.0e-4; ///< Threshold for puncture excision mask
+    Real sigma_max      = 100.0;     ///< Maximum magnetization (b^2 / 2rho)
 };
 
 // ===========================================================================

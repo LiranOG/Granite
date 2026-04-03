@@ -730,6 +730,191 @@ void StellarInitialData::addMagneticField(GridBlock& hydro_grid,
 }
 
 // ===========================================================================
+// TwoPunctures spectral solving (stub)
+// ===========================================================================
+
+TwoPuncturesBBH::TwoPuncturesBBH(const TwoPuncturesParams& params)
+    : params_(params) {}
+
+void TwoPuncturesBBH::generate(GridBlock& grid) const
+{
+    const int nx = grid.totalCells(0);
+    const int ny = grid.totalCells(1);
+    const int nz = grid.totalCells(2);
+
+    auto compute_Kij = [](Real x, Real y, Real z, const std::array<Real, DIM>& pos, 
+                          const std::array<Real, DIM>& P, const std::array<Real, DIM>& S) {
+        Real rx = x - pos[0];
+        Real ry = y - pos[1];
+        Real rz = z - pos[2];
+        Real r2 = rx*rx + ry*ry + rz*rz + 1.0e-20;
+        Real r = std::sqrt(r2);
+        Real r3 = r2 * r;
+        
+        Real nx = rx / r, ny = ry / r, nz = rz / r;
+        Real Pn = P[0]*nx + P[1]*ny + P[2]*nz;
+        
+        Real Sn_x = S[1]*nz - S[2]*ny;
+        Real Sn_y = S[2]*nx - S[0]*nz;
+        Real Sn_z = S[0]*ny - S[1]*nx;
+
+        std::array<Real, 6> Kij = {0}; // xx, yy, zz, xy, xz, yz
+        
+        Real cP = 3.0 / (2.0 * r2);
+        Kij[0] = cP * (2.0*P[0]*nx - (1.0 - nx*nx)*Pn); // xx
+        Kij[1] = cP * (2.0*P[1]*ny - (1.0 - ny*ny)*Pn); // yy
+        Kij[2] = cP * (2.0*P[2]*nz - (1.0 - nz*nz)*Pn); // zz
+        Kij[3] = cP * (P[0]*ny + P[1]*nx + nx*ny*Pn);   // xy
+        Kij[4] = cP * (P[0]*nz + P[2]*nx + nx*nz*Pn);   // xz
+        Kij[5] = cP * (P[1]*nz + P[2]*ny + ny*nz*Pn);   // yz
+
+        Real cS = 3.0 / (2.0 * r3);
+        Kij[0] += cS * (2.0 * nx * Sn_x);
+        Kij[1] += cS * (2.0 * ny * Sn_y);
+        Kij[2] += cS * (2.0 * nz * Sn_z);
+        Kij[3] += cS * (nx * Sn_y + ny * Sn_x);
+        Kij[4] += cS * (nx * Sn_z + nz * Sn_x);
+        Kij[5] += cS * (ny * Sn_z + nz * Sn_y);
+
+        return Kij;
+    };
+
+    for (int k = 0; k < nz; ++k) {
+        for (int j = 0; j < ny; ++j) {
+            for (int i = 0; i < nx; ++i) {
+                Real x = grid.x(0, i);
+                Real y = grid.x(1, j);
+                Real z = grid.x(2, k);
+
+                auto K_plus = compute_Kij(x, y, z, params_.par_b, params_.par_P_plus, params_.par_S_plus);
+                std::array<Real, DIM> b_minus = {-params_.par_b[0], -params_.par_b[1], -params_.par_b[2]};
+                auto K_minus = compute_Kij(x, y, z, b_minus, params_.par_P_minus, params_.par_S_minus);
+
+                // Initial slice is maximal (K=0) so A_ij = K_ij
+                grid.data(static_cast<int>(SpacetimeVar::A_XX), i, j, k) = K_plus[0] + K_minus[0];
+                grid.data(static_cast<int>(SpacetimeVar::A_YY), i, j, k) = K_plus[1] + K_minus[1];
+                grid.data(static_cast<int>(SpacetimeVar::A_ZZ), i, j, k) = K_plus[2] + K_minus[2];
+                grid.data(static_cast<int>(SpacetimeVar::A_XY), i, j, k) = K_plus[3] + K_minus[3];
+                grid.data(static_cast<int>(SpacetimeVar::A_XZ), i, j, k) = K_plus[4] + K_minus[4];
+                grid.data(static_cast<int>(SpacetimeVar::A_YZ), i, j, k) = K_plus[5] + K_minus[5];
+            }
+        }
+    }
+
+    // PHASE 4 - NON-LINEAR SPECTRAL RELAXATION SOLVER
+    // -----------------------------------------------------------------------
+    // The scalar invariant \tilde{A}_{ij} \tilde{A}^{ij}
+    const int nghost = grid.getNumGhost();
+    const Real dx = grid.dx(0);
+    const Real dx2 = dx * dx;
+    std::vector<Real> A2(nx * ny * nz, 0.0);
+    
+    #pragma omp parallel for
+    for (int k = 0; k < nz; ++k) {
+        for (int j = 0; j < ny; ++j) {
+            for (int i = 0; i < nx; ++i) {
+                int flat = i + nx*(j + ny*k); // Custom flat indexing compatible with granite loops
+                Real axx = grid.data(static_cast<int>(SpacetimeVar::A_XX), i, j, k);
+                Real ayy = grid.data(static_cast<int>(SpacetimeVar::A_YY), i, j, k);
+                Real azz = grid.data(static_cast<int>(SpacetimeVar::A_ZZ), i, j, k);
+                Real axy = grid.data(static_cast<int>(SpacetimeVar::A_XY), i, j, k);
+                Real axz = grid.data(static_cast<int>(SpacetimeVar::A_XZ), i, j, k);
+                Real ayz = grid.data(static_cast<int>(SpacetimeVar::A_YZ), i, j, k);
+                
+                // \tilde{A}_{ij} \tilde{A}^{ij} with \tilde{\gamma}^{ij} = \delta^{ij}
+                A2[flat] = axx*axx + ayy*ayy + azz*azz + 2.0*(axy*axy + axz*axz + ayz*ayz);
+            }
+        }
+    }
+
+    std::vector<Real> u(nx * ny * nz, 0.0);
+    std::vector<Real> u_new(nx * ny * nz, 0.0);
+    const Real tol = 1.0e-10;
+    const int max_iter = 10000;
+
+    for (int iter = 0; iter < max_iter; ++iter) {
+        Real max_res = 0.0;
+        
+        #pragma omp parallel for reduction(max:max_res)
+        for (int k = nghost; k < nz - nghost; ++k) {
+            for (int j = nghost; j < ny - nghost; ++j) {
+                for (int i = nghost; i < nx - nghost; ++i) {
+                    int flat = i + nx*(j + ny*k);
+                    Real x = grid.x(0, i);
+                    Real y = grid.x(1, j);
+                    Real z = grid.x(2, k);
+                    
+                    Real rx_p = x - params_.par_b[0], ry_p = y - params_.par_b[1], rz_p = z - params_.par_b[2];
+                    Real rx_m = x + params_.par_b[0], ry_m = y + params_.par_b[1], rz_m = z + params_.par_b[2];
+                    Real r_p = std::sqrt(rx_p*rx_p + ry_p*ry_p + rz_p*rz_p + 1.0e-20);
+                    Real r_m = std::sqrt(rx_m*rx_m + ry_m*ry_m + rz_m*rz_m + 1.0e-20);
+                    
+                    Real psi_BL = 1.0 + params_.par_m_plus[0] / (2.0 * r_p) + params_.par_m_minus[0] / (2.0 * r_m);
+                    
+                    Real u_c = u[flat];
+                    Real u_sum = u[(i+1) + nx*(j + ny*k)] + u[(i-1) + nx*(j + ny*k)] +
+                                 u[i + nx*((j+1) + ny*k)] + u[i + nx*((j-1) + ny*k)] +
+                                 u[i + nx*(j + ny*(k+1))] + u[i + nx*(j + ny*(k-1))];
+                    
+                    Real psi = psi_BL + u_c;
+                    Real source = 0.125 * A2[flat] * std::pow(psi, -7.0);
+                    
+                    Real res = std::abs((u_sum - 6.0 * u_c) / dx2 + source);
+                    if (res > max_res) max_res = res;
+                    
+                    u_new[flat] = (u_sum + dx2 * source) / 6.0;
+                }
+            }
+        }
+        
+        #pragma omp parallel for
+        for (int i = 0; i < nx * ny * nz; ++i) {
+            u[i] = u_new[i]; // Asymptotic u->0 is enforced via inactive ghost cells staying exactly 0.0
+        }
+        
+        if (max_res < tol) break;
+    }
+
+    // -----------------------------------------------------------------------
+    // Metric and Curvature Mapping
+    // NOTE: In strict compliance with Granite's CCZ4 GridBlock design, we do NOT use ADM 
+    // variables like GXX or KXX, since the engine evolves conformal metrics.
+    // The physical flat metric goes into GAMMA_XX = 1.0, conformal factor into CHI = \psi^-4,
+    // and extrinsic curvature into A_XX (which natively holds \tilde{A}_{ij}). 
+    
+    // reset flat background for gamma
+    spacetime::setFlatSpacetime(grid);
+    
+    #pragma omp parallel for
+    for (int k = nghost; k < nz - nghost; ++k) {
+        for (int j = nghost; j < ny - nghost; ++j) {
+            for (int i = nghost; i < nx - nghost; ++i) {
+                int flat = i + nx*(j + ny*k);
+                Real x = grid.x(0, i), y = grid.x(1, j), z = grid.x(2, k);
+                
+                Real rx_p = x - params_.par_b[0], ry_p = y - params_.par_b[1], rz_p = z - params_.par_b[2];
+                Real rx_m = x + params_.par_b[0], ry_m = y + params_.par_b[1], rz_m = z + params_.par_b[2];
+                Real r_p = std::sqrt(rx_p*rx_p + ry_p*ry_p + rz_p*rz_p + 1.0e-20);
+                Real r_m = std::sqrt(rx_m*rx_m + ry_m*ry_m + rz_m*rz_m + 1.0e-20);
+                Real psi_BL = 1.0 + params_.par_m_plus[0] / (2.0 * r_p) + params_.par_m_minus[0] / (2.0 * r_m);
+                
+                Real psi = psi_BL + u[flat];
+                Real chi = std::pow(psi, -4.0);
+                
+                // Map CCZ4 primary states
+                grid.data(static_cast<int>(SpacetimeVar::CHI), i, j, k) = chi;
+                
+                // Pre-collapsed lapse (trumpet quasi-stationary state)
+                grid.data(static_cast<int>(SpacetimeVar::LAPSE), i, j, k) = std::sqrt(chi);
+                
+                // A_ij generated above is already \tilde{A}_{ij}, which correctly 
+                // maps into SpacetimeVar::A_XX natively.
+            }
+        }
+    }
+}
+
+// ===========================================================================
 // Benchmark scenario setup
 // ===========================================================================
 

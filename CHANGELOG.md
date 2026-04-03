@@ -8,11 +8,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > **A Note on Commit Granularity**  
 > Each commit in this repository represents a major integration milestone, not an individual line-edit. The work described below spans thousands of lines of C++ physics code, multiple debugging and stabilization sessions, and a rigorous, multi-phase audit. This changelog enumerates every significant change in granular detail so the full scope of the engineering effort is transparent to contributors, reviewers, and the scientific community. 
 
-## [v0.5.0] — Phase 8: Stability Hardening & Benchmark Ecosystem (2026-04-03)
+## [v0.6.0] — The Puncture Tracking Update (2026-04-04)
 
 ### Summary
 
-Comprehensive stability hardening of the CCZ4 evolution engine, expansion of the benchmark ecosystem with three new benchmark configurations and a machine-readable validation test suite, and resolution of documentation inconsistencies. This phase consolidates all lessons learned from the Phase 6–7 stability investigations into a production-ready architecture. Test count increased from **90 → 92** (100% pass rate) with two new selective advection unit tests.
+This mega-release consolidates Phase 8 stability hardening of the CCZ4 evolution engine with the massive Phase 2 Multi-level Adaptive Mesh Refinement (AMR) and Binary Black Hole (BBH) initial data integration. The engine has fully transitioned from a master single-grid architectural model to a Berger-Oliger recursive hierarchy capable of sustaining puncture tracking. Alongside solver upgrades, the diagnostic tracking tools have been completely overhauled for professional-grade terminal forensics. Test count increased from **90 → 92** (100% pass rate) with two new selective advection unit tests.
+
+---
+
+### Added — Universal Append-Only Simulation Dashboard (`sim_tracker.py`)
+
+- **File:** `scripts/sim_tracker.py`
+- Completely rewrote the Python tracking toolkit to function as an append-only live dashboard, eliminating `\r` and cursor-up resets to preserve terminal history and prevent output-mangling from C++ diagnostic logs.
+- Added real-time phase classification (e.g., Inspiral, Merger, Ringdown).
+- Included real-time exponential constraint growth rate ($\gamma$) calculations for the Hamiltonian constraint.
+- Added a "Zombie State" detector to instantly flag frozen physics when $\alpha$ and $\Vert H \Vert_2$ stagnate due to hierarchy synchronization failures.
+- Implemented robust NaN forensics to track numerical explosions, pinpointing the variable that seeded the NaN and calculating its propagation speed across the grid.
+- Integrated automated post-run Matplotlib summaries to visualize constraint growth and phase transitions instantly upon simulation completion.
+
+---
+
+### Added — `TwoPuncturesBBH` Spectral Initial Data
+
+- **Files:** `src/core/initial_data.cpp`, `include/granite/core/initial_data.hpp`
+- Mapped the analytical Bowen-York extrinsic curvature $K_{ij}$ fields to the macroscopic `GridBlock` tensors for arbitrary puncture momenta and spins.
+- Implemented a Jacobi/Newton-Raphson iterative relaxation solver for the Hamiltonian constraint to accurately compute the conformal factor correction $u$ on top of the Brill-Lindquist background.
+- Routed the YAML initialization hook to properly construct `TwoPuncturesBBH` whenever `type: two_punctures` is specified, officially enabling BBH simulation.
+- **Tracking Spheres:** Implemented automatic tracking sphere registration in `main.cpp` for binary black hole punctures, instructing the AMR hierarchy to dynamically focus grid refinement down to the required `min_level` around moving horizons.
+
+---
+
+### Changed — Adaptive Mesh Refinement (AMR) Architecture Overhaul
+
+- **Files:** `src/amr/amr.cpp`, `include/granite/amr/amr.hpp`
+- **Subcycling:** Implemented full Berger-Oliger recursive subcycling (`subcycle()`). Finer levels now take proportionally smaller, independent $dt$ sub-steps per coarse step.
+- **Block-Merging Algorithm:** Introduced a conservative bounding-box geometric merge algorithm in `regrid()` during refinement cascading. Proposed refinement patches around tracking spheres are iteratively union-merged if they touch or overlap, strictly eliminating duplicate cells and preventing fatal MPI `syncBlocks()` deadlocks for close binaries.
+- **Physical Extent Alignment:** Refactored `regrid()` child block geometry math. Child $dx$ is now *strictly* forced to `parent_dx / ratio`, rather than being arbitrarily derived from sphere bounding box radii, ensuring exact grid boundary alignment and eliminating sub-grid drift.
+- **Time-step Synchronization:** Added `setLevelDt()` to cascade and synchronize CFL-limited time steps from the Level 0 master domain down through the entire AMR hierarchy before execution, fixing the "Zombie Physics" bug where fine grids remained frozen at $dt=0$.
+- **Conservative Restriction:** Built out `restrict_data()` logic using volume-weighted averaging and outlined conservative flux-correction (refluxing) hooks for GRMHD.
+
+---
+
+### Fixed — Coarse-Fine Interpolation & Ghost Cell Contamination
+
+- **File:** `src/amr/amr.cpp`
+- **Prolongation Origin Off-by-N Bug:** Fixed a catastrophic bug in `prolongate()` where the coordinate mapping scalar was incorrectly offset from the coarse grid's ghost boundary (`coarse.x(0,0)`) rather than the interior origin. This massive offset forced the interpolator out of bounds and left fine ghost cells entirely uninitialized.
+- **Coarse-Fine Boundary Interpolation:** Fixed `fillGhostZones()` to correctly interpolate and prolongate boundary data from the active parent level into fine ghost cells *before* assigning fallback zero-gradient boundary conditions. This eliminates the instantaneous and fatal infinite-gradient explosions (`CFL = 5.8e28`) previously caused by stale ghost data interacting with post-step interior cells.
+- **Initial Refinement Cascade:** Fixed `initialize()` to guarantee instantaneous, forced refinement cascading down to the deepest required `min_level` for all tracking spheres at $t=0$, bypassing the lack of gradient-based tagging on the initial flat spacetime slice.
+
+
+### Fixed — Diagnostic Memory Access & Multidimensional Loops
+
+- **File:** `src/main.cpp`
+- **Linear Indexing Offset Bug:** Fixed a syntax bug where parameterless `istart()` and `iend()` were called on `GridBlock` objects during terminal diagnostics (like computing $\alpha_{center}$). Updated the accessors strictly to `istart(0)`, `iend(1)`, etc., restoring correct iteration across the multidimensional memory spaces.
 
 ---
 

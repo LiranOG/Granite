@@ -524,9 +524,9 @@ int GRMHDEvolution::conservedToPrimitive(const GridBlock& spacetime_grid,
         const Real Sy  = hydro_grid.data(iSY,  i, j, k);
         const Real Sz  = hydro_grid.data(iSZ,  i, j, k);
         const Real tau = hydro_grid.data(iTAU, i, j, k);
-        const Real Bx  = hydro_grid.data(iBX,  i, j, k);
-        const Real By  = hydro_grid.data(iBY,  i, j, k);
-        const Real Bz  = hydro_grid.data(iBZ,  i, j, k);
+        Real Bx  = hydro_grid.data(iBX,  i, j, k);
+        Real By  = hydro_grid.data(iBY,  i, j, k);
+        Real Bz  = hydro_grid.data(iBZ,  i, j, k);
         const Real DYe = hydro_grid.data(iDYE, i, j, k);
 
         // Extract electron fraction from conserved variable
@@ -537,23 +537,36 @@ int GRMHDEvolution::conservedToPrimitive(const GridBlock& spacetime_grid,
 
         // Read metric (to get physical metric determinant β)
         const Metric3 met = readMetric(spacetime_grid, i, j, k);
+        const Real chi = std::max(spacetime_grid.data(iCHI, i, j, k), 1.0e-12);
+        
+        // Chi-scaled atmosphere
+        const Real atm_local = params_.atm_density * std::pow(chi, 1.5);
+        const Real atm_press_local = params_.atm_pressure * std::pow(chi, 1.5);
 
-        // Apply atmosphere floor
-        if (D < params_.atm_density * 1.1) {
+        // Apply excision mask or atmosphere floor
+        if (chi < params_.excision_chi_thresh || D < atm_local * 1.1 || !std::isfinite(D)) {
             const Real Ye_atm = 0.5;  // symmetric for atmosphere
-            prim_grid.data(iRHO,   i, j, k) = params_.atm_density;
+            prim_grid.data(iRHO,   i, j, k) = atm_local;
             prim_grid.data(iVX,    i, j, k) = 0.0;
             prim_grid.data(iVY,    i, j, k) = 0.0;
             prim_grid.data(iVZ,    i, j, k) = 0.0;
-            prim_grid.data(iPRESS, i, j, k) = params_.atm_pressure;
-            prim_grid.data(iEPS,   i, j, k) = params_.atm_pressure
-                / ((5.0/3.0 - 1.0) * params_.atm_density + 1.0e-30);
+            prim_grid.data(iPRESS, i, j, k) = atm_press_local;
+            prim_grid.data(iEPS,   i, j, k) = atm_press_local
+                / ((eos_->gamma() - 1.0) * atm_local + 1.0e-30);
             prim_grid.data(iPBX,   i, j, k) = Bx;
             prim_grid.data(iPBY,   i, j, k) = By;
             prim_grid.data(iPBZ,   i, j, k) = Bz;
             prim_grid.data(iTEMP,  i, j, k) = 0.0;
             prim_grid.data(iYE,    i, j, k) = Ye_atm;
             continue;
+        }
+        
+        // Magnetization limiter: cap B^2 relative to rho
+        // At this point we don't have true rho, but D > rho, so scaling B by D is a conservative safe cap.
+        Real b2_est = (Bx*Bx + By*By + Bz*Bz) / (D + 1.0e-30);
+        if (b2_est > params_.sigma_max * 2.0 * D) {
+            Real scale = std::sqrt(params_.sigma_max * 2.0 * D / (b2_est + 1.0e-30));
+            Bx *= scale; By *= scale; Bz *= scale;
         }
 
         // S² = S_i S^i = S_i γ^{ij} S_j
@@ -670,13 +683,13 @@ int GRMHDEvolution::conservedToPrimitive(const GridBlock& spacetime_grid,
         if (!converged) {
             ++failed_cells;
             // Failsafe atmosphere
-            prim_grid.data(iRHO,   i, j, k) = params_.atm_density;
+            prim_grid.data(iRHO,   i, j, k) = atm_local;
             prim_grid.data(iVX,    i, j, k) = 0.0;
             prim_grid.data(iVY,    i, j, k) = 0.0;
             prim_grid.data(iVZ,    i, j, k) = 0.0;
-            prim_grid.data(iPRESS, i, j, k) = params_.atm_pressure;
-            prim_grid.data(iEPS,   i, j, k) = params_.atm_pressure
-                / ((5.0/3.0 - 1.0) * params_.atm_density + 1.0e-30);
+            prim_grid.data(iPRESS, i, j, k) = atm_press_local;
+            prim_grid.data(iEPS,   i, j, k) = atm_press_local
+                / ((eos_->gamma() - 1.0) * atm_local + 1.0e-30);
             prim_grid.data(iPBX,   i, j, k) = Bx;
             prim_grid.data(iPBY,   i, j, k) = By;
             prim_grid.data(iPBZ,   i, j, k) = Bz;

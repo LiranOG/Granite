@@ -3,7 +3,7 @@
  * @brief Adaptive Mesh Refinement module — public interface.
  *
  * Block-structured AMR with Berger-Oliger subcycling, gradient-based
- * refinement tagging, and load balancing via space-filling curves.
+ * refinement tagging, tracking spheres, and inter-level restrictions.
  *
  * @copyright 2026 GRANITE Collaboration
  * @license GPL-3.0-or-later
@@ -16,6 +16,7 @@
 #include <functional>
 #include <memory>
 #include <vector>
+#include <array>
 
 namespace granite::amr {
 
@@ -23,14 +24,23 @@ struct AMRParams {
     int max_levels          = 15;     ///< Maximum refinement levels
     int refinement_ratio    = 2;      ///< Ratio between consecutive levels
     int regrid_interval     = 4;      ///< Coarse steps between regridding
-    int buffer_width        = 2;      ///< Buffer cells around tagged region
+    int buffer_width        = 4;      ///< Buffer cells around tagged region
     Real refine_threshold   = 0.1;    ///< Gradient threshold for tagging
     Real derefine_threshold = 0.05;   ///< Threshold for de-refinement
     bool subcycling         = true;   ///< Berger-Oliger time subcycling
 };
 
+struct TrackingSphere {
+    std::array<Real, DIM> center;
+    Real radius;
+    int min_level;                    ///< Minimum AMR level to force within sphere
+};
+
 /// Refinement criterion function type
 using TaggingFunction = std::function<bool(const GridBlock& block, int i, int j, int k)>;
+
+/// Signature for single-level physics evolution step, used by AMRHierarchy::subcycle
+using EvolutionStepFunc = std::function<void(std::vector<GridBlock*>& blocks, Real dt)>;
 
 /**
  * @class AMRHierarchy
@@ -42,11 +52,14 @@ public:
                           const SimulationParams& sim_params);
     ~AMRHierarchy() = default;
 
-    /// Initialize the hierarchy with the coarsest level
-    void initialize();
+    /// Initialize the hierarchy recursively with internal tagging
+    void initialize(const TaggingFunction& tagger);
 
-    /// Regrid: tag cells, cluster into patches, create/destroy blocks
-    void regrid(const TaggingFunction& tagger);
+    /// Core Berger-Oliger recursive timestep subcycling loop
+    void subcycle(int level, const EvolutionStepFunc& evolve_func, const TaggingFunction& tagger);
+
+    /// Regrid: tag cells, cluster, create child blocks, and prolongate recursively
+    void regrid(int level, const TaggingFunction& tagger);
 
     /// Get all blocks at a given refinement level
     std::vector<GridBlock*> getLevel(int level);
@@ -61,17 +74,25 @@ public:
     /// Total number of active blocks
     int numBlocks() const;
 
+    /// Inject a time step into a specific level (must be called before subcycle).
+    /// This is the mechanism by which main.cpp keeps level dt in sync with the
+    /// global CFL-controlled dt.
+    void setLevelDt(int level, Real dt);
+
     /// Fill ghost zones (inter-block communication + boundary conditions)
     void fillGhostZones(int level);
 
-    /// Prolongation: interpolate from coarse to fine level
+    /// Prolongation: 4th-order polynomial interpolation from coarse to fine level
     void prolongate(const GridBlock& coarse, GridBlock& fine) const;
 
-    /// Restriction: average from fine to coarse level
+    /// Restriction: cell-averaging injection with reflux conservation
     void restrict_data(const GridBlock& fine, GridBlock& coarse) const;
 
-    /// Add a tracking sphere (e.g. around a BH horizon)
+    /// Add a tracking sphere (e.g., around moving BH punctures)
     void addTrackingSphere(std::array<Real, DIM> center, Real radius, int min_level);
+    
+    /// Dynamically update centers of existing tracking spheres
+    void updateTrackingSpheres(const std::vector<std::array<Real, DIM>>& new_centers);
 
     /// Compute load-balancing distribution (Hilbert SFC)
     void redistributeBlocks();
@@ -88,26 +109,21 @@ private:
     struct Level {
         int level_id;
         std::vector<std::unique_ptr<GridBlock>> blocks;
-        Real dt;  ///< Time step for this level
+        Real dt;              ///< Time step for this level
+        Real current_time;    ///< Local evolution time 
     };
 
     std::vector<Level> levels_;
+    std::vector<TrackingSphere> tracking_spheres_;
 };
 
 // ===========================================================================
 // Default tagging functions
 // ===========================================================================
 
-/// Tag based on gradient of conformal factor χ
 TaggingFunction gradientChiTagger(Real threshold);
-
-/// Tag based on gradient of rest-mass density
 TaggingFunction gradientRhoTagger(Real threshold);
-
-/// Tag based on gradient of lapse α
 TaggingFunction gradientLapseTagger(Real threshold);
-
-/// Composite tagger: tag if any sub-tagger triggers
 TaggingFunction compositeTagger(std::vector<TaggingFunction> taggers);
 
 } // namespace granite::amr
