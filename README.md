@@ -47,7 +47,7 @@ conda install -c conda-forge cmake hdf5 openmpi yaml-cpp
 python scripts/run_granite.py build
 ```
 
-#### 🪟 Windows — PowerShell / CMD / VS Code / Node.js
+#### 🐚 Windows — PowerShell / CMD / VS Code / Node.js
 *Use for: Any native Windows terminal — requires CMake + VS Build Tools installed manually (see INSTALL.md)*
 ```powershell
 python scripts/run_granite.py build
