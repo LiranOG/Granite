@@ -83,3 +83,81 @@ Once correctly built, simulate anywhere exactly the same way:
 | **Live Tracking (Verbose)**| `python3 scripts/dev_benchmark.py --verbose` | `python scripts/dev_benchmark.py --verbose` |
 | **Long-Term Run (50M)** | `python3 scripts/dev_stability_test.py` | `python scripts/dev_stability_test.py` |
 | **Clean Output** | `python3 scripts/run_granite.py clean` | `python scripts/run_granite.py clean` |
+
+---
+
+## 5. Performance Tuning: Threads
+
+### The Physical vs. Logical Core Bottleneck in GRMHD / CCZ4 Simulations
+
+Modern CPUs expose two thread counts to the operating system:
+
+| Concept | What the OS sees | Reality |
+|---|---|---|
+| **Physical Cores** | True independent execution units with dedicated L1/L2 caches and ALUs | Each core computes independently in parallel |
+| **Logical Cores** (HT/SMT) | Two virtual threads scheduled on the *same* physical core | They share the same ALU, FP unit, and L1/L2 cache |
+
+For **general-purpose workloads** (web servers, IDEs, compilation), Hyper-Threading is a net win: one thread stalls on I/O while the other uses the idle units.
+
+For **GRANITE's CCZ4 spatial derivative stencils and RK3 time integration**, Hyper-Threading is a **performance liability**:
+
+1. **Cache Thrashing:** GRANITE's `GridBlock` objects are large (often > 256 KB per tile). Two HT threads on the same core **compete for the same L1/L2 cache**, causing constant evictions and cache-miss penalties.
+2. **FP Contention:** The CCZ4 inner loop is dominated by floating-point multiply-accumulate (FMA). On a hyper-threaded core pair, both threads share a **single SIMD FP pipeline** — meaning you get zero throughput gain from the second logical thread.
+3. **False Sharing:** If two logical threads write to adjacent memory locations that happen to share a cache line (common in `double` arrays), the hardware must perform expensive cache-line invalidation protocols across cores.
+
+> **Rule of thumb:** For GRANITE GRMHD/CCZ4 workloads, set `OMP_NUM_THREADS` to **physical core count**, not logical core count.
+
+---
+
+### Recommended Thread Counts for Common High-End CPUs
+
+| Processor | Physical Cores | Logical Cores (HT) | Recommended `OMP_NUM_THREADS` |
+|---|:---:|:---:|:---:|
+| AMD Threadripper PRO 5995WX | 64 | 128 | **64** |
+| AMD Threadripper PRO 5965WX | 24 | 48 | **24** |
+| AMD Threadripper 3990X | 64 | 128 | **64** |
+| AMD Threadripper 3960X | 24 | 48 | **24** |
+| AMD Ryzen 9 7950X | 16 | 32 | **16** |
+| AMD Ryzen 9 7900X | 12 | 24 | **12** |
+| AMD Ryzen 9 5950X | 16 | 32 | **16** |
+| AMD Ryzen 9 5900X | 12 | 24 | **12** |
+| Intel Core i9-14900K | 8P+16E=24 | 32 | **24** (all P+E) |
+| Intel Core i9-13900K | 8P+16E=24 | 32 | **24** (all P+E) |
+| Intel Core i9-12900K | 8P+8E=16 | 24 | **16** (all P+E) |
+| Apple M3 Max (16-core) | 16 | 16 | **16** (no HT) |
+| Apple M2 Ultra (24-core) | 24 | 24 | **24** (no HT) |
+
+> **Intel Hybrid (P+E) Note:** Intel Core 12th/13th/14th gen feature both Performance cores (P-cores, with HT) and
+> Efficiency cores (E-cores, no HT). For GRANITE workloads, using `OMP_NUM_THREADS = P-cores + E-cores` (not
+> counting HT virtual threads) is recommended. OpenMP's thread scheduler will naturally favour the P-cores for
+> compute-heavy work while E-cores handle lighter duty.
+
+---
+
+### How GRANITE Auto-Tunes Threads
+
+As of **v0.6.0**, the `run_granite.py` wrapper automatically detects and injects the correct `OMP_NUM_THREADS`
+at process launch — you no longer need to set this manually for typical use:
+
+```
+[HPC] Auto-setting OMP_NUM_THREADS to 16 (Physical Core Count) for peak performance.
+[HPC] Method: psutil  |  OMP_PROC_BIND=true  |  OMP_PLACES=cores
+```
+
+To override this behaviour and force a specific count (e.g., for benchmarking or shared-system courtesy):
+
+```bash
+# Linux / macOS / WSL2
+export OMP_NUM_THREADS=8
+
+# Windows PowerShell
+$env:OMP_NUM_THREADS = 8
+```
+
+The diagnostic tool will verify your configuration and print shell-ready copy-paste commands if anything
+is misconfigured:
+
+```bash
+python scripts/health_check.py
+```
+
