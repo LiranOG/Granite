@@ -202,7 +202,8 @@ struct SimulationParams {
     Real lorentz_max = 100.0;    ///< Maximum Lorentz factor
 
     // AMR
-    int max_amr_levels = 15;
+    int max_levels = 15;
+    int refinement_ratio = 2;
     int regrid_interval = 4;
     Real refine_threshold = 0.1;
 

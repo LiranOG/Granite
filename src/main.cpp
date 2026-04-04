@@ -251,7 +251,7 @@ public:
 
                         requests.push_back(MPI_REQUEST_NULL);
                         MPI_Isend(sbuf_st.data(),
-                                  sbuf_st.size(),
+                                  static_cast<int>(sbuf_st.size()),
                                   MPI_DOUBLE,
                                   nbr_rank,
                                   tag_st,
@@ -259,7 +259,7 @@ public:
                                   &requests.back());
                         requests.push_back(MPI_REQUEST_NULL);
                         MPI_Isend(sbuf_hy.data(),
-                                  sbuf_hy.size(),
+                                  static_cast<int>(sbuf_hy.size()),
                                   MPI_DOUBLE,
                                   nbr_rank,
                                   tag_hy,
@@ -276,7 +276,7 @@ public:
 
                         requests.push_back(MPI_REQUEST_NULL);
                         MPI_Irecv(rbuf_st.data(),
-                                  rbuf_st.size(),
+                                  static_cast<int>(rbuf_st.size()),
                                   MPI_DOUBLE,
                                   nbr_rank,
                                   recv_tag_st,
@@ -284,7 +284,7 @@ public:
                                   &requests.back());
                         requests.push_back(MPI_REQUEST_NULL);
                         MPI_Irecv(rbuf_hy.data(),
-                                  rbuf_hy.size(),
+                                  static_cast<int>(rbuf_hy.size()),
                                   MPI_DOUBLE,
                                   nbr_rank,
                                   recv_tag_hy,
@@ -296,7 +296,7 @@ public:
 
             if (!requests.empty()) {
                 std::vector<MPI_Status> statuses(requests.size());
-                MPI_Waitall(requests.size(), requests.data(), statuses.data());
+                MPI_Waitall(static_cast<int>(requests.size()), requests.data(), statuses.data());
             }
 
             r_idx = 0; // Reset existing r_idx instead of redeclaring
@@ -831,6 +831,17 @@ int main(int argc, char* argv[]) {
                     params.t_final = time["t_final"].as<Real>();
                 if (time["max_steps"])
                     params.max_steps = time["max_steps"].as<int>();
+            }
+            if (config["amr"]) {
+                auto amr = config["amr"];
+                if (amr["max_levels"])
+                    params.max_levels = amr["max_levels"].as<int>();
+                if (amr["refinement_ratio"])
+                    params.refinement_ratio = amr["refinement_ratio"].as<int>();
+                if (amr["regrid_interval"])
+                    params.regrid_interval = amr["regrid_interval"].as<int>();
+                if (amr["refine_threshold"])
+                    params.refine_threshold = amr["refine_threshold"].as<Real>();
             }
             if (config["ccz4"]) {
                 auto ccz4 = config["ccz4"];
