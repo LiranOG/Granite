@@ -209,30 +209,34 @@ Logs are automatically saved to `dev_logs/dev_benchmark_<timestamp>.log`.
 
 ## 📁 Repository Structure
 
+The architectural layout of the GRANITE engine is cleanly decoupled into modular subsystems. Below is the structural overview of the physics modules, diagnostics, and deployment ecosystem.
+
 ```text
 Granite/
-├── benchmarks/          # YAML parameter files for standard test cases
-│   └── single_puncture/ # Single moving-puncture BH benchmark
-├── containers/          # Docker & Singularity recipes for HPC clusters
-├── dev_logs/            # Auto-generated benchmark logs (git-ignored)
-├── docs/                # Sphinx documentation, user guides, internal notes
-├── include/granite/     # C++ Public Headers
-│   ├── core/            # Types, GridBlock data structures, constants
-│   ├── grmhd/           # GRMHD kernels (HLLE/HLLD, EOS, CT)
-│   ├── horizon/         # Apparent horizon finder
-│   ├── initial_data/    # Brill-Lindquist, Bowen-York, TOV setters
-│   ├── io/              # HDF5 output writers and readers
-│   ├── neutrino/        # Leakage + M1 neutrino schemes
-│   ├── postprocess/     # GW extraction (Ψ₄) and recoil estimation
-│   ├── radiation/       # M1 photon transport
-│   └── spacetime/       # CCZ4 RHS evolution equations
-├── python/              # granite_analysis Python post-processing package
-├── scripts/             # Python wrapper scripts
-│   ├── run_granite.py   # Unified build/run/format wrapper
-│   └── dev_benchmark.py # Developer diagnostic benchmark
-│   └── dev_stability_test.py # Developer diagnostic benchmark 
-├── src/                 # C++ source implementations
-└── tests/               # 92 GoogleTest unit & integration tests
+├── benchmarks/          # Central hub for YAML physics scenarios and simulation presets.
+│   ├── B2_eq/           # Equal-mass (M=1.0) Binary Black Hole merger geometry configuration.
+│   ├── gauge_wave/      # 1D sinusoidal gauge validation for CCZ4 advection consistency.
+│   └── single_puncture/ # Standard 3D moving-puncture BH stability benchmark.
+├── CMakeLists.txt       # Master build configuration. Orchestrates MSVC/GCC, vcpkg, and MPI linkage.
+├── docs/                # Core documentation, engineering installation guides, and internal notes.
+├── include/granite/     # Public C++ interface headers defining the numerical abstractions.
+│   ├── amr/             # Adaptive mesh structures, tracking spheres, and Berger-Oliger interfaces.
+│   ├── core/            # Low-level primitives, dimension traits, and `GridBlock` memory boundaries.
+│   ├── grmhd/           # General Relativistic Magnetohydrodynamics routines and EOS lookup tables.
+│   ├── initial_data/    # Analytic metric setters for Brill-Lindquist and Bowen-York geometries.
+│   ├── io/              # MPI-aware HDF5 parallel data streamers and exact-state checkpoint managers.
+│   ├── postprocess/     # Gravitational wave (Ψ₄) spherical harmonic extraction and EM estimates.
+│   └── spacetime/       # Conformal and Covariant Z4 (CCZ4) evolution equations and constraints.
+├── scripts/             # Python-based diagnostic suite, health telemetry, and CI/CD wrappers.
+│   ├── dev_benchmark.py # Real-time forensic stability monitor for Hamiltonian constraints and NaNs.
+│   ├── health_check.py  # Pre-flight hardware validation ensuring maximum OpenMP core saturation.
+│   └── run_granite.py   # Unified cross-platform CLI tool for building, testing, and running sims.
+├── setup_windows.ps1    # Automated Bootstrap tool deploying vcpkg, MS-MPI, and CMake on Windows.
+├── src/                 # High-performance C++ implementation algorithms and physics kernels.
+│   ├── amr/             # Implements spatial restriction, 4th-order prolongation, and regridding.
+│   ├── spacetime/       # Highly parallelized CCZ4 right-hand-side loops computing Ricci sensors.
+│   └── main.cpp         # Main execution loop managing AMR hierarchies, I/O burst intervals, and RK3.
+└── tests/               # 92 integrated GoogleTest suite verifying physics accuracy and advection stability.
 ```
 
 ## 📋 Versioning Policy (Pre-1.0.0)
