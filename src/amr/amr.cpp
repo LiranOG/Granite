@@ -390,6 +390,25 @@ void AMRHierarchy::setLevelDt(int level, Real dt)
     }
 }
 
+void AMRHierarchy::propagateDt(Real dt_level0)
+{
+    // Task 2 (Berger-Oliger CFL fix): set every level L's dt to
+    //   dt_level0 / ratio^L
+    // This guarantees that each fine level evolves with CFL_fine = CFL_coarse / ratio,
+    // so if the coarse level is CFL ≤ 0.5 the fine level is CFL ≤ 0.25.
+    //
+    // IMPORTANT: this also sets the dt on levels that do not yet exist in levels_
+    // (new levels get their dt from Level::dt = parentDt/ratio at creation time in
+    // regrid()). This call fixes levels that were under-stepping due to stale dt
+    // from a previous CFL-reduced coarse step.
+    for (int L = 0; L < static_cast<int>(levels_.size()); ++L) {
+        Real level_dt = dt_level0;
+        for (int r = 0; r < L; ++r)
+            level_dt /= static_cast<Real>(params_.refinement_ratio);
+        levels_[L].dt = level_dt;
+    }
+}
+
 void AMRHierarchy::fillGhostZones(int level)
 {
     if (level < 0 || level >= static_cast<int>(levels_.size())) return;

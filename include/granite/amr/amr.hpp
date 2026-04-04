@@ -79,6 +79,12 @@ public:
     /// global CFL-controlled dt.
     void setLevelDt(int level, Real dt);
 
+    /// Propagate the level-0 dt down ALL levels with Berger-Oliger scaling:
+    ///   level L gets dt_level0 / refinement_ratio^L
+    /// This is the correct way to enforce CFL ≤ 0.5 on fine levels without
+    /// modifying main.cpp's global time step. Call this instead of setLevelDt(0,dt).
+    void propagateDt(Real dt_level0);
+
     /// Fill ghost zones (inter-block communication + boundary conditions)
     void fillGhostZones(int level);
 

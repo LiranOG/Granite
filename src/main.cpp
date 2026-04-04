@@ -13,11 +13,13 @@
 #include "granite/grmhd/grmhd.hpp"
 #include "granite/initial_data/initial_data.hpp"
 #include "granite/io/hdf5_io.hpp"
+#include "granite/postprocess/postprocess.hpp"
 #include "granite/spacetime/ccz4.hpp"
 
 #include <algorithm>
 #include <atomic>
 #include <cmath>
+#include <fstream>
 #include <iostream>
 #include <map>
 #include <memory>
@@ -36,6 +38,105 @@
 #endif
 
 namespace granite {
+
+// ===========================================================================
+// Task 1 Helper: Find puncture positions by scanning for alpha minima
+// ===========================================================================
+
+/// Scan all blocks at the finest available level and return up to `n_punctures`
+/// spatial positions corresponding to local minima of the lapse function alpha.
+/// Each returned position is the coordinate of the cell with the globally
+/// smallest alpha value (puncture 1) or the smallest alpha found more than
+/// `min_separation` M away from the first (puncture 2), etc.
+///
+/// This is the standard "moving puncture" tracker: the puncture always
+/// coincides with the deepest lapse collapse (alpha_min ≈ 0.3 at equilibrium).
+std::vector<std::array<Real, DIM>>
+findPuncturesByLapseMin(amr::AMRHierarchy& hier, int n_punctures,
+                        Real min_separation = 0.5)
+{
+    // Use the finest level available for best resolution
+    int finest = hier.numLevels() - 1;
+    auto blocks = hier.getLevel(finest);
+    if (blocks.empty()) blocks = hier.getAllBlocks();
+    if (blocks.empty()) return {};
+
+    constexpr int iLAPSE = 18; // SpacetimeVar::LAPSE
+
+    // Collect (alpha, x, y, z) for every interior cell
+    struct CellMin { Real alpha, x, y, z; };
+    std::vector<CellMin> minima;
+    minima.reserve(blocks.size() * 4);
+
+    for (auto* blk : blocks) {
+        for (int k = blk->istart(2); k < blk->iend(2); ++k)
+        for (int j = blk->istart(1); j < blk->iend(1); ++j)
+        for (int i = blk->istart(0); i < blk->iend(0); ++i) {
+            Real a = blk->data(iLAPSE, i, j, k);
+            // Only consider cells where lapse has collapsed (puncture region)
+            if (a < 0.5) {
+                minima.push_back({a, blk->x(0,i), blk->x(1,j), blk->x(2,k)});
+            }
+        }
+    }
+
+    if (minima.empty()) return {};
+
+    // Sort ascending by alpha — lowest is closest to puncture
+    std::sort(minima.begin(), minima.end(),
+              [](const CellMin& a, const CellMin& b){ return a.alpha < b.alpha; });
+
+    // Pick up to n_punctures that are spatially separated by > min_separation
+    std::vector<std::array<Real, DIM>> result;
+    for (const auto& m : minima) {
+        bool too_close = false;
+        for (const auto& existing : result) {
+            Real dx = m.x - existing[0];
+            Real dy = m.y - existing[1];
+            Real dz = m.z - existing[2];
+            if (std::sqrt(dx*dx + dy*dy + dz*dz) < min_separation) {
+                too_close = true;
+                break;
+            }
+        }
+        if (!too_close) {
+            result.push_back({m.x, m.y, m.z});
+            if (static_cast<int>(result.size()) >= n_punctures) break;
+        }
+    }
+    return result;
+}
+
+// ===========================================================================
+// Task 3 Helper: Compute orbital separation and assign phase label
+// ===========================================================================
+
+/// Compute the Euclidean separation between two puncture positions.
+Real computeSeparation(const std::vector<std::array<Real, DIM>>& positions)
+{
+    if (positions.size() < 2) return -1.0; // single BH or not found
+    Real dx = positions[0][0] - positions[1][0];
+    Real dy = positions[0][1] - positions[1][1];
+    Real dz = positions[0][2] - positions[1][2];
+    return std::sqrt(dx*dx + dy*dy + dz*dz);
+}
+
+/// Return the orbital phase label based on physical separation D (in units of M).
+/// Thresholds are for M_total = 1.0 (user-confirmed):
+///   D > 5.0 M  →  "Early Inspiral"
+///   1.5 < D ≤ 5.0 M  →  "Late Inspiral"
+///   D_prev_not_found OR D ≤ 1.5 M  →  "Merger"
+///   (single BH + alpha recovering)  →  "Ringdown"
+std::string phaseLabel(Real D, Real alpha_center)
+{
+    if (D < 0.0) {
+        // Could not find two punctures — either merged or single BH run
+        return (alpha_center > 0.5) ? "Ringdown" : "Merger";
+    }
+    if (D > 5.0) return "Early Inspiral";
+    if (D > 1.5) return "Late Inspiral";
+    return "Merger";
+}
 
 struct BlockBundle {
     int id;
@@ -1049,6 +1150,31 @@ int main(int argc, char* argv[]) {
     io_params.checkpoint_interval = params.checkpoint_interval;
     io::HDF5Writer writer(io_params);
 
+    // --- Task 4: Psi4 GW Extractor ---
+    // Extraction radii R=8.0M and R=12.0M are within the default ±16M domain.
+    // n_theta=40, n_phi=80 gives ~3200 points per sphere — sufficient for (l,m)=(2,2).
+    postprocess::GWExtractionParams gw_params;
+    gw_params.extraction_radii = {8.0, 12.0};
+    gw_params.l_max  = 4;
+    gw_params.n_theta = 40;
+    gw_params.n_phi   = 80;
+    postprocess::Psi4Extractor psi4_extractor(gw_params);
+
+    // Open GW output file — written every output_interval steps
+    std::ofstream gw_file(params.output_dir + "/gw_extraction.dat");
+    if (!gw_file.is_open()) {
+        std::cerr << "[GW] WARNING: could not open gw_extraction.dat in '"
+                  << params.output_dir << "'\n";
+    } else {
+        gw_file << "# Granite GW Extraction — Psi4 modes on coordinate spheres\n";
+        gw_file << "# Columns: t  "
+                   "Re(Psi4_22_r8)  Im(Psi4_22_r8)  "
+                   "Re(Psi4_22_r12) Im(Psi4_22_r12)  "
+                   "Re(Psi4_21_r8)  Im(Psi4_21_r8)  "
+                   "E_rad_r12\n";
+        gw_file.flush();
+    }
+
     // --- Compute time step ---
     auto initial_blocks = hierarchy.getAllBlocks();
     GridBlock* base_block = initial_blocks[0];
@@ -1060,11 +1186,12 @@ int main(int argc, char* argv[]) {
     std::cout << "dx = " << dx_min << ", dt = " << dt << "\n";
     std::cout << "t_final = " << params.t_final << "\n\n";
 
-    // --- Inject level-0 dt into AMR hierarchy (fixes zombie state) ---
-    // The hierarchy's level 0 was initialized with dt=0.0. We must set it
-    // to the CFL-computed dt before subcycle() is called, otherwise
-    // evolve_func always receives cur_dt=0 and the state never advances.
-    hierarchy.setLevelDt(0, dt);
+    // --- Task 2: Propagate dt across ALL AMR levels (Berger-Oliger CFL fix) ---
+    // propagateDt() sets level L's dt = dt / ratio^L, ensuring CFL ≤ 0.5 on every
+    // fine level. The old setLevelDt(0, dt) only set level 0; fine levels that were
+    // created later kept stale dt values (or dt/ratio from creation time which could
+    // be wrong after the global dt was reduced to hit t_final).
+    hierarchy.propagateDt(dt);
 
     // --- Register BBH tracking spheres (forces AMR around punctures) ---
     // Without this, the gradient tagger alone cannot detect the puncture
@@ -1130,18 +1257,50 @@ int main(int argc, char* argv[]) {
         }
     };
 
-    while (t < params.t_final && step < params.max_steps) {
+    // Task 1: Keep track of puncture positions across steps
+    std::vector<std::array<Real, DIM>> puncture_positions;
+    // Initialize from initial data BH positions if available
+    if (bh_params.size() >= 2) {
+        for (const auto& bh : bh_params)
+            puncture_positions.push_back(bh.position);
+    }
+
+    // Task 5: Use epsilon-guarded loop condition to ensure we reach exactly t_final
+    // without floating-point accumulation stopping us early (e.g. at 343.75M).
+    while (t < params.t_final - 1.0e-10 * params.t_final && step < params.max_steps) {
         if (t + dt > params.t_final)
             dt = params.t_final - t;
 
-        // Sync dt into hierarchy level 0 in case dt was reduced by CFL guard
-        hierarchy.setLevelDt(0, dt);
+        // Task 2: Propagate updated dt (potentially reduced) to all fine levels
+        hierarchy.propagateDt(dt);
 
         // The AMR Hierarchy drives the recursive evolution and regridding
         hierarchy.subcycle(0, evolve_func, amr::gradientChiTagger(params.refine_threshold));
 
         t += dt;
         step++;
+
+        // Task 1: Dynamic puncture tracking — update tracking sphere centers
+        // every regrid_interval steps so fine blocks follow the inspiral.
+        if (params.regrid_interval > 0 && step % params.regrid_interval == 0) {
+            bool is_bbh = (initial_data_type == "two_punctures" ||
+                           initial_data_type == "brill_lindquist" ||
+                           initial_data_type == "bowen_york");
+            if (is_bbh && bh_params.size() >= 2) {
+                auto new_pos = findPuncturesByLapseMin(hierarchy,
+                                                       static_cast<int>(bh_params.size()));
+                if (!new_pos.empty()) {
+                    puncture_positions = new_pos;
+                    hierarchy.updateTrackingSpheres(new_pos);
+                    // Print tracker update (compact — one line)
+                    std::cout << "  [TRACKER] t=" << t;
+                    for (size_t pi = 0; pi < new_pos.size(); ++pi)
+                        std::cout << "  BH" << pi << "=(" << new_pos[pi][0]
+                                  << "," << new_pos[pi][1] << "," << new_pos[pi][2] << ")";
+                    std::cout << "\n";
+                }
+            }
+        }
 
         // Per-step NaN scan (first 20 loops only — remove once stable)
         if (step <= 20) {
@@ -1198,11 +1357,55 @@ int main(int argc, char* argv[]) {
             if (count > 0)
                 ham_l2 = std::sqrt(ham_l2 / count);
 
-            std::cout << "  step=" << step << "  t=" << t << "  α_center=" << alpha_center
-                      << "  ||H||₂=" << ham_l2 << "  [Blocks: " << hierarchy.numBlocks() << "]\n";
+            // Task 3: Compute orbital separation D and determine phase label
+            // Use the last-known puncture positions (updated by tracker above).
+            Real D = computeSeparation(puncture_positions);
+            std::string phase = phaseLabel(D, alpha_center);
+
+            // Build separation string only for multi-BH runs
+            std::string sep_str;
+            if (D >= 0.0) {
+                char buf[64];
+                std::snprintf(buf, sizeof(buf), "  D=%.4fM", D);
+                sep_str = buf;
+            }
+
+            std::cout << "  step=" << step << "  t=" << t
+                      << "  α_center=" << alpha_center
+                      << "  ||H||₂=" << ham_l2
+                      << sep_str
+                      << "  [" << phase << "]"
+                      << "  [Blocks: " << hierarchy.numBlocks() << "]\n";
 
             writer.appendTimeSeries(
                 params.output_dir + "/timeseries.h5", "constraints/hamiltonian_l2", t, ham_l2);
+
+            // Task 4: Gravitational wave extraction — Ψ₄ on coordinate spheres
+            // Extract from the finest level that covers the extraction radii.
+            // We accumulate Ψ₄ from all blocks and the Extractor sums them.
+            if (gw_file.is_open()) {
+                // Scan finest available level blocks
+                int finest_lev = hierarchy.numLevels() - 1;
+                auto finest_blocks = hierarchy.getLevel(finest_lev);
+                if (finest_blocks.empty()) finest_blocks = hierarchy.getAllBlocks();
+
+                for (auto* blk : finest_blocks)
+                    psi4_extractor.extract(*blk, t);
+
+                // Get (l=2, m=2) and (l=2, m=1) dominant modes at both radii
+                auto psi4_22_r8  = psi4_extractor.getMode(2,  2, 8.0);
+                auto psi4_22_r12 = psi4_extractor.getMode(2,  2, 12.0);
+                auto psi4_21_r8  = psi4_extractor.getMode(2,  1, 8.0);
+                Real E_rad_r12   = psi4_extractor.computeRadiatedEnergy(12.0);
+
+                gw_file << t
+                        << "  " << psi4_22_r8.real()  << "  " << psi4_22_r8.imag()
+                        << "  " << psi4_22_r12.real() << "  " << psi4_22_r12.imag()
+                        << "  " << psi4_21_r8.real()  << "  " << psi4_21_r8.imag()
+                        << "  " << E_rad_r12
+                        << "\n";
+                gw_file.flush(); // flush every output_interval for safety
+            }
         }
 
         if (step % params.checkpoint_interval == 0 || t >= params.t_final) {
@@ -1211,9 +1414,29 @@ int main(int argc, char* argv[]) {
                 c_blocks.push_back(b);
             writer.writeCheckpoint(c_blocks, step, t, params);
         }
+    } // end main evolution loop
+
+    // Task 5: Graceful teardown — flush and close all open output streams.
+    // This ensures gw_extraction.dat is complete even if the process is SIGKILLed
+    // (kernel flush is non-deterministic). Also write the mandatory final checkpoint.
+    if (gw_file.is_open()) {
+        gw_file.flush();
+        gw_file.close();
+    }
+    std::cout.flush();
+    std::cerr.flush();
+
+    // Final checkpoint (always, regardless of checkpoint_interval)
+    {
+        std::vector<const GridBlock*> c_blocks;
+        for (auto* b : hierarchy.getAllBlocks())
+            c_blocks.push_back(b);
+        writer.writeCheckpoint(c_blocks, step, t, params);
+        std::cout << "[CHECKPOINT] Final checkpoint written at t=" << t
+                  << " step=" << step << "\n";
     }
 
-    std::cout << "Evolution complete.\n";
+    std::cout << "Evolution complete. t_final=" << t << "  steps=" << step << "\n";
 
 #ifdef GRANITE_USE_MPI
     MPI_Finalize();
