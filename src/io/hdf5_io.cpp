@@ -470,10 +470,16 @@ std::vector<std::string> HDF5Reader::listDatasets(const std::string& filename) c
         auto iter_func = [](hid_t loc_id, const char *name, const H5L_info_t *info, void *operator_data) -> herr_t {
             if (info->type == H5L_TYPE_HARD) {
                 H5O_info_t obj_info;
-                // HDF5 1.12+ (v2.x): H5Oget_info_by_name3 requires a 5th 'fields'
-                // argument specifying which info fields to populate.
-                // H5O_INFO_ALL retrieves all fields, preserving existing logic.
+                // Cross-version HDF5 compatibility guard:
+                //   HDF5 >= 1.12 (incl. v2.x / vcpkg): 5-argument form required;
+                //   the 4th arg selects which fields to populate (H5O_INFO_ALL = all).
+                //   HDF5 <= 1.10 (Linux CI / system packages): 4-argument form only;
+                //   there is no 'fields' parameter — all info is always populated.
+#if (H5_VERS_MAJOR > 1) || (H5_VERS_MAJOR == 1 && H5_VERS_MINOR >= 12)
                 H5Oget_info_by_name(loc_id, name, &obj_info, H5O_INFO_ALL, H5P_DEFAULT);
+#else
+                H5Oget_info_by_name(loc_id, name, &obj_info, H5P_DEFAULT);
+#endif
                 if (obj_info.type == H5O_TYPE_DATASET) {
                     auto* names = static_cast<std::vector<std::string>*>(operator_data);
                     names->push_back(name);
