@@ -1300,8 +1300,9 @@ int main(int argc, char* argv[]) {
                 max_adv_cfl = std::max(max_adv_cfl, local_cfl);
             }
         }
+        // ── Passive Tracking: dt remains strictly constant across RK sub-steps ───
         if (max_adv_cfl > 0.95) {
-            std::cout << "  [CFL-GUARD] Advection CFL=" << max_adv_cfl << " > 0.95 at sub-step!\n";
+            std::cout << "  [CFL-WARN] Advection CFL=" << max_adv_cfl << " > 0.95 at sub-step!\n";
         }
     };
 
