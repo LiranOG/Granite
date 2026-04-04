@@ -1,4 +1,12 @@
-build/ 
-.vs/ 
-*.user 
-bin/ 
+build/
+.vs/
+*.user
+bin/
+
+# Simulation runtime outputs (auto-generated, not source-controlled)
+dev_logs/
+output/
+*.h5
+*.dat
+gw_extraction.dat
+timeseries.h5
