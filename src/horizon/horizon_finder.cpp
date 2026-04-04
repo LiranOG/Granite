@@ -159,6 +159,8 @@ Real computeExpansion(const GridBlock& g,
     const Real ihyy = chi * igyy;
     const Real ihyz = chi * igyz;
     const Real ihzz = chi * igzz;
+    // These are computed for completeness / future use; suppress C4189 on MSVC.
+    (void)ihxx; (void)ihxy; (void)ihxz; (void)ihyy; (void)ihyz; (void)ihzz;
 
     // Lower coordinate normal with physical metric: s_i = γ_ij n^j
     const Real sx = hxx*snx + hxy*sny + hxz*snz;

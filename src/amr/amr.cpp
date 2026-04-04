@@ -566,9 +566,10 @@ void AMRHierarchy::restrict_data(const GridBlock& fine, GridBlock& coarse) const
                     Real fy_float = (y - fine.x(1, 0)) / fine.dx(1);
                     Real fz_float = (z - fine.x(2, 0)) / fine.dx(2);
                     
-                    int fi_base = std::round(fx_float) - ratio/2;
-                    int fj_base = std::round(fy_float) - ratio/2;
-                    int fk_base = std::round(fz_float) - ratio/2;
+                    // static_cast<int>: make double→int narrowing explicit (silences C4244 on MSVC)
+                    int fi_base = static_cast<int>(std::round(fx_float)) - ratio/2;
+                    int fj_base = static_cast<int>(std::round(fy_float)) - ratio/2;
+                    int fk_base = static_cast<int>(std::round(fz_float)) - ratio/2;
                     
                     if (fi_base >= fine.istart(0) && fi_base + ratio <= fine.iend(0) + fine.getNumGhost() &&
                         fj_base >= fine.istart(1) && fj_base + ratio <= fine.iend(1) + fine.getNumGhost() &&
