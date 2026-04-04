@@ -56,11 +56,17 @@ endif()
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GRANITE_WARNING_FLAGS}")
 
 if(MSVC)
-    set(CMAKE_CXX_FLAGS_DEBUG "/Zi /Od /DGRANITE_DEBUG")
-    set(CMAKE_CXX_FLAGS_RELEASE "/O2 /Ob2 /arch:AVX2 /fp:fast /MT /DNDEBUG")
+    set(CMAKE_CXX_FLAGS_DEBUG   "/Zi /Od /RTC1 /DGRANITE_DEBUG")
+    # /Ox  = maximum speed (/O2 + /Ob2 + /Ot + /Oy + /GF + /Gy)
+    # /arch:AVX2 = emit AVX2 + FMA instructions
+    # /fp:fast   = allow algebraic FP simplifications (FMA pipeline)
+    # /GL        = whole-program optimisation (link-time)
+    # /MT        = statically link CRT (portable Release binary)
+    set(CMAKE_CXX_FLAGS_RELEASE "/Ox /Ob2 /arch:AVX2 /fp:fast /GL /MT /DNDEBUG")
+    set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /LTCG")
 else()
-    set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -DGRANITE_DEBUG")
-    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -march=native -ffast-math")
+    set(CMAKE_CXX_FLAGS_DEBUG         "-g -O0 -DGRANITE_DEBUG")
+    set(CMAKE_CXX_FLAGS_RELEASE       "-O3 -DNDEBUG -march=native -ffast-math")
     set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g -DNDEBUG")
 endif()
 
@@ -75,23 +81,84 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 # Find required and optional dependencies
 # ---------------------------------------------------------------------------
 
-# WINDOWS NATIVE HINT:
-# If compiling natively on Windows with MSVC, use vcpkg to install dependencies.
-# Run cmake with -DCMAKE_TOOLCHAIN_FILE=[path_to_vcpkg]/scripts/buildsystems/vcpkg.cmake
-# so that HDF5, MPI, and YAML-CPP are found natively.
+# ---------------------------------------------------------------------------
+# Windows / MSVC dependency hints
+# Must run BEFORE find_package() calls so CMake searches the right paths.
+# ---------------------------------------------------------------------------
+if(WIN32)
+    # ── MS-MPI ────────────────────────────────────────────────────────────
+    # MS-MPI sets MSMPI_INC and MSMPI_LIB64 in the system environment.
+    # Prefer those over any vcpkg-installed stub so we get the real wrapper.
+    if(DEFINED ENV{MSMPI_INC} AND DEFINED ENV{MSMPI_LIB64})
+        set(MPI_C_INCLUDE_PATH    "$ENV{MSMPI_INC}"       CACHE PATH "MS-MPI Include"  FORCE)
+        set(MPI_CXX_INCLUDE_PATH  "$ENV{MSMPI_INC}"       CACHE PATH "MS-MPI Include"  FORCE)
+        set(MPI_C_LIB_NAMES   msmpi CACHE STRING "MS-MPI C lib"   FORCE)
+        set(MPI_CXX_LIB_NAMES msmpi CACHE STRING "MS-MPI CXX lib" FORCE)
+        set(MPI_msmpi_LIBRARY "$ENV{MSMPI_LIB64}/msmpi.lib" CACHE FILEPATH "MS-MPI lib" FORCE)
+        message(STATUS "[GRANITE] MS-MPI hint → INC=$ENV{MSMPI_INC}  LIB=$ENV{MSMPI_LIB64}")
+    elseif(DEFINED ENV{MPI_INC} AND DEFINED ENV{MPI_LIB})
+        # Fallback: user-set MPI_INC / MPI_LIB vars from setup_windows.ps1
+        set(MPI_C_INCLUDE_PATH    "$ENV{MPI_INC}"    CACHE PATH "MPI Include" FORCE)
+        set(MPI_CXX_INCLUDE_PATH  "$ENV{MPI_INC}"    CACHE PATH "MPI Include" FORCE)
+        set(MPI_msmpi_LIBRARY     "$ENV{MPI_LIB}"    CACHE FILEPATH "MPI lib" FORCE)
+        set(MPI_C_LIB_NAMES   msmpi CACHE STRING "" FORCE)
+        set(MPI_CXX_LIB_NAMES msmpi CACHE STRING "" FORCE)
+        message(STATUS "[GRANITE] MPI hint (env) → INC=$ENV{MPI_INC}")
+    endif()
 
-# MPI
-if(GRANITE_ENABLE_MPI)
-    find_package(MPI REQUIRED COMPONENTS CXX)
-    add_definitions(-DGRANITE_USE_MPI)
-    message(STATUS "MPI enabled: ${MPI_CXX_COMPILER}")
+    # ── HDF5 (vcpkg or standalone installer) ──────────────────────────────
+    # vcpkg exports HDF5 as an imported target but the legacy FindHDF5 module
+    # also needs HDF5_DIR pointing at the cmake config directory.
+    if(DEFINED ENV{HDF5_DIR})
+        list(PREPEND CMAKE_PREFIX_PATH "$ENV{HDF5_DIR}")
+        set(HDF5_DIR "$ENV{HDF5_DIR}" CACHE PATH "HDF5 cmake config dir" FORCE)
+        message(STATUS "[GRANITE] HDF5 hint → $ENV{HDF5_DIR}")
+    endif()
+    # If only the root install dir is known (e.g. C:/Program Files/HDF_Group/HDF5/...)
+    if(DEFINED ENV{HDF5_ROOT})
+        list(PREPEND CMAKE_PREFIX_PATH "$ENV{HDF5_ROOT}")
+        message(STATUS "[GRANITE] HDF5_ROOT hint → $ENV{HDF5_ROOT}")
+    endif()
 endif()
 
-# OpenMP
+# ── MPI ───────────────────────────────────────────────────────────────────
+if(GRANITE_ENABLE_MPI)
+    find_package(MPI COMPONENTS CXX)
+    if(NOT MPI_FOUND)
+        message(WARNING
+            "[GRANITE] MPI not found — building WITHOUT MPI.\n"
+            "  Install MS-MPI (https://aka.ms/msmpi) and re-run CMake, or\n"
+            "  disable with -DGRANITE_ENABLE_MPI=OFF."
+        )
+        set(GRANITE_ENABLE_MPI OFF CACHE BOOL "" FORCE)
+    else()
+        add_definitions(-DGRANITE_USE_MPI)
+        message(STATUS "[GRANITE] MPI found: ${MPI_CXX_COMPILER} (${MPI_CXX_VERSION})")
+    endif()
+endif()
+
+# ── OpenMP ────────────────────────────────────────────────────────────────
+# On MSVC we force /openmp:llvm which enables OpenMP 3.1+ (task, collapse, etc.)
+# and performs superior data-parallel code-gen compared to the legacy /openmp flag.
 if(GRANITE_ENABLE_OPENMP)
+    if(MSVC)
+        # Inject the LLVM OpenMP switch before find_package so FindOpenMP picks
+        # it up correctly instead of the antique vcomp stub.
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /openmp:llvm")
+        # Silence the deprecation of /openmp vs /openmp:llvm that MSVC 19.29+ emits
+        add_compile_options(/wd4068)
+    endif()
     find_package(OpenMP REQUIRED COMPONENTS CXX)
-    add_definitions(-DGRANITE_USE_OPENMP)
-    message(STATUS "OpenMP enabled: version ${OpenMP_CXX_VERSION}")
+    if(OpenMP_FOUND)
+        add_definitions(-DGRANITE_USE_OPENMP)
+        message(STATUS "[GRANITE] OpenMP version: ${OpenMP_CXX_VERSION}")
+        if(MSVC AND OpenMP_CXX_VERSION VERSION_LESS "3.0")
+            message(WARNING
+                "[GRANITE] OpenMP < 3.0 detected. Ensure VS 2019 16.9+ / 2022 is installed\n"
+                "  and /openmp:llvm is supported. Perf will be sub-optimal with version 2.0."
+            )
+        endif()
+    endif()
 endif()
 
 # GPU (CUDA or HIP)
@@ -112,12 +179,34 @@ if(GRANITE_ENABLE_GPU)
     endif()
 endif()
 
-# HDF5
+# ── HDF5 ─────────────────────────────────────────────────────────────────
 if(GRANITE_ENABLE_HDF5)
-    set(HDF5_PREFER_PARALLEL TRUE)
-    find_package(HDF5 REQUIRED COMPONENTS C CXX)
-    add_definitions(-DGRANITE_USE_HDF5)
-    message(STATUS "HDF5 enabled: ${HDF5_VERSION} (parallel: ${HDF5_IS_PARALLEL})")
+    set(HDF5_PREFER_PARALLEL FALSE) # MS-MPI parallel HDF5 is rarely available on Windows
+    # Try modern config-mode find first (vcpkg, Conda, standalone installer)
+    find_package(HDF5 CONFIG QUIET COMPONENTS C CXX)
+    if(NOT HDF5_FOUND)
+        # Legacy module-mode fallback
+        find_package(HDF5 REQUIRED COMPONENTS C CXX)
+    endif()
+    if(HDF5_FOUND)
+        add_definitions(-DGRANITE_USE_HDF5)
+        # Determine whether the modern imported target or legacy vars are available
+        if(TARGET hdf5::hdf5-shared OR TARGET hdf5::hdf5_cpp-shared)
+            set(GRANITE_HDF5_TARGET_MODE TRUE)
+        elseif(TARGET hdf5-shared OR TARGET hdf5_cpp-shared)
+            set(GRANITE_HDF5_TARGET_MODE TRUE)
+        else()
+            set(GRANITE_HDF5_TARGET_MODE FALSE)
+        endif()
+        message(STATUS "[GRANITE] HDF5 ${HDF5_VERSION} | target-mode=${GRANITE_HDF5_TARGET_MODE} | parallel=${HDF5_IS_PARALLEL}")
+    else()
+        message(FATAL_ERROR
+            "[GRANITE] HDF5 not found.\n"
+            "  vcpkg:  .\\vcpkg install hdf5:x64-windows\n"
+            "  or set HDF5_DIR=<path>/hdf5/share/cmake/hdf5 and re-run CMake.\n"
+            "  Disable with -DGRANITE_ENABLE_HDF5=OFF."
+        )
+    endif()
 endif()
 
 # PETSc (for elliptic solvers)
@@ -197,8 +286,18 @@ if(GRANITE_ENABLE_OPENMP)
     target_link_libraries(granite_lib PUBLIC OpenMP::OpenMP_CXX)
 endif()
 if(GRANITE_ENABLE_HDF5)
-    target_link_libraries(granite_lib PUBLIC ${HDF5_LIBRARIES})
-    target_include_directories(granite_lib PUBLIC ${HDF5_INCLUDE_DIRS})
+    if(GRANITE_HDF5_TARGET_MODE)
+        # Prefer imported targets (vcpkg / modern cmake config)
+        foreach(_hdf5_tgt hdf5::hdf5-shared hdf5::hdf5_cpp-shared hdf5-shared hdf5_cpp-shared HDF5::HDF5)
+            if(TARGET ${_hdf5_tgt})
+                target_link_libraries(granite_lib PUBLIC ${_hdf5_tgt})
+            endif()
+        endforeach()
+    else()
+        # Legacy fallback via FindHDF5 module variables
+        target_link_libraries(granite_lib PUBLIC ${HDF5_LIBRARIES})
+        target_include_directories(granite_lib PUBLIC ${HDF5_INCLUDE_DIRS})
+    endif()
 endif()
 if(GRANITE_ENABLE_PETSC)
     target_link_libraries(granite_lib PUBLIC PkgConfig::PETSC)
@@ -243,16 +342,21 @@ install(DIRECTORY benchmarks DESTINATION share/granite)
 # Summary
 # ---------------------------------------------------------------------------
 message(STATUS "")
-message(STATUS "=== GRANITE Build Configuration ===")
-message(STATUS "  Version:          ${PROJECT_VERSION}")
+message(STATUS "=====================================================")
+message(STATUS "  GRANITE Build Configuration  v${PROJECT_VERSION}")
+message(STATUS "=====================================================")
 message(STATUS "  Build type:       ${CMAKE_BUILD_TYPE}")
 message(STATUS "  C++ compiler:     ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
+message(STATUS "  Platform:         ${CMAKE_SYSTEM_NAME} ${CMAKE_SYSTEM_PROCESSOR}")
 message(STATUS "  MPI:              ${GRANITE_ENABLE_MPI}")
-message(STATUS "  OpenMP:           ${GRANITE_ENABLE_OPENMP}")
+message(STATUS "  OpenMP:           ${GRANITE_ENABLE_OPENMP} (ver ${OpenMP_CXX_VERSION})")
 message(STATUS "  GPU:              ${GRANITE_ENABLE_GPU} (${GRANITE_GPU_BACKEND})")
-message(STATUS "  HDF5:             ${GRANITE_ENABLE_HDF5}")
+message(STATUS "  HDF5:             ${GRANITE_ENABLE_HDF5} (${HDF5_VERSION})")
 message(STATUS "  PETSc:            ${GRANITE_ENABLE_PETSC}")
 message(STATUS "  Tests:            ${GRANITE_ENABLE_TESTS}")
 message(STATUS "  Double precision: ${GRANITE_DOUBLE_PRECISION}")
-message(STATUS "===================================")
+if(MSVC)
+message(STATUS "  MSVC Release:     /Ox /arch:AVX2 /fp:fast /GL /openmp:llvm")
+endif()
+message(STATUS "=====================================================")
 message(STATUS "")
