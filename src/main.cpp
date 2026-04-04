@@ -854,6 +854,10 @@ int main(int argc, char* argv[]) {
                     params.regrid_interval = amr["regrid_interval"].as<int>();
                 if (amr["refine_threshold"])
                     params.refine_threshold = amr["refine_threshold"].as<Real>();
+                if (amr["derefine_threshold"])
+                    params.derefine_threshold = amr["derefine_threshold"].as<Real>();
+                if (amr["truncation_error"])
+                    params.use_truncation_error = amr["truncation_error"].as<bool>();
             }
             if (config["ccz4"]) {
                 auto ccz4 = config["ccz4"];
@@ -932,9 +936,25 @@ int main(int argc, char* argv[]) {
     // This caused dt = CFL * dx_coarse / 2^14 = 0.0001M (490× too small → ETA 1000 days).
     amr_params.max_levels       = params.max_levels > 0 ? params.max_levels : 6;
     amr_params.refinement_ratio = params.refinement_ratio > 0 ? params.refinement_ratio : 2;
+    amr_params.derefine_threshold   = params.derefine_threshold;
+    amr_params.use_truncation_error = params.use_truncation_error;
+
+    // ── Build physics-aware composite tagger ─────────────────────────────
+    // The tagger is the PRIMARY brain of AMR refinement decisions.
+    // It combines gradient-based criteria that detect ANY topological scenario
+    // autonomously — from single punctures to 5-SMBH configurations, and
+    // automatically adds density gradient tracking for GRMHD matter.
+    std::vector<amr::TaggingFunction> tagger_components;
+    tagger_components.push_back(amr::gradientChiTagger(params.refine_threshold));
+    tagger_components.push_back(amr::gradientLapseTagger(params.refine_threshold * 0.5));
+    if (params.use_truncation_error)
+        tagger_components.push_back(amr::truncationErrorTagger(params.refine_threshold * 2.0));
+    // Density tagger added conditionally after initial data is set (below)
+    auto composite_tagger = amr::compositeTagger(tagger_components);
+
     amr::AMRHierarchy hierarchy(amr_params, params);
     std::cout << "Initializing AMR Hierarchy...\n";
-    hierarchy.initialize(amr::gradientChiTagger(params.refine_threshold));
+    hierarchy.initialize(composite_tagger);
 
     std::vector<BlockBundle> active_bundles;
     std::unordered_map<int, size_t> id_to_index;
@@ -1256,9 +1276,30 @@ int main(int argc, char* argv[]) {
                       << " min_level=" << min_ref_level << "\n";
         }
         // Trigger initial regrid to establish refinement before step 0
-        hierarchy.regrid(0, amr::gradientChiTagger(params.refine_threshold));
+        hierarchy.regrid(0, composite_tagger);
         syncBlocks();
         hierarchy.fillGhostZones(0);
+    }
+
+    // ── Conditionally add density tagger if matter is present ────────────
+    // Scan the first block for non-atmosphere density. If detected, rebuild
+    // the composite tagger with gradientRhoTagger included.
+    {
+        bool has_matter = false;
+        for (auto& bundle : active_bundles) {
+            GridBlock& hy = *(bundle.hydro);
+            for (int k = hy.istart(2); k < hy.iend(2) && !has_matter; ++k)
+            for (int j = hy.istart(1); j < hy.iend(1) && !has_matter; ++j)
+            for (int i = hy.istart(0); i < hy.iend(0) && !has_matter; ++i) {
+                if (hy.data(static_cast<int>(HydroVar::D), i, j, k) > params.atm_density * 100.0)
+                    has_matter = true;
+            }
+        }
+        if (has_matter) {
+            std::cout << "  [AMR] Matter detected — activating density gradient tagger\n";
+            tagger_components.push_back(amr::gradientRhoTagger(params.refine_threshold));
+            composite_tagger = amr::compositeTagger(tagger_components);
+        }
     }
 
     // --- Evolution loop ---
@@ -1280,30 +1321,7 @@ int main(int argc, char* argv[]) {
         
         TimeIntegrator::sspRK3Step(cur_bundles, active_bundles, id_to_index, ccz4, grmhd, cur_dt);
 
-        // ── Adaptive CFL monitoring (Stream C2) ────────────────────
-        Real max_adv_cfl = 0.0;
-        for (auto* bundle_ptr : cur_bundles) {
-            auto& bundle = *bundle_ptr;
-            GridBlock& g = *(bundle.st);
-            const int bx_var = static_cast<int>(SpacetimeVar::SHIFT_X);
-            const int by_var = static_cast<int>(SpacetimeVar::SHIFT_Y);
-            const int bz_var = static_cast<int>(SpacetimeVar::SHIFT_Z);
-            for (int k = g.istart(); k < g.iend(2); ++k)
-            for (int j = g.istart(); j < g.iend(1); ++j)
-            for (int i = g.istart(); i < g.iend(0); ++i) {
-                Real bx = std::abs(g.data(bx_var, i, j, k));
-                Real by = std::abs(g.data(by_var, i, j, k));
-                Real bz = std::abs(g.data(bz_var, i, j, k));
-                Real local_cfl = bx * cur_dt / g.dx(0)
-                               + by * cur_dt / g.dx(1)
-                               + bz * cur_dt / g.dx(2);
-                max_adv_cfl = std::max(max_adv_cfl, local_cfl);
-            }
-        }
-        // ── Passive Tracking: dt remains strictly constant across RK sub-steps ───
-        if (max_adv_cfl > 0.95) {
-            std::cout << "  [CFL-WARN] Advection CFL=" << max_adv_cfl << " > 0.95 at sub-step!\n";
-        }
+        // (Advection CFL tracking removed by user request)
     };
 
     // Task 1: Keep track of puncture positions across steps
@@ -1324,10 +1342,13 @@ int main(int argc, char* argv[]) {
         hierarchy.propagateDt(dt);
 
         // The AMR Hierarchy drives the recursive evolution and regridding
-        hierarchy.subcycle(0, evolve_func, amr::gradientChiTagger(params.refine_threshold));
+        hierarchy.subcycle(0, evolve_func, composite_tagger);
 
         t += dt;
         step++;
+
+        // Track global step for block age / derefine cooldown
+        hierarchy.setGlobalStep(step);
 
         // Task 1: Dynamic puncture tracking — update tracking sphere centers
         // every regrid_interval steps so fine blocks follow the inspiral.
@@ -1411,19 +1432,22 @@ int main(int argc, char* argv[]) {
             Real D = computeSeparation(puncture_positions);
             std::string phase = phaseLabel(D, alpha_center);
 
-            // Build separation string only for multi-BH runs
+            // Build structured separation + orbital frequency string
+            // for the Python telemetry tracker to parse.
             std::string sep_str;
             if (D >= 0.0) {
-                char buf[64];
-                std::snprintf(buf, sizeof(buf), "  D=%.4fM", D);
+                Real omega = std::sqrt(1.0 / (D * D * D + 1e-30)); // Kepler estimate
+                char buf[128];
+                std::snprintf(buf, sizeof(buf),
+                    "  D=%.4fM  Omega=%.4e", D, omega);
                 sep_str = buf;
             }
 
             std::cout << "  step=" << step << "  t=" << t
-                      << "  α_center=" << alpha_center
-                      << "  ||H||₂=" << ham_l2
+                      << "  \xCE\xB1_center=" << alpha_center
+                      << "  ||H||\xE2\x82\x82=" << ham_l2
                       << sep_str
-                      << "  [" << phase << "]"
+                      << "  [PHASE:" << phase << "]"
                       << "  [Blocks: " << hierarchy.numBlocks() << "]\n";
 
             writer.appendTimeSeries(

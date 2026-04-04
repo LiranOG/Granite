@@ -103,83 +103,40 @@ class Profile:
     Each profile defines:
       - name            : Human-readable label shown in dashboard.
       - id_type         : Identifier string used in Final Summary.
-      - phase_sequence  : Ordered list of (label, trigger_fraction) pairs.
-        The tracker advances to phase[i] when elapsed_t / t_final >= fraction.
-      - tracked_metrics : Names of metrics relevant to this profile (for the
-        Physics Summary section of the Final Summary block).
+      - tracked_metrics : Names of metrics relevant to this profile.
+
+    Phase detection is now driven entirely by the C++ engine's stdout
+    output (e.g. [PHASE:Early Inspiral] D=9.8765M Omega=1.23e-02).
+    The Python tracker parses and displays the engine's ground-truth
+    phase label instead of computing its own from time fractions.
     """
 
     name: str = "Unknown"
     id_type: str = "Unknown"
-    phase_sequence: list[tuple[str, float]] = []
     tracked_metrics: list[str] = []
 
-    def current_phase(self, elapsed: float, t_final: float) -> str:
-        """Return phase label for the given elapsed/t_final ratio."""
-        if t_final <= 0:
-            return self.phase_sequence[0][0] if self.phase_sequence else "—"
-        frac = elapsed / t_final
-        label = self.phase_sequence[0][0] if self.phase_sequence else "—"
-        for lbl, threshold in self.phase_sequence:
-            if frac >= threshold:
-                label = lbl
-        return label
 
-
-class SinglePunctureProfile(Profile):
+class UniversalProfile(Profile):
     """
-    Profile A — Single Puncture / Trumpet Gauge
-    =============================================
-    Tracks coordinate drift, trumpet transition, and stationary stability.
-    Phases are defined by the lapse α_center collapsing toward the trumpet
-    value (~0.3) and then stabilising.
+    Universal Profile — Physics-Driven Phase Tracking
+    ==================================================
+    A single unified profile that handles ALL simulation scenarios
+    (Single Puncture, BBH, N-body SMBH, GRMHD stars) without hardcoded
+    time-fraction thresholds.
+
+    Phase detection is the C++ engine's responsibility. The engine emits:
+      - [PHASE:Early Inspiral]  — separation-based for BBH
+      - [PHASE:Trumpet Transition] — alpha-based for single puncture
+      - D=X.XXXXM              — orbital separation (BBH only)
+      - Omega=X.XXXXe-XX       — Keplerian orbital frequency
+
+    The Python tracker's sole job is to parse, render, and log.
     """
 
-    name    = "Single Puncture (1 BH) — Trumpet Gauge"
-    id_type = "Single Puncture"
-    tracked_metrics = ["α_center", "‖H‖₂", "Trumpet Transition", "Coordinate Drift"]
-    phase_sequence = [
-        ("◎ Pre-Collapse",        0.000),
-        ("⚡ Trumpet Transition", 0.050),
-        ("◎ Gauge Settling",      0.200),
-        ("✔ Stationary",          0.500),
-    ]
-
-
-class BinaryBBHProfile(Profile):
-    """
-    Profile B — Binary Black Hole (Two-Punctures / Bowen-York)
-    ===========================================================
-    Tracks inspiral, plunge, merger, and ringdown phases based on
-    elapsed coordinate time relative to t_final.
-
-    Phase-awareness notes
-    ---------------------
-    • Early Inspiral  : Only α_center and ‖H‖₂ are available.  Individual
-      black hole masses, spins, and momentum constraints are handled by
-      separate diagnostic files — their *absence* in stdout is expected and
-      must NOT be flagged as a warning or error.
-    • Mid Inspiral+   : Extended metrics (separation, momentum) may appear
-      once the engine activates its BH-tracker modules.
-    """
-
-    name    = "Binary BBH (2 BHs) — Two-Punctures / BY"
-    id_type = "Two-Punctures"
-    # ‖H‖₂ is the PRIMARY stability indicator for a BBH run.
-    # Mass/spin/momentum are NOT expected from stdout during Early Inspiral.
-    tracked_metrics = ["‖H‖₂ (primary)", "α_center", "AMR Blocks", "Merger Phase"]
-    phase_sequence = [
-        ("◎ Early Inspiral", 0.000),
-        ("◎ Mid Inspiral",   0.350),
-        ("⚡ Plunge",        0.700),
-        ("⚡ Merger",        0.850),
-        ("◎ Ringdown",       0.920),
-    ]
-    # Phases where individual BH properties are NOT expected in stdout.
-    # The tracker will skip any mass/spin/momentum checks during these phases.
-    phases_without_bh_diagnostics: frozenset[str] = frozenset({
-        "◎ Early Inspiral",
-    })
+    name    = "Simulation (auto-detected)"
+    id_type = "Auto"
+    tracked_metrics = ["‖H‖₂ (primary)", "α_center",
+                       "AMR Blocks", "Separation D", "Phase"]
 
 
 # ---------------------------------------------------------------------------
@@ -251,17 +208,18 @@ class ScenarioDetector:
     """
     Identifies the simulation type from two sources:
       1. The params.yaml file (looks for `type =` or `id_type =` keys).
-      2. The first N lines of C++ stdout (looks for `type='...'` patterns).
+      2. The first N lines of C++ stdout.
 
-    Returns a Profile subclass instance.
+    Always returns a UniversalProfile — the C++ engine is the authoritative
+    source for phase labels.  The detector only sets the profile's display
+    name and id_type for the dashboard header.
     """
 
-    # Regex that matches: type='two_punctures' / type="brill_lindquist" etc.
     _TYPE_RE = re.compile(r"type\s*[=:]\s*['\"]?(\w+)['\"]?", re.IGNORECASE)
 
     def __init__(self, params_path: str) -> None:
         self._params_path = params_path
-        self._profile: Profile = BinaryBBHProfile()   # safe default
+        self._profile: Profile = UniversalProfile()
 
     def sniff_params(self) -> None:
         """Attempt to determine the scenario from the params file."""
@@ -279,10 +237,17 @@ class ScenarioDetector:
         m = self._TYPE_RE.search(text)
         if m:
             token = m.group(1).lower()
+            p = UniversalProfile()
             if token in ("single_puncture", "brill_lindquist", "trumpet"):
-                self._profile = SinglePunctureProfile()
+                p.name    = "Single Puncture (1 BH) — Trumpet Gauge"
+                p.id_type = "Single Puncture"
             elif token in ("two_punctures", "bowen_york", "binary", "bbh"):
-                self._profile = BinaryBBHProfile()
+                p.name    = "Binary BBH (2 BHs) — Two-Punctures / BY"
+                p.id_type = "Two-Punctures"
+            else:
+                p.name    = f"Simulation ({token})"
+                p.id_type = token
+            self._profile = p
 
     @property
     def profile(self) -> Profile:
@@ -330,6 +295,12 @@ class MetricStore:
         self.dt: str = ""
         self.t_final: float = 0.0
         self.num_bhs: int = 0
+
+        # Physics-driven dynamics tracking
+        self.separation_history: list[tuple[float, float]] = []   # (t, D)
+        self.omega_history:      list[tuple[float, float]] = []   # (t, Omega)
+        self.phase_transitions:  list[tuple[float, str]]   = []   # (t, phase_name)
+        self.current_phase: str = "—"                              # last parsed from C++
 
         # Zombie / state-freeze detection state
         self._prev_step: int  = -1
@@ -432,6 +403,14 @@ class GraniteTracker:
     _RE_CELLS  = re.compile(r"ncells=\((\d+x\d+x\d+)\)")
     # Number of BHs: "2 BH(s)"  /  "1 BH"
     _RE_BHS    = re.compile(r"(\d+)\s+BH")
+    # C++ physics-driven phase: "[PHASE:Early Inspiral]" or "[Early Inspiral]"
+    _RE_PHASE  = re.compile(r"\[(?:PHASE:)?([^\]]+)\]")
+    # Orbital separation: "D=9.8765M"
+    _RE_SEP    = re.compile(r"D=([\d.]+)M")
+    # Orbital frequency: "Omega=1.23e-02"
+    _RE_OMEGA  = re.compile(r"Omega=([\d.eE+\-]+)")
+    # Puncture tracker positions: "[TRACKER]  BH0=(1.23,0.45,-0.01)"
+    _RE_TRACKER = re.compile(r"\[TRACKER\]")
 
     # ------------------------------------------------------------------
     def __init__(self, binary: str, params: str, log_dir: Optional[str] = None) -> None:
@@ -567,7 +546,7 @@ class GraniteTracker:
         bar     = self._bar(frac)
         eta     = self._eta_str(t, wall)
         pct     = frac * 100.0
-        tag     = "[BBH]" if isinstance(self._profile, BinaryBBHProfile) else "[SP]"
+        tag     = f"[{self._profile.id_type}]"
 
         # ── Main progress line ─────────────────────────────────────────
         step_line = (
@@ -587,19 +566,17 @@ class GraniteTracker:
             atag = self._alpha_tag(self._alpha)
             self._dl.emit(f"  α_center = {self._alpha:.5f}  {atag}")
 
-        phase = self._profile.current_phase(t, self._store.t_final)
+        # Phase is now parsed from the C++ engine’s [PHASE:...] output.
+        phase = self._store.current_phase
         self._current_phase = phase
 
-        # During Early Inspiral (BBH), individual BH diagnostics are in separate
-        # files — only global constraints are available from stdout.
-        phase_note = ""
-        if (
-            isinstance(self._profile, BinaryBBHProfile)
-            and phase in self._profile.phases_without_bh_diagnostics
-        ):
-            phase_note = "  (BH diagnostics → separate file)"
+        # Separation sub-line (only if the engine reports it)
+        sep_str = ""
+        if self._store.separation_history:
+            last_d = self._store.separation_history[-1][1]
+            sep_str = f"  D={last_d:.4f}M"
 
-        self._dl.emit(f"  Blocks   = {self._blocks}  Phase: {phase}{phase_note}")
+        self._dl.emit(f"  Blocks   = {self._blocks}  Phase: {phase}{sep_str}")
 
     # ------------------------------------------------------------------
     # 6.6  Final Summary block
@@ -626,8 +603,7 @@ class GraniteTracker:
         steps_done = len(store.steps)
 
         # Phase
-        last_phase = (store.last and self._profile.current_phase(
-            store.last["t"], store.t_final)) or "—"
+        last_phase = store.current_phase
 
         # Prepare section helper
         def emit(text: str = "") -> None:
@@ -663,15 +639,6 @@ class GraniteTracker:
 
         # ── Physics Summary ────────────────────────────────────────────
         emit(f"  ► Physics Summary")
-
-        # Annotate that mass/spin are held in separate diagnostic files
-        # during Early Inspiral so the reader knows this is expected.
-        is_bbh = isinstance(profile, BinaryBBHProfile)
-        if is_bbh:
-            emit(f"    Note: Individual BH mass/spin/momentum diagnostics are")
-            emit(f"          written to separate files by the engine — their")
-            emit(f"          absence from this log is expected and correct.")
-            emit()
 
         if store.first:
             # ‖H‖₂ — PRIMARY stability indicator (shown first, emphasised)
@@ -807,6 +774,27 @@ class GraniteTracker:
             bm = self._RE_BLOCKS.search(line)
             if bm:
                 self._blocks = int(bm.group(1))
+
+            # ── Parse C++ physics-driven phase, separation, Omega ──────
+            pm = self._RE_PHASE.search(line)
+            if pm:
+                phase_label = pm.group(1).strip()
+                # Filter out non-phase bracket patterns
+                if phase_label not in ("Blocks", "PRIMARY", "TRACKER") \
+                        and not phase_label.startswith("NaN"):
+                    if phase_label != self._store.current_phase:
+                        self._store.phase_transitions.append((t, phase_label))
+                    self._store.current_phase = phase_label
+
+            sm = self._RE_SEP.search(line)
+            if sm:
+                d_val = float(sm.group(1))
+                self._store.separation_history.append((t, d_val))
+
+            om = self._RE_OMEGA.search(line)
+            if om:
+                omega_val = float(om.group(1))
+                self._store.omega_history.append((t, omega_val))
 
             # Record into MetricStore (we may update α/hamil from next lines)
             self._store.record_step(

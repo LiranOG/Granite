@@ -1,6 +1,24 @@
+## A Note from the Developer: Supported Platforms
+
+Welcome to GRANITE. This project was born from a simple but overwhelming ambition: to simulate the unimaginable. I wanted to build an engine capable of modeling scenarios that still feel like science fiction—multiple supermassive black holes merging, tearing through stars, and interacting with extreme matter, all happening simultaneously. Currently, existing engines struggle to couple all these physics (CCZ4 spacetime evolution, GRMHD, and Adaptive Mesh Refinement) without collapsing under the computational weight. My goal is to build the architecture that finally solves this.
+
+But here is the reality: I am currently building, optimizing, and debugging this entirely alone.
+
+Making all these complex engines communicate perfectly, optimizing OpenMP threads to balance the load, and managing AMR grids so they don't crash the hardware takes an immense amount of time and energy. Because my focus must remain 100% on the physics, the math, and the engine's stability, I have to make a hard choice regarding deployment.
+
+**Currently, native Windows (CMD/PowerShell) and macOS are STRICTLY UNSUPPORTED.**
+Trying to troubleshoot package managers, compilers, and terminal quirks across every operating system is draining resources I simply do not have right now. To run GRANITE, **you must use Linux or Windows Subsystem for Linux (WSL2)**. The engine is optimized for environments where dependencies are natively supported, allowing you to bypass installation headaches and focus on the science.
+
+My promise to you: In the future, once the core engine is flawless and perfectly optimized, I will dedicate the time to make GRANITE a true plug-and-play experience across every operating system, terminal, and platform.
+
+Until then, I am asking for your help.
+To the scientific community, physicists, and HPC administrators: The foundational math and architecture are here, but transforming this into a universally trusted scientific instrument requires more than one pair of hands. I warmly invite you to review the code, test it on your clusters, point out the flaws, and submit PRs. Let's look past the current rough edges and build the ultimate open-source engine for extreme astrophysics together.
+
+---
+
 # 🚀 GRANITE Quick-Run Guide (v0.6.0)
 
-> This is a streamlined cheat-sheet for deploying GRANITE. If you encounter errors, please consult the complete technical guide: [`docs/INSTALL.md`](docs/INSTALL.md)
+> This is a streamlined cheat-sheet for deploying GRANITE on **Linux or WSL2 only**. If you encounter errors, please consult the complete technical guide: [`docs/INSTALL.md`](docs/INSTALL.md)
 
 ---
 
