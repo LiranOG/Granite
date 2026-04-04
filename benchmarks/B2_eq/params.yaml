@@ -33,7 +33,9 @@ amr:
   buffer_cells: 4           # buffer zones around tagged cells
 
 time:
-  cfl: 0.25                 # safe for SSP-RK3; dt_coarse ~ 0.39M
+  cfl: 0.25                 # Applied to dx_finest (engine auto-scales to finest level).
+                             # With 6 levels, ratio=2: dx_finest=dx_coarse/2^5=0.049M
+                             # => dt_global = 0.25 * 0.049 = 0.0122M (strict CFL safety)
   t_final: 500.0            # ~8 orbits (T_orb~55M at d=10M) + merger + 100M ringdown
   max_steps: 100000000
 

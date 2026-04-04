@@ -1175,15 +1175,40 @@ int main(int argc, char* argv[]) {
         gw_file.flush();
     }
 
-    // --- Compute time step ---
+    // --- Compute time step based on FINEST AMR level dx ---
+    // BUG (pre-fix): dt = CFL * dx_coarse. With 6 AMR levels and ratio=2,
+    // the finest level has dx_fine = dx_coarse / 2^5. The coarse dt then
+    // produced CFL_fine = dt / dx_fine = CFL * 2^5 = 8.0 — unconditionally
+    // unstable, causing NaN blow-up at Level 3+ in the B2_eq benchmark.
+    //
+    // FIX: Compute dt_global to satisfy CFL ≤ params.cfl at the finest level.
+    //   dt_global = CFL * dx_fine  =  CFL * dx_coarse / ratio^(max_levels - 1)
+    //
+    // The Berger-Oliger subcycler then further divides dt_global by ratio^L
+    // for each level L via propagateDt(), so every level automatically satisfies:
+    //   CFL_L = dt_global / (ratio^L * dx_fine * ratio^(max_levels-1-L))
+    //         = CFL * dx_fine / dx_L  ≤  CFL  (finest L = max_levels-1 gives equality)
     auto initial_blocks = hierarchy.getAllBlocks();
     GridBlock* base_block = initial_blocks[0];
-    Real dx_min = std::min({base_block->dx(0), base_block->dx(1), base_block->dx(2)});
-    Real dt = params.cfl * dx_min;
+    Real dx_coarse = std::min({base_block->dx(0), base_block->dx(1), base_block->dx(2)});
+
+    // Finest-level dx assuming refinement_ratio=2 at every level
+    const int max_levels = amr_params.max_levels;
+    const int ratio      = amr_params.refinement_ratio > 0 ? amr_params.refinement_ratio : 2;
+    // Number of refinement intervals = max_levels - 1  (Level 0 is the coarse level)
+    const int n_refine   = std::max(max_levels - 1, 0);
+    Real dx_finest = dx_coarse;
+    for (int r = 0; r < n_refine; ++r)
+        dx_finest /= static_cast<Real>(ratio);
+
+    Real dt = params.cfl * dx_finest;
 
     std::cout << "Grid: " << params.ncells[0] << " x " << params.ncells[1] << " x "
               << params.ncells[2] << "\n";
-    std::cout << "dx = " << dx_min << ", dt = " << dt << "\n";
+    std::cout << "dx_coarse = " << dx_coarse
+              << "  dx_finest(L" << (max_levels-1) << ") = " << dx_finest << "\n";
+    std::cout << "dt = CFL * dx_finest = " << params.cfl << " * " << dx_finest
+              << " = " << dt << "  (CFL-safe at all " << max_levels << " levels)\n";
     std::cout << "t_final = " << params.t_final << "\n\n";
 
     // --- Task 2: Propagate dt across ALL AMR levels (Berger-Oliger CFL fix) ---
