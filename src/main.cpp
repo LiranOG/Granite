@@ -16,6 +16,7 @@
 #include "granite/spacetime/ccz4.hpp"
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <iostream>
 #include <map>
@@ -503,40 +504,48 @@ public:
         applyRHS(false);
 
         // ── One-shot NaN diagnostic (remove once stable) ─────────
+        // Issue 5 fix: std::atomic<bool> ensures the check runs exactly once even
+        // if sspRK3Step were ever called concurrently (e.g. one thread per AMR level).
+        // compare_exchange_strong atomically tests-and-sets the flag with sequential
+        // consistency — no data race under the C++11 memory model.
+        // The goto-based early exit is also replaced with structured break loops to
+        // eliminate the MSVC C4533 warning (goto jumps across label declarations).
         {
-            static bool checked = false;
-            if (!checked) {
-                checked = true;
+            static std::atomic<bool> nan_checked{false};
+            bool expected = false;
+            if (nan_checked.compare_exchange_strong(expected, true)) {
                 for (auto* bundle_ptr : bundles) {
                     auto& bundle = *bundle_ptr;
                     GridBlock& rhs_st = *(bundle.st_rhs);
                     GridBlock& rhs_hy = *(bundle.hydro_rhs);
-                    // Scan spacetime RHS
-                    for (int v = 0; v < rhs_st.getNumVars(); ++v)
-                    for (int k = rhs_st.istart(); k < rhs_st.iend(2); ++k)
-                    for (int j = rhs_st.istart(); j < rhs_st.iend(1); ++j)
-                    for (int i = rhs_st.istart(); i < rhs_st.iend(0); ++i) {
+                    // Scan spacetime RHS — structured break replaces goto
+                    bool found_nan_st = false;
+                    for (int v = 0; v < rhs_st.getNumVars() && !found_nan_st; ++v)
+                    for (int k = rhs_st.istart(); k < rhs_st.iend(2) && !found_nan_st; ++k)
+                    for (int j = rhs_st.istart(); j < rhs_st.iend(1) && !found_nan_st; ++j)
+                    for (int i = rhs_st.istart(); i < rhs_st.iend(0) && !found_nan_st; ++i) {
                         if (std::isnan(rhs_st.data(v, i, j, k)) || std::isinf(rhs_st.data(v, i, j, k))) {
                             std::cout << "  [NaN-DIAG] ST_RHS var=" << v << " at (" << i << "," << j << "," << k << ")"
                                       << " val=" << rhs_st.data(v, i, j, k) << std::endl;
-                            goto done_st;
+                            found_nan_st = true;
                         }
                     }
-                    std::cout << "  [NaN-DIAG] ST_RHS: all finite" << std::endl;
-                    done_st:
+                    if (!found_nan_st)
+                        std::cout << "  [NaN-DIAG] ST_RHS: all finite" << std::endl;
                     // Scan hydro RHS
-                    for (int v = 0; v < rhs_hy.getNumVars(); ++v)
-                    for (int k = rhs_hy.istart(); k < rhs_hy.iend(2); ++k)
-                    for (int j = rhs_hy.istart(); j < rhs_hy.iend(1); ++j)
-                    for (int i = rhs_hy.istart(); i < rhs_hy.iend(0); ++i) {
+                    bool found_nan_hy = false;
+                    for (int v = 0; v < rhs_hy.getNumVars() && !found_nan_hy; ++v)
+                    for (int k = rhs_hy.istart(); k < rhs_hy.iend(2) && !found_nan_hy; ++k)
+                    for (int j = rhs_hy.istart(); j < rhs_hy.iend(1) && !found_nan_hy; ++j)
+                    for (int i = rhs_hy.istart(); i < rhs_hy.iend(0) && !found_nan_hy; ++i) {
                         if (std::isnan(rhs_hy.data(v, i, j, k)) || std::isinf(rhs_hy.data(v, i, j, k))) {
                             std::cout << "  [NaN-DIAG] HY_RHS var=" << v << " at (" << i << "," << j << "," << k << ")"
                                       << " val=" << rhs_hy.data(v, i, j, k) << std::endl;
-                            goto done_hy;
+                            found_nan_hy = true;
                         }
                     }
-                    std::cout << "  [NaN-DIAG] HY_RHS: all finite" << std::endl;
-                    done_hy:;
+                    if (!found_nan_hy)
+                        std::cout << "  [NaN-DIAG] HY_RHS: all finite" << std::endl;
                 }
             }
         }

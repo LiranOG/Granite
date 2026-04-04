@@ -274,8 +274,19 @@ std::pair<Real, Real> maxWavespeeds(const Metric3& g,
     // For flat spacetime (alpha=1, beta=0): lambda_pm = (v_dir +/- c_f)/(1 +/- v_dir*c_f)
     // This is the correct special-relativistic velocity addition formula.
     const Real beta_dir = (dir == 0) ? g.betax : (dir == 1) ? g.betay : g.betaz;
-    const Real vL = (v_dir - cf) / std::max(1.0 - v_dir * cf, 1.0e-14);
-    const Real vR = (v_dir + cf) / std::max(1.0 + v_dir * cf, 1.0e-14);
+    // Issue 8 fix: use sign-preserving clamps for the relativistic velocity-addition
+    // denominators. The original std::max(..., 1e-14) only guarded against zero from
+    // below, but if the denominator is slightly negative (rounding in near-luminal states),
+    // clamping to +1e-14 inverts the wavespeed sign and breaks the Courant condition.
+    // std::copysign(1e-14, denom) preserves the sign when |denom| < 1e-14.
+    const Real denom_L = 1.0 - v_dir * cf;
+    const Real denom_R = 1.0 + v_dir * cf;
+    const Real safe_L  = (std::abs(denom_L) > 1.0e-14) ? denom_L
+                                                        : std::copysign(1.0e-14, denom_L);
+    const Real safe_R  = (std::abs(denom_R) > 1.0e-14) ? denom_R
+                                                        : std::copysign(1.0e-14, denom_R);
+    const Real vL = (v_dir - cf) / safe_L;
+    const Real vR = (v_dir + cf) / safe_R;
 
     return {g.alpha * vL - beta_dir,
             g.alpha * vR - beta_dir};

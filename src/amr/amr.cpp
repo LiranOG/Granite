@@ -273,6 +273,13 @@ void AMRHierarchy::regrid(int level, const TaggingFunction& tagger)
                   << (candidates.size() < tracking_spheres_.size() ? "  [MERGED]" : "")
                   << "\n";
 
+        // Issue 10 fix: sync coarse ghost zones BEFORE prolongating into the new fine block.
+        // The original code prolongated immediately without ensuring the coarse block's
+        // ghost cells were current, which injects stale data from the previous timestep
+        // (or uninitialized initial data) into the fine block ghost zone on the first step,
+        // causing an immediate constraint-violation spike at the coarse-fine boundary.
+        fillGhostZones(level);
+
         // Prolongate current coarse data into the new fine block
         for (const auto& cblk : levels_[level].blocks)
             prolongate(*cblk, *child_blk);
@@ -555,53 +562,68 @@ void AMRHierarchy::restrict_data(const GridBlock& fine, GridBlock& coarse) const
     int nv = fine.getNumVars();
     int ratio = params_.refinement_ratio;
     
-    #pragma omp parallel for
-    for (int var = 0; var < nv; ++var) {
-        for (int ck = coarse.istart(2); ck < coarse.iend(2); ++ck) {
-            for (int cj = coarse.istart(1); cj < coarse.iend(1); ++cj) {
-                for (int ci = coarse.istart(0); ci < coarse.iend(0); ++ci) {
-                    Real x = coarse.x(0, ci), y = coarse.x(1, cj), z = coarse.x(2, ck);
-                    
-                    Real fx_float = (x - fine.x(0, 0)) / fine.dx(0);
-                    Real fy_float = (y - fine.x(1, 0)) / fine.dx(1);
-                    Real fz_float = (z - fine.x(2, 0)) / fine.dx(2);
-                    
-                    // static_cast<int>: make double→int narrowing explicit (silences C4244 on MSVC)
-                    int fi_base = static_cast<int>(std::round(fx_float)) - ratio/2;
-                    int fj_base = static_cast<int>(std::round(fy_float)) - ratio/2;
-                    int fk_base = static_cast<int>(std::round(fz_float)) - ratio/2;
-                    
-                    if (fi_base >= fine.istart(0) && fi_base + ratio <= fine.iend(0) + fine.getNumGhost() &&
-                        fj_base >= fine.istart(1) && fj_base + ratio <= fine.iend(1) + fine.getNumGhost() &&
-                        fk_base >= fine.istart(2) && fk_base + ratio <= fine.iend(2) + fine.getNumGhost()) {
-                        
-                        Real sum = 0.0;
-                        for(int rk=0; rk<ratio; ++rk) {
-                            for(int rj=0; rj<ratio; ++rj) {
-                                for(int ri=0; ri<ratio; ++ri) {
-                                    sum += fine.data(var, fi_base+ri, fj_base+rj, fk_base+rk);
-                                }
-                            }
-                        }
-                        
-                        Real restrict_val = sum / (ratio * ratio * ratio);
-                        
-                        // Refluxing logic
-                        // Only applied to conserved GRMHD variables to preserve total mass/energy
-                        if (var == static_cast<int>(HydroVar::D) || 
-                            var == static_cast<int>(HydroVar::TAU) ||
-                            var == static_cast<int>(HydroVar::SX) ||
-                            var == static_cast<int>(HydroVar::SY) ||
-                            var == static_cast<int>(HydroVar::SZ)) {
-                            
-                            // Flux correction conservatively maps fine grid fluxes back iteratively
-                            // F_fine = sum(F_fine_faces)
-                            // Reflux = dt/dx * (F_coarse - F_fine)
-                            // Here we inject the properly restricted val + reflux ghost
-                        }
-                        
-                        coarse.data(var, ci, cj, ck) = restrict_val;
+    // Issue 1 fix: OMP parallelizes over spatial coarse cells (collapse 3) so each thread
+    // owns a disjoint set of (ci,cj,ck) cells. All writes go to coarse.data(var, ci, cj, ck)
+    // which are disjoint across threads — zero write races regardless of var count or grid size.
+    // This also improves cache locality: all vars for a given cell are written before moving on.
+#ifdef GRANITE_USE_OPENMP
+    #pragma omp parallel for collapse(3) schedule(static)
+#endif
+    for (int ck = coarse.istart(2); ck < coarse.iend(2); ++ck) {
+        for (int cj = coarse.istart(1); cj < coarse.iend(1); ++cj) {
+            for (int ci = coarse.istart(0); ci < coarse.iend(0); ++ci) {
+                Real x = coarse.x(0, ci), y = coarse.x(1, cj), z = coarse.x(2, ck);
+
+                Real fx_float = (x - fine.x(0, 0)) / fine.dx(0);
+                Real fy_float = (y - fine.x(1, 0)) / fine.dx(1);
+                Real fz_float = (z - fine.x(2, 0)) / fine.dx(2);
+
+                // Issue 3 fix: clamp base index to istart() so boundary coarse cells whose
+                // corresponding fi_base would go negative are still restricted using whatever
+                // fine cells are available, instead of being silently skipped with stale data.
+                int fi_base = std::max(
+                    static_cast<int>(std::round(fx_float)) - ratio / 2,
+                    fine.istart(0));
+                int fj_base = std::max(
+                    static_cast<int>(std::round(fy_float)) - ratio / 2,
+                    fine.istart(1));
+                int fk_base = std::max(
+                    static_cast<int>(std::round(fz_float)) - ratio / 2,
+                    fine.istart(2));
+
+                // Compute actual available fine-cell range (may be < ratio at the block boundary)
+                int fi_end = std::min(fi_base + ratio, fine.iend(0));
+                int fj_end = std::min(fj_base + ratio, fine.iend(1));
+                int fk_end = std::min(fk_base + ratio, fine.iend(2));
+
+                int count = (fi_end - fi_base) * (fj_end - fj_base) * (fk_end - fk_base);
+                if (count <= 0) continue; // Coarse cell fully outside fine block — skip
+
+                // Inner var loop: all vars for this cell before moving to next cell.
+                for (int var = 0; var < nv; ++var) {
+                    Real sum = 0.0;
+                    for (int rk = fk_base; rk < fk_end; ++rk)
+                        for (int rj = fj_base; rj < fj_end; ++rj)
+                            for (int ri = fi_base; ri < fi_end; ++ri)
+                                sum += fine.data(var, ri, rj, rk);
+
+                    Real restrict_val = sum / static_cast<Real>(count);
+
+                    // Refluxing logic
+                    // Only applied to conserved GRMHD variables to preserve total mass/energy
+                    if (var == static_cast<int>(HydroVar::D) ||
+                        var == static_cast<int>(HydroVar::TAU) ||
+                        var == static_cast<int>(HydroVar::SX) ||
+                        var == static_cast<int>(HydroVar::SY) ||
+                        var == static_cast<int>(HydroVar::SZ)) {
+
+                        // Flux correction conservatively maps fine grid fluxes back iteratively
+                        // F_fine = sum(F_fine_faces)
+                        // Reflux = dt/dx * (F_coarse - F_fine)
+                        // Here we inject the properly restricted val + reflux ghost
                     }
+
+                    coarse.data(var, ci, cj, ck) = restrict_val;
                 }
             }
         }

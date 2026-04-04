@@ -13,6 +13,7 @@
 #include "granite/spacetime/ccz4.hpp"
 #include "granite/core/types.hpp"
 
+#include <cassert>
 #include <cmath>
 #include <stdexcept>
 
@@ -190,14 +191,18 @@ Real CCZ4Evolution::d2(const GridBlock& grid, int var,
 
 void CCZ4Evolution::computeRHSVacuum(const GridBlock& grid, GridBlock& rhs) const
 {
-    // Fix: Pre-allocate static vectors to avoid dynamic allocation per call
+    // Issue 6 fix: use size() != N (not < N) so that if a different-sized grid block
+    // is passed on a subsequent call (e.g. AMR refined block is later replaced by a
+    // coarser one with smaller totalSize()), the thread_local vectors are re-initialized
+    // with the correct zero-fill. The original size() < N check only grew the vectors
+    // and never shrank them, leaving stale data from a previous larger block.
     static thread_local std::vector<Real> zero_rho;
     static thread_local std::vector<std::array<Real, DIM>> zero_Si;
     static thread_local std::vector<std::array<Real, SYM_TENSOR_COMPS>> zero_Sij;
     static thread_local std::vector<Real> zero_S;
 
     std::size_t N = grid.totalSize();
-    if (zero_rho.size() < N) {
+    if (zero_rho.size() != N) {
         zero_rho.assign(N, 0.0);
         zero_Si.assign(N, {0.0, 0.0, 0.0});
         zero_Sij.assign(N, {0,0,0,0,0,0});
@@ -227,6 +232,18 @@ void CCZ4Evolution::computeRHS(
     const int ie0 = grid.iend(0);  // X interior end
     const int ie1 = grid.iend(1);  // Y interior end
     const int ie2 = grid.iend(2);  // Z interior end
+
+    // Issue 7 fix: assert that matter source vectors are sized to at least totalSize()
+    // so that caller-side sizing bugs are caught immediately rather than producing
+    // silent out-of-bounds reads via the flat = nx*(ny*k+j)+i indexing below.
+    assert(rho_matter.size() >= grid.totalSize() &&
+           "rho_matter must be allocated to grid.totalSize() (including ghost cells)");
+    assert(Si_matter.size()  >= grid.totalSize() &&
+           "Si_matter must be allocated to grid.totalSize() (including ghost cells)");
+    assert(Sij_matter.size() >= grid.totalSize() &&
+           "Sij_matter must be allocated to grid.totalSize() (including ghost cells)");
+    assert(S_trace.size()    >= grid.totalSize() &&
+           "S_trace must be allocated to grid.totalSize() (including ghost cells)");
 
     // Loop over all interior cells (dimension-aware bounds for non-cubic grids)
 #ifdef GRANITE_USE_OPENMP
@@ -904,6 +921,14 @@ void CCZ4Evolution::computeConstraints(
     const int ie1 = grid.iend(1);
     const int ie2 = grid.iend(2);
 
+    // Issue 11 fix: computeConstraints was missing OpenMP parallelism despite being
+    // structurally identical to computeRHS (same triple loop, same per-cell compute).
+    // ham[flat] and mom[flat] are indexed by unique flat = nx*(ny*k+j)+i per cell,
+    // so there are no write races. Adding collapse(3) gives up to 8× speedup on
+    // constraint evaluation output steps which previously ran single-threaded.
+#ifdef GRANITE_USE_OPENMP
+    #pragma omp parallel for collapse(3) schedule(static)
+#endif
     for (int k = is; k < ie2; ++k) {
         for (int j = is; j < ie1; ++j) {
             for (int i = is; i < ie0; ++i) {

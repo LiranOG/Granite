@@ -274,7 +274,15 @@ void BowenYorkPuncture::solve(GridBlock& grid) const
                                  u[flat + nx] + u[flat - nx] + 
                                  u[flat + nx*ny] + u[flat - nx*ny];
                     
-                    Real psi7_inv = 1.0 / std::pow(psi_BL[flat] + u[flat], 7.0);
+                    // Issue 9 fix: floor psi_val above 1e-4 before raising to the 7th power.
+                    // If the SOR correction u overshoots to u < -(psi_BL - 1e-4), then
+                    // psi+u would be <= 0, causing std::pow(<=0, 7.0) to return NaN (for even
+                    // powers via pow(negative, even) = positive, but pow(0, 7) = 0 and
+                    // on some implementations pow(negative, odd_non-integer) -> NaN).
+                    // The floor value 1e-4 matches the CCZ4 chi floor for self-consistency.
+                    Real psi_val = psi_BL[flat] + u[flat];
+                    if (psi_val < 1.0e-4) psi_val = 1.0e-4;
+                    Real psi7_inv = 1.0 / std::pow(psi_val, 7.0);
                     Real rhs = -0.125 * Atilde2[flat] * psi7_inv;
                     Real unew = (u_avg - dx2 * rhs) / 6.0;
                     

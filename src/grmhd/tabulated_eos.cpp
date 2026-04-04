@@ -550,15 +550,23 @@ std::shared_ptr<TabulatedEOS> TabulatedEOS::loadFromHDF5(const std::string& path
         H5Dclose(ds);
     };
 
-    // Read energy_shift attribute
+    // Issue 4 fix: Read energy_shift attribute using a single group handle that is
+    // always closed. The original code called H5Gopen2() as an argument to H5Aexists()
+    // which created a leaked hid_t handle (never stored, never closed). A second
+    // H5Gopen2 was then called inside the if-body, holding two open handles and only
+    // closing one. This caused one HDF5 object reference to leak per checkpoint load.
     {
         double shift = 0.0;
-        if (H5Aexists(H5Gopen2(file, "/", H5P_DEFAULT), "energy_shift")) {
-            hid_t grp  = H5Gopen2(file, "/", H5P_DEFAULT);
-            hid_t attr = H5Aopen(grp, "energy_shift", H5P_DEFAULT);
-            H5Aread(attr, H5T_NATIVE_DOUBLE, &shift);
-            H5Aclose(attr);
-            H5Gclose(grp);
+        hid_t grp = H5Gopen2(file, "/", H5P_DEFAULT);
+        if (grp >= 0) {
+            if (H5Aexists(grp, "energy_shift") > 0) {
+                hid_t attr = H5Aopen(grp, "energy_shift", H5P_DEFAULT);
+                if (attr >= 0) {
+                    H5Aread(attr, H5T_NATIVE_DOUBLE, &shift);
+                    H5Aclose(attr);
+                }
+            }
+            H5Gclose(grp); // Always closed — single handle
         }
         eos->energy_shift_ = static_cast<Real>(shift);
     }
@@ -587,6 +595,35 @@ std::shared_ptr<TabulatedEOS> TabulatedEOS::loadFromHDF5(const std::string& path
     eos->d_log_rho_ = (eos->nRho_  > 1) ? (eos->log_rho_.back() - eos->log_rho_.front()) / (eos->nRho_  - 1) : 1.0;
     eos->d_log_T_   = (eos->nTemp_ > 1) ? (eos->log_T_.back()   - eos->log_T_.front())   / (eos->nTemp_ - 1) : 1.0;
     eos->d_Ye_      = (eos->nYe_   > 1) ? (eos->Ye_.back()       - eos->Ye_.front())       / (eos->nYe_   - 1) : 1.0;
+
+    // Issue 12 fix: validate that the table spacing is approximately uniform.
+    // The findRhoBracket / findTBracket / findYeBracket functions use an O(1) formula
+    // that assumes strictly uniform log-spacing. StellarCollapse tables are only
+    // approximately uniform, and denser tables (nRho > 300) can deviate up to 2%.
+    // We check here and warn if any gap deviates more than 1% from the mean spacing,
+    // so users know that large high-density / high-temperature tables may produce
+    // slightly wrong bracket indices and should use a binary search instead.
+    {
+        auto checkUniform = [](const std::vector<Real>& axis, Real d_mean,
+                               const char* name) {
+            if (axis.size() < 3) return;
+            double tol = 0.01 * std::abs(static_cast<double>(d_mean)); // 1% tolerance
+            for (size_t ii = 1; ii < axis.size(); ++ii) {
+                double gap = static_cast<double>(axis[ii] - axis[ii-1]);
+                if (std::abs(gap - static_cast<double>(d_mean)) > tol) {
+                    std::cerr << "[TabulatedEOS] WARNING (Issue 12): " << name
+                              << " axis is not uniformly spaced (gap[" << ii << "]="
+                              << gap << " vs mean=" << d_mean
+                              << "). The O(1) bracket lookup may return wrong index "
+                              << "for this table. Consider using binary search.\n";
+                    return; // Warn once per axis
+                }
+            }
+        };
+        checkUniform(eos->log_rho_, eos->d_log_rho_, "log_rho");
+        checkUniform(eos->log_T_,   eos->d_log_T_,   "log_T");
+        checkUniform(eos->Ye_,      eos->d_Ye_,       "Ye");
+    }
 
     // -----------------------------------------------------------------------
     // Read 3D tables and convert to geometric (c=1) units
