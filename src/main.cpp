@@ -903,7 +903,12 @@ int main(int argc, char* argv[]) {
     grmhd::GRMHDEvolution grmhd(grmhd_params, eos);
 
     amr::AMRParams amr_params;
-    amr_params.regrid_interval = params.regrid_interval;
+    amr_params.regrid_interval  = params.regrid_interval;
+    // Bug fix: propagate YAML amr settings into amr_params.
+    // Previously only regrid_interval was set, leaving max_levels=15 (header default).
+    // This caused dt = CFL * dx_coarse / 2^14 = 0.0001M (490× too small → ETA 1000 days).
+    amr_params.max_levels       = params.max_levels > 0 ? params.max_levels : 6;
+    amr_params.refinement_ratio = params.refinement_ratio > 0 ? params.refinement_ratio : 2;
     amr::AMRHierarchy hierarchy(amr_params, params);
     std::cout << "Initializing AMR Hierarchy...\n";
     hierarchy.initialize(amr::gradientChiTagger(params.refine_threshold));
@@ -1175,40 +1180,35 @@ int main(int argc, char* argv[]) {
         gw_file.flush();
     }
 
-    // --- Compute time step based on FINEST AMR level dx ---
-    // BUG (pre-fix): dt = CFL * dx_coarse. With 6 AMR levels and ratio=2,
-    // the finest level has dx_fine = dx_coarse / 2^5. The coarse dt then
-    // produced CFL_fine = dt / dx_fine = CFL * 2^5 = 8.0 — unconditionally
-    // unstable, causing NaN blow-up at Level 3+ in the B2_eq benchmark.
+    // --- Compute time step from ACTUAL finest block dx in the live hierarchy ---
+    // Strategy: after initialize() + any initial regrid, scan ALL blocks and take
+    // the minimum dx. This is more robust than the formula CFL*dx_coarse/ratio^(L-1)
+    // because it directly measures what levels actually exist rather than assuming
+    // all max_levels levels were created.
     //
-    // FIX: Compute dt_global to satisfy CFL ≤ params.cfl at the finest level.
-    //   dt_global = CFL * dx_fine  =  CFL * dx_coarse / ratio^(max_levels - 1)
-    //
-    // The Berger-Oliger subcycler then further divides dt_global by ratio^L
-    // for each level L via propagateDt(), so every level automatically satisfies:
-    //   CFL_L = dt_global / (ratio^L * dx_fine * ratio^(max_levels-1-L))
-    //         = CFL * dx_fine / dx_L  ≤  CFL  (finest L = max_levels-1 gives equality)
+    // Historical bug: amr_params.max_levels was never set from YAML (only regrid_interval
+    // was copied), so it stayed at the header default of 15. That drove
+    // dx_finest = 6.25/(2^14) = 3.8e-4 M and dt = 9.5e-5 M → ETA 1000 days.
     auto initial_blocks = hierarchy.getAllBlocks();
     GridBlock* base_block = initial_blocks[0];
     Real dx_coarse = std::min({base_block->dx(0), base_block->dx(1), base_block->dx(2)});
 
-    // Finest-level dx assuming refinement_ratio=2 at every level
-    const int max_levels = amr_params.max_levels;
-    const int ratio      = amr_params.refinement_ratio > 0 ? amr_params.refinement_ratio : 2;
-    // Number of refinement intervals = max_levels - 1  (Level 0 is the coarse level)
-    const int n_refine   = std::max(max_levels - 1, 0);
+    // Scan for finest dx in hierarchy (accounts for tracking sphere pre-refinement)
     Real dx_finest = dx_coarse;
-    for (int r = 0; r < n_refine; ++r)
-        dx_finest /= static_cast<Real>(ratio);
+    for (auto* blk : initial_blocks) {
+        Real blk_dx = std::min({blk->dx(0), blk->dx(1), blk->dx(2)});
+        dx_finest = std::min(dx_finest, blk_dx);
+    }
 
     Real dt = params.cfl * dx_finest;
+    int active_finest_level = hierarchy.numLevels() - 1;
 
     std::cout << "Grid: " << params.ncells[0] << " x " << params.ncells[1] << " x "
               << params.ncells[2] << "\n";
     std::cout << "dx_coarse = " << dx_coarse
-              << "  dx_finest(L" << (max_levels-1) << ") = " << dx_finest << "\n";
+              << "  dx_finest(L" << active_finest_level << ") = " << dx_finest << "\n";
     std::cout << "dt = CFL * dx_finest = " << params.cfl << " * " << dx_finest
-              << " = " << dt << "  (CFL-safe at all " << max_levels << " levels)\n";
+              << " = " << dt << "  (CFL-safe across " << hierarchy.numLevels() << " active levels)\n";
     std::cout << "t_final = " << params.t_final << "\n\n";
 
     // --- Task 2: Propagate dt across ALL AMR levels (Berger-Oliger CFL fix) ---
@@ -1226,7 +1226,7 @@ int main(int argc, char* argv[]) {
         for (const auto& bh : bh_params) {
             std::array<Real, DIM> center = bh.position;
             Real sphere_radius = std::max(2.0 * bh.mass, 0.5); // at least 2M radius
-            int min_ref_level = std::min(amr_params.max_levels - 1, 3);
+            int min_ref_level = std::min(amr_params.max_levels - 1, 2);
             hierarchy.addTrackingSphere(center, sphere_radius, min_ref_level);
             std::cout << "  [AMR] Tracking sphere @ (" << center[0] << "," << center[1]
                       << "," << center[2] << ") R=" << sphere_radius

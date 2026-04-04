@@ -569,6 +569,17 @@ void AMRHierarchy::prolongate(const GridBlock& coarse, GridBlock& fine) const
                 w011 * coarse.data(var, ci,  cj1, ck1) +
                 w111 * coarse.data(var, ci1, cj1, ck1);
 
+            // Positivity floor for physical scalars.
+            // var=0 is the conformal factor chi (χ); near punctures the trilinear
+            // stencil can overshoot/undershoot and produce χ ≤ 0 which causes
+            // div-by-zero in the CCZ4 RHS and immediate constraint explosion.
+            // A floor of 1e-6 is below any physical chi value but prevents blow-up.
+            // Similarly we floor var=9 (det(gammabar)-1), which must stay > -1.
+            constexpr int VAR_CHI   = 0;   // conformal factor
+            constexpr Real CHI_MIN  = 1.0e-6;
+            if (var == VAR_CHI && val < CHI_MIN)
+                val = CHI_MIN;
+
             fine.data(var, i, j, k) = val;
         }
     }
