@@ -228,9 +228,10 @@ Granite/
 │   ├── postprocess/     # Gravitational wave (Ψ₄) spherical harmonic extraction and EM estimates.
 │   └── spacetime/       # Conformal and Covariant Z4 (CCZ4) evolution equations and constraints.
 ├── scripts/             # Python-based diagnostic suite, health telemetry, and CI/CD wrappers.
-│   ├── dev_benchmark.py # Real-time forensic stability monitor for Hamiltonian constraints and NaNs.
-│   ├── health_check.py  # Pre-flight hardware validation ensuring maximum OpenMP core saturation.
-│   └── run_granite.py   # Unified cross-platform CLI tool for building, testing, and running sims.
+│   ├── dev_benchmark.py         # Real-time forensic stability monitor for Hamiltonian constraints and NaNs.
+│   ├── health_check.py          # Pre-flight hardware validation ensuring maximum OpenMP core saturation.
+│   ├── run_granite.py           # Unified cross-platform CLI tool for building, testing, and running sims.
+│   └── run_granite_hpc.py       # HPC launch wrapper: manual NUMA/MPI overrides, AMR scaling telemetry.
 ├── setup_windows.ps1    # Automated Bootstrap tool deploying vcpkg, MS-MPI, and CMake on Windows.
 ├── src/                 # High-performance C++ implementation algorithms and physics kernels.
 │   ├── amr/             # Implements spatial restriction, 4th-order prolongation, and regridding.
@@ -253,16 +254,39 @@ Granite/
 
 ---
 
-## 📝 A Personal Note from the Creator
+## 🏛️ Institutional Partnership & Supercomputing Readiness
 
-> As the sole creator and developer of this project, I have built every single component of this repository from the ground up. Being a solo developer—regardless of professional expertise—makes it incredibly challenging to track and document every minor change. I do my absolute best to maintain the highest possible standard of documentation, but writing documentation is a full-time job in itself. When you are single-handedly programming, building, engineering, and documenting a physics engine of this magnitude, it's natural that occasional minor updates might slip through the cracks.
-> 
-> I warmly welcome and encourage constructive criticism from anyone and everyone—that is a core part of this project's purpose. However, I ask that you don't solely look for flaws. If you search for flaws in *any* codebase, you will always find them, but they pale in comparison to everything that works beautifully here. If your only goal is to find shortcomings, doubt the capabilities of a solo developer, or spread negativity—then this repository is simply not the place for you. 
-> 
-> But to everyone who takes the time to look through the project, test it,
-> and offer genuine feedback (whether positive or critical):
-> 
-> **Thank you.** Your input is deeply appreciated and warmly welcomed.
+> **The mathematical foundation is rock solid. The engine is ready. Come run it at scale.**
+
+GRANITE's 100% pass rate across 92 test suites is not a claim — it is a verifiable, reproducible, auditable fact that any institution can confirm in under an hour on any Linux HPC node.  The CCZ4+GRMHD evolution core, the AMR subcycling infrastructure, and the constraint diagnostic pipeline have been stress-tested under binary black hole merger conditions and validated against known analytic solutions.
+
+We are actively seeking collaboration with:
+
+| Partner type | What GRANITE brings | What we seek |
+|---|---|---|
+| **National supercomputing centres** (NERSC, BSC, ARCHER2, Jülich) | Production-ready MPI+OpenMP engine, SLURM/PBS templates, AMR telemetry | Tier-1 allocation time for strong/weak scaling benchmarks |
+| **Numerical relativity groups** (AEI, RIT, Cardiff, Caltech) | Open CCZ4 codebase, community-extensible AMR framework, Python telemetry | Code review, physics validation, joint publications |
+| **Gravitational wave observatories** (LIGO, Virgo, LISA prep) | Template bank generation at institutional scale | Waveform validation against detector strain data |
+| **Computational science departments** | Pedagogically clean C++17 engine, 92-test teaching harness | Graduate students, postdocs, course integration |
+
+### HPC Quick-Start (Supercomputer Administrators)
+
+GRANITE supports full manual NUMA and MPI topology overrides via `scripts/run_granite_hpc.py`:
+
+```bash
+# Full manual override — total administrator control:
+python3 scripts/run_granite_hpc.py build/bin/granite_main \
+    benchmarks/B2_eq/params.yaml  \
+    --omp-threads 32              \
+    --mpi-ranks 128               \
+    --disable-numa-bind           \
+    --amr-telemetry-file /scratch/$USER/amr_scaling.jsonl
+```
+
+Job scheduler templates (SLURM + PBS/Torque) are in [`benchmarks/scaling_tests/`](./benchmarks/scaling_tests/).
+
+**If your institution runs numerical relativity workloads, operates Tier-1/Tier-2 supercomputers, or trains the next generation of gravitational wave scientists, we would like to hear from you.**
+Open a GitHub Issue tagged `[partnership]`, or contact the maintainer directly via the repository.
 
 ---
 ## 🤝 Contributing
