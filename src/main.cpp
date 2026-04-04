@@ -820,6 +820,18 @@ int main(int argc, char* argv[]) {
                     params.domain_hi[1] = grid["domain_hi"][1].as<Real>();
                     params.domain_hi[2] = grid["domain_hi"][2].as<Real>();
                 }
+                
+                // Task 2: Fix 1/r singularity explosion by micro-offsetting the grid.
+                // This ensures coordinate points like (5.0, 0, 0) never land EXACTLY on a cell center
+                // which prevents division-by-zero during Two-Punctures spectral mapping.
+                // Without this, exact alignment generates massive Extrinsic Curvature A_ij values
+                // and unrecoverable CCZ4 shifts/NaNs (Advection CFL > 10^23).
+                constexpr Real MICRO_OFFSET = 1.3621415e-6; // Distinct offset immune to exact binary powers
+                for (int d = 0; d < 3; ++d) {
+                    params.domain_lo[d] += MICRO_OFFSET;
+                    params.domain_hi[d] += MICRO_OFFSET;
+                }
+
                 if (grid["ghost_cells"])
                     params.ghost_cells = grid["ghost_cells"].as<int>();
             }
