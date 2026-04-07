@@ -5,8 +5,11 @@ Welcome to GRANITE. This project was born from a simple but overwhelming ambitio
 But here is the reality: I am currently building, optimizing, and debugging this entirely alone.
 
 Making all these complex engines communicate perfectly, optimizing OpenMP threads to balance the load, and managing AMR grids so they don't crash the hardware takes an immense amount of time and energy. Because my focus must remain 100% on the physics, the math, and the engine's stability, I have to make a hard choice regarding deployment.
+
 >> **Currently, native Windows (CMD/PowerShell) and macOS are STRICTLY UNSUPPORTED.**
-Trying to troubleshoot package managers, compilers, and terminal quirks across every operating system is draining resources I simply do not have right now. To run GRANITE, **you must use Linux or Windows Subsystem for Linux (WSL2)**. The engine is optimized for environments where dependencies are natively supported, allowing you to bypass installation headaches and focus on the science.
+>> Trying to troubleshoot package managers, compilers, and terminal quirks across every operating system is draining resources I simply do not have right now. To run GRANITE,
+>> **you must use Linux or Windows Subsystem for Linux (WSL2)**.
+>> The engine is optimized for environments where dependencies are natively supported, allowing you to bypass installation headaches and focus on the science.
 
 My promise to you: In the future, once the core engine is flawless and perfectly optimized, I will dedicate the time to make GRANITE a true plug-and-play experience across every operating system, terminal, and platform.
 
