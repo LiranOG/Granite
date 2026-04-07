@@ -88,8 +88,14 @@ public:
     /// Fill ghost zones (inter-block communication + boundary conditions)
     void fillGhostZones(int level);
 
-    /// Prolongation: 4th-order polynomial interpolation from coarse to fine level
-    void prolongate(const GridBlock& coarse, GridBlock& fine) const;
+    /// Prolongation: trilinear interpolation from coarse to fine level.
+    /// @param fill_interior  If true (default), fills ALL cells including interior
+    ///                       (used only at block-creation time in regrid()).
+    ///                       If false, fills ONLY ghost-zone cells — interior cells
+    ///                       are owned by the physics RHS and must not be overwritten
+    ///                       during normal ghost-fill operations.
+    void prolongate(const GridBlock& coarse, GridBlock& fine,
+                    bool fill_interior = true) const;
 
     /// Restriction: cell-averaging injection with reflux conservation
     void restrict_data(const GridBlock& fine, GridBlock& coarse) const;

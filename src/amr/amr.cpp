@@ -29,6 +29,14 @@ void AMRHierarchy::initialize(const TaggingFunction& tagger)
 {
     levels_.clear();
 
+    // P0 fix (dangling pointer): reserve levels_ capacity for the maximum number
+    // of refinement levels before any blocks or child levels are created.
+    // This guarantees that subsequent push_back() calls in regrid() can NEVER
+    // reallocate the vector, which would invalidate raw GridBlock* pointers
+    // captured by subcycle()'s current_blocks vector — classic UB.
+    // Cost: one small heap allocation of max_levels * sizeof(Level) at startup.
+    levels_.reserve(static_cast<std::size_t>(params_.max_levels));
+
     // ── Level 0: full-domain coarse block ────────────────────────────────────
     Level l0;
     l0.level_id     = 0;
@@ -300,10 +308,12 @@ void AMRHierarchy::subcycle(int level, const EvolutionStepFunc& evolve_func, con
     //    - For level > 0: interpolates CURRENT parent data into ghost cells
     //      at the coarse-fine boundary (the critical step that was missing)
     if (level > 0) {
-        // Interpolate current coarse solution into fine ghost cells
+        // Interpolate current coarse solution into GHOST cells of fine blocks.
+        // fill_interior=false: the physics RHS owns interior cell data and
+        // must not be overwritten mid-timestep by stale coarse interpolation.
         for (auto& fblk : levels_[level].blocks)
             for (auto& cblk : levels_[level - 1].blocks)
-                prolongate(*cblk, *fblk);
+                prolongate(*cblk, *fblk, /*fill_interior=*/false);
     }
     fillGhostZones(level);
 
@@ -439,9 +449,11 @@ void AMRHierarchy::fillGhostZones(int level)
                     if (c_hi >= fine_hi - 0.5 * blk->dx(d))
                         filled_hi[d] = true;  // coarse covers hi ghost of fine
                 }
-                // Prolongate into ALL cells of the fine block (interior + ghost)
-                // This uses the corrected prolongate() which clamps indices safely.
-                prolongate(*cblk, *blk);
+                // Prolongate into ghost cells ONLY.
+                // fill_interior=false: interior cells on this fine block were already
+                // evolved by the physics RHS. Overwriting them here with coarse
+                // interpolation would corrupt the post-step solution at level boundaries.
+                prolongate(*cblk, *blk, /*fill_interior=*/false);
             }
         }
 
@@ -493,11 +505,18 @@ void AMRHierarchy::fillGhostZones(int level)
     }
 }
 
-void AMRHierarchy::prolongate(const GridBlock& coarse, GridBlock& fine) const
+void AMRHierarchy::prolongate(const GridBlock& coarse, GridBlock& fine,
+                               bool fill_interior) const
 {
     if (coarse.getLevel() >= fine.getLevel()) return;
 
-    const int nv = fine.getNumVars();
+    const int nv  = fine.getNumVars();
+    const int ng0 = fine.istart(0);   // == ghost_cells in X
+    const int ng1 = fine.istart(1);   // == ghost_cells in Y
+    const int ng2 = fine.istart(2);   // == ghost_cells in Z
+    const int ie0 = fine.iend(0);     // first index past last interior cell in X
+    const int ie1 = fine.iend(1);
+    const int ie2 = fine.iend(2);
 
     // ── Coordinate mapping: x(d, idx) = lo[d] + (idx - ng + 0.5) * dx[d] ────
     // => coarse index for a fine cell at physical coord x:
@@ -512,6 +531,17 @@ void AMRHierarchy::prolongate(const GridBlock& coarse, GridBlock& fine) const
         for (int j = 0; j < fine.totalCells(1); ++j)
         for (int i = 0; i < fine.totalCells(0); ++i)
         {
+            // P0 fix: when called from fillGhostZones() or subcycle(),
+            // fill_interior=false. Skip interior cells — the physics RHS
+            // owns them. Only ghost-zone cells (in at least one dimension)
+            // need coarse interpolation to supply boundary conditions.
+            if (!fill_interior) {
+                const bool is_ghost =
+                    (i < ng0) || (i >= ie0) ||
+                    (j < ng1) || (j >= ie1) ||
+                    (k < ng2) || (k >= ie2);
+                if (!is_ghost) continue;
+            }
             // Physical coordinates of this fine cell (including ghost)
             Real x = fine.x(0, i);
             Real y = fine.x(1, j);
