@@ -323,5 +323,17 @@ To automatically format your C++ contributions to our guidelines, run:
 python scripts/run_granite.py format
 ```
 
+## 📚 Documentation
+
+The `docs/` directory contains the permanent technical reference for the v0.6.5 release:
+
+| Document | Description |
+|---|---|
+| [`docs/v0.6.5_master_dictionary.md`](./docs/v0.6.5_master_dictionary.md) | **Exhaustive Technical Reference & Command Dictionary** — every CLI flag, YAML parameter, C++ constant, CMake option, and the 5 Stability Patch forensic records. Zero-loss documentation standard. |
+| [`docs/diagnostic_handbook.md`](./docs/diagnostic_handbook.md) | **GRANITE Diagnostic Handbook: Interpreting Simulation Telemetry** — the epistemological guide to reading the live dashboard, understanding lapse life-cycles, performing NaN forensics, and applying the Health Check Checklist. |
+| [`docs/INSTALL.md`](./docs/INSTALL.md) | **Complete A-to-Z Installation Guide** — per-terminal dependency setup, troubleshooting Q&A, and build verification. |
+
+---
+
 ## 📜 License
 GRANITE is released under the GNU General Public License v3.0 or later (GPL-3.0-or-later). See the `LICENSE` file for details.
