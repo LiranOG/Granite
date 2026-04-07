@@ -89,6 +89,19 @@ def _col(colour: str, text: str) -> str:
     return f"{_C.get(colour, '')}{text}{_C['RESET']}"
 
 
+def safe_float(val: object, default: float = math.nan) -> float:
+    """Convert *val* to float, returning *default* on any error.
+
+    Prevents ValueError / TypeError crashes when the C++ engine emits
+    unexpected tokens (e.g. a bare '-', 'nan', 'inf', or empty string)
+    inside a regex-captured group.  All metric parsing MUST use this.
+    """
+    try:
+        return float(val)  # type: ignore[arg-type]
+    except (ValueError, TypeError):
+        return default
+
+
 # Progress-bar width (characters)
 _BAR_WIDTH = 32
 
@@ -588,8 +601,8 @@ class GraniteTracker:
                     curr = self._store.steps[-1]
                     dts  = curr["t"] - prev["t"]
                     if (dts > 0
-                            and not math.isnan(prev["hamil"])
-                            and not math.isnan(curr["hamil"])
+                            and math.isfinite(prev["hamil"])
+                            and math.isfinite(curr["hamil"])
                             and prev["hamil"] > 0
                             and curr["hamil"] > 0):
                         gv   = (curr["hamil"] - prev["hamil"]) / dts
@@ -756,7 +769,7 @@ class GraniteTracker:
         # ── t_final ────────────────────────────────────────────────────
         m = self._RE_TFINAL.search(line)
         if m:
-            self._store.t_final = float(m.group(1))
+            self._store.t_final = safe_float(m.group(1), default=0.0)
 
         # ── Grid metadata ──────────────────────────────────────────────
         m = self._RE_GRID.search(line)
@@ -781,10 +794,10 @@ class GraniteTracker:
         m = self._RE_STEP.search(line)
         if m:
             step   = int(m.group(1))
-            t      = float(m.group(2))
+            t      = safe_float(m.group(2), default=0.0)
             # wall= is optional — fall back to elapsed Python-side wall time
             if m.group(3) is not None:
-                wall = float(m.group(3))
+                wall = safe_float(m.group(3), default=0.0)
             else:
                 wall = time.monotonic() - self._start_wall
             speed  = t / wall if wall > 0 else 0.0
@@ -796,10 +809,10 @@ class GraniteTracker:
             # Collect inline α and ‖H‖₂ if present on same line
             am = self._RE_ALPHA.search(line)
             if am:
-                self._alpha = float(am.group(1))
+                self._alpha = safe_float(am.group(1))
             hm = self._RE_HAMIL.search(line)
             if hm:
-                self._hamil = float(hm.group(1))
+                self._hamil = safe_float(hm.group(1))
             bm = self._RE_BLOCKS.search(line)
             if bm:
                 self._blocks = int(bm.group(1))
@@ -817,12 +830,12 @@ class GraniteTracker:
 
             sm = self._RE_SEP.search(line)
             if sm:
-                d_val = float(sm.group(1))
+                d_val = safe_float(sm.group(1), default=0.0)
                 self._store.separation_history.append((t, d_val))
 
             om = self._RE_OMEGA.search(line)
             if om:
-                omega_val = float(om.group(1))
+                omega_val = safe_float(om.group(1), default=0.0)
                 self._store.omega_history.append((t, omega_val))
 
             # Record into MetricStore (we may update α/hamil from next lines)
@@ -838,7 +851,7 @@ class GraniteTracker:
         # ── Inline metric lines (follow a step line) ───────────────────
         m = self._RE_ALPHA.search(line)
         if m:
-            self._alpha = float(m.group(1))
+            self._alpha = safe_float(m.group(1))
             # Update the last recorded step if we have one
             if self._store.last:
                 self._store.last["alpha"] = self._alpha
@@ -850,7 +863,7 @@ class GraniteTracker:
 
         m = self._RE_HAMIL.search(line)
         if m:
-            self._hamil = float(m.group(1))
+            self._hamil = safe_float(m.group(1))
             if self._store.last:
                 self._store.last["hamil"] = self._hamil
                 if abs(self._hamil) > abs(self._store.hamil_max[0]):

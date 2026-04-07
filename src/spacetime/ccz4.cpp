@@ -940,14 +940,13 @@ void CCZ4Evolution::computeConstraints(
                 // Note: For extreme performance, this duplicates some compute from computeRHS,
                 // but constraints are typically evaluated sparingly in an MPI block.
                 
+                // Strict chi floor matching computeRHS: ensures the Rchi
+                // denominators (chi + eps) and (chi*chi + eps) are safely
+                // bounded. Ghost-zone chi may still be 0 (stencil reads them),
+                // so we also clamp d_chi components after computing them.
                 Real chi_raw = grid.data(iCHI, i, j, k);
-                // Apply the SAME floor as computeRHS (line 263). Without this,
-                // chi→0 at the puncture makes (0.5/(chi+1e-30)) in Rchi large
-                // but finite, then R_scalar *= chi should cancel it — EXCEPT
-                // that floating-point cancellation is not guaranteed near zero,
-                // and intermediate overflow produces +inf which the *= chi cannot
-                // recover from.  The floor 1e-4 matches the RHS floor exactly.
-                Real chi = (std::isfinite(chi_raw) && chi_raw >= 1.0e-4) ? chi_raw : 1.0e-4;
+                Real chi = std::max(std::isfinite(chi_raw) ? chi_raw : 1.0e-4,
+                                    1.0e-4);
                 Real K = grid.data(iK, i, j, k);
                 if (!std::isfinite(K)) K = 0.0;  // guard stale/NaN from ghost zone
                 
@@ -1005,12 +1004,25 @@ void CCZ4Evolution::computeConstraints(
                 }
                 Real d_chi[3];
                 Real dd_chi[3][3];
-                for(int d=0; d<3; ++d) {
+                for (int d = 0; d < 3; ++d) {
                     d_chi[d] = d1_4th(iCHI, d);
-                    for(int d2_idx=d; d2_idx<3; ++d2_idx) {
+                    for (int d2_idx = d; d2_idx < 3; ++d2_idx) {
                         dd_chi[d][d2_idx] = d2_4th(iCHI, d, d2_idx);
                         dd_chi[d2_idx][d] = dd_chi[d][d2_idx];
                     }
+                }
+                // Clamp d_chi magnitudes: 4th-order stencils reach into ghost
+                // cells where chi is still raw/zero; the resulting d_chi values
+                // can be O(chi_floor/dx) ~ 1e4/dx per unit which, when squared
+                // and divided by chi^2, overflows to +inf even though the centre
+                // chi was safely floored above.
+                // Max physical |∂_i chi| ≈ O(1/M) ~ 1.0 for a typical run;
+                // 1e6 gives generous headroom for highest refinement levels.
+                constexpr Real D_CHI_MAX = 1.0e6;
+                for (int d = 0; d < 3; ++d) {
+                    d_chi[d] = std::max(-D_CHI_MAX, std::min(D_CHI_MAX, d_chi[d]));
+                    for (int d2 = 0; d2 < 3; ++d2)
+                        dd_chi[d][d2] = std::max(-D_CHI_MAX, std::min(D_CHI_MAX, dd_chi[d][d2]));
                 }
 
                 Real chris[3][6]; 
@@ -1079,8 +1091,12 @@ void CCZ4Evolution::computeConstraints(
                             }
                         }
                         // Baumgarte-Shapiro eq. 3.68: coefficient is -3, NOT +2
-                        Rchi[ij] = (0.5 / (chi + 1e-30)) * (D_i_D_j_chi + gt[ij] * D_k_D_k_chi)
-                                 - (0.25 / ((chi*chi) + 1e-30)) * (d_chi[ii]*d_chi[jj] - 3.0 * gt[ij] * d_chi_sq);
+                        Real Rchi_ij = (0.5 / (chi + 1e-4)) * (D_i_D_j_chi + gt[ij] * D_k_D_k_chi)
+                                     - (0.25 / ((chi*chi) + 1e-8)) * (d_chi[ii]*d_chi[jj] - 3.0 * gt[ij] * d_chi_sq);
+                        // Guard: stencil over ghost-zone zero-chi can still produce
+                        // a very large but finite value that, once summed and multiplied
+                        // by chi, yields ±inf.  Clamp to keep ham_val finite.
+                        Rchi[ij] = std::isfinite(Rchi_ij) ? Rchi_ij : 0.0;
                     }
                 }
 
