@@ -3,7 +3,7 @@
 project = "GRANITE"
 copyright = "2026, GRANITE Collaboration"
 author = "GRANITE Collaboration"
-release = "0.6.0"
+release = "0.6.5"
 
 # -- General configuration ---------------------------------------------------
 
