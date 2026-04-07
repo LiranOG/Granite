@@ -13,13 +13,10 @@
 #include "granite/grmhd/grmhd.hpp"
 #include "granite/initial_data/initial_data.hpp"
 #include "granite/io/hdf5_io.hpp"
-#include "granite/postprocess/postprocess.hpp"
 #include "granite/spacetime/ccz4.hpp"
 
 #include <algorithm>
-#include <atomic>
 #include <cmath>
-#include <fstream>
 #include <iostream>
 #include <map>
 #include <memory>
@@ -38,105 +35,6 @@
 #endif
 
 namespace granite {
-
-// ===========================================================================
-// Task 1 Helper: Find puncture positions by scanning for alpha minima
-// ===========================================================================
-
-/// Scan all blocks at the finest available level and return up to `n_punctures`
-/// spatial positions corresponding to local minima of the lapse function alpha.
-/// Each returned position is the coordinate of the cell with the globally
-/// smallest alpha value (puncture 1) or the smallest alpha found more than
-/// `min_separation` M away from the first (puncture 2), etc.
-///
-/// This is the standard "moving puncture" tracker: the puncture always
-/// coincides with the deepest lapse collapse (alpha_min ≈ 0.3 at equilibrium).
-std::vector<std::array<Real, DIM>>
-findPuncturesByLapseMin(amr::AMRHierarchy& hier, int n_punctures,
-                        Real min_separation = 0.5)
-{
-    // Use the finest level available for best resolution
-    int finest = hier.numLevels() - 1;
-    auto blocks = hier.getLevel(finest);
-    if (blocks.empty()) blocks = hier.getAllBlocks();
-    if (blocks.empty()) return {};
-
-    constexpr int iLAPSE = 18; // SpacetimeVar::LAPSE
-
-    // Collect (alpha, x, y, z) for every interior cell
-    struct CellMin { Real alpha, x, y, z; };
-    std::vector<CellMin> minima;
-    minima.reserve(blocks.size() * 4);
-
-    for (auto* blk : blocks) {
-        for (int k = blk->istart(2); k < blk->iend(2); ++k)
-        for (int j = blk->istart(1); j < blk->iend(1); ++j)
-        for (int i = blk->istart(0); i < blk->iend(0); ++i) {
-            Real a = blk->data(iLAPSE, i, j, k);
-            // Only consider cells where lapse has collapsed (puncture region)
-            if (a < 0.5) {
-                minima.push_back({a, blk->x(0,i), blk->x(1,j), blk->x(2,k)});
-            }
-        }
-    }
-
-    if (minima.empty()) return {};
-
-    // Sort ascending by alpha — lowest is closest to puncture
-    std::sort(minima.begin(), minima.end(),
-              [](const CellMin& a, const CellMin& b){ return a.alpha < b.alpha; });
-
-    // Pick up to n_punctures that are spatially separated by > min_separation
-    std::vector<std::array<Real, DIM>> result;
-    for (const auto& m : minima) {
-        bool too_close = false;
-        for (const auto& existing : result) {
-            Real dx = m.x - existing[0];
-            Real dy = m.y - existing[1];
-            Real dz = m.z - existing[2];
-            if (std::sqrt(dx*dx + dy*dy + dz*dz) < min_separation) {
-                too_close = true;
-                break;
-            }
-        }
-        if (!too_close) {
-            result.push_back({m.x, m.y, m.z});
-            if (static_cast<int>(result.size()) >= n_punctures) break;
-        }
-    }
-    return result;
-}
-
-// ===========================================================================
-// Task 3 Helper: Compute orbital separation and assign phase label
-// ===========================================================================
-
-/// Compute the Euclidean separation between two puncture positions.
-Real computeSeparation(const std::vector<std::array<Real, DIM>>& positions)
-{
-    if (positions.size() < 2) return -1.0; // single BH or not found
-    Real dx = positions[0][0] - positions[1][0];
-    Real dy = positions[0][1] - positions[1][1];
-    Real dz = positions[0][2] - positions[1][2];
-    return std::sqrt(dx*dx + dy*dy + dz*dz);
-}
-
-/// Return the orbital phase label based on physical separation D (in units of M).
-/// Thresholds are for M_total = 1.0 (user-confirmed):
-///   D > 5.0 M  →  "Early Inspiral"
-///   1.5 < D ≤ 5.0 M  →  "Late Inspiral"
-///   D_prev_not_found OR D ≤ 1.5 M  →  "Merger"
-///   (single BH + alpha recovering)  →  "Ringdown"
-std::string phaseLabel(Real D, Real alpha_center)
-{
-    if (D < 0.0) {
-        // Could not find two punctures — either merged or single BH run
-        return (alpha_center > 0.5) ? "Ringdown" : "Merger";
-    }
-    if (D > 5.0) return "Early Inspiral";
-    if (D > 1.5) return "Late Inspiral";
-    return "Merger";
-}
 
 struct BlockBundle {
     int id;
@@ -251,7 +149,7 @@ public:
 
                         requests.push_back(MPI_REQUEST_NULL);
                         MPI_Isend(sbuf_st.data(),
-                                  static_cast<int>(sbuf_st.size()),
+                                  sbuf_st.size(),
                                   MPI_DOUBLE,
                                   nbr_rank,
                                   tag_st,
@@ -259,7 +157,7 @@ public:
                                   &requests.back());
                         requests.push_back(MPI_REQUEST_NULL);
                         MPI_Isend(sbuf_hy.data(),
-                                  static_cast<int>(sbuf_hy.size()),
+                                  sbuf_hy.size(),
                                   MPI_DOUBLE,
                                   nbr_rank,
                                   tag_hy,
@@ -276,7 +174,7 @@ public:
 
                         requests.push_back(MPI_REQUEST_NULL);
                         MPI_Irecv(rbuf_st.data(),
-                                  static_cast<int>(rbuf_st.size()),
+                                  rbuf_st.size(),
                                   MPI_DOUBLE,
                                   nbr_rank,
                                   recv_tag_st,
@@ -284,7 +182,7 @@ public:
                                   &requests.back());
                         requests.push_back(MPI_REQUEST_NULL);
                         MPI_Irecv(rbuf_hy.data(),
-                                  static_cast<int>(rbuf_hy.size()),
+                                  rbuf_hy.size(),
                                   MPI_DOUBLE,
                                   nbr_rank,
                                   recv_tag_hy,
@@ -296,7 +194,7 @@ public:
 
             if (!requests.empty()) {
                 std::vector<MPI_Status> statuses(requests.size());
-                MPI_Waitall(static_cast<int>(requests.size()), requests.data(), statuses.data());
+                MPI_Waitall(requests.size(), requests.data(), statuses.data());
             }
 
             r_idx = 0; // Reset existing r_idx instead of redeclaring
@@ -605,48 +503,40 @@ public:
         applyRHS(false);
 
         // ── One-shot NaN diagnostic (remove once stable) ─────────
-        // Issue 5 fix: std::atomic<bool> ensures the check runs exactly once even
-        // if sspRK3Step were ever called concurrently (e.g. one thread per AMR level).
-        // compare_exchange_strong atomically tests-and-sets the flag with sequential
-        // consistency — no data race under the C++11 memory model.
-        // The goto-based early exit is also replaced with structured break loops to
-        // eliminate the MSVC C4533 warning (goto jumps across label declarations).
         {
-            static std::atomic<bool> nan_checked{false};
-            bool expected = false;
-            if (nan_checked.compare_exchange_strong(expected, true)) {
+            static bool checked = false;
+            if (!checked) {
+                checked = true;
                 for (auto* bundle_ptr : bundles) {
                     auto& bundle = *bundle_ptr;
                     GridBlock& rhs_st = *(bundle.st_rhs);
                     GridBlock& rhs_hy = *(bundle.hydro_rhs);
-                    // Scan spacetime RHS — structured break replaces goto
-                    bool found_nan_st = false;
-                    for (int v = 0; v < rhs_st.getNumVars() && !found_nan_st; ++v)
-                    for (int k = rhs_st.istart(); k < rhs_st.iend(2) && !found_nan_st; ++k)
-                    for (int j = rhs_st.istart(); j < rhs_st.iend(1) && !found_nan_st; ++j)
-                    for (int i = rhs_st.istart(); i < rhs_st.iend(0) && !found_nan_st; ++i) {
+                    // Scan spacetime RHS
+                    for (int v = 0; v < rhs_st.getNumVars(); ++v)
+                    for (int k = rhs_st.istart(); k < rhs_st.iend(2); ++k)
+                    for (int j = rhs_st.istart(); j < rhs_st.iend(1); ++j)
+                    for (int i = rhs_st.istart(); i < rhs_st.iend(0); ++i) {
                         if (std::isnan(rhs_st.data(v, i, j, k)) || std::isinf(rhs_st.data(v, i, j, k))) {
                             std::cout << "  [NaN-DIAG] ST_RHS var=" << v << " at (" << i << "," << j << "," << k << ")"
                                       << " val=" << rhs_st.data(v, i, j, k) << std::endl;
-                            found_nan_st = true;
+                            goto done_st;
                         }
                     }
-                    if (!found_nan_st)
-                        std::cout << "  [NaN-DIAG] ST_RHS: all finite" << std::endl;
+                    std::cout << "  [NaN-DIAG] ST_RHS: all finite" << std::endl;
+                    done_st:
                     // Scan hydro RHS
-                    bool found_nan_hy = false;
-                    for (int v = 0; v < rhs_hy.getNumVars() && !found_nan_hy; ++v)
-                    for (int k = rhs_hy.istart(); k < rhs_hy.iend(2) && !found_nan_hy; ++k)
-                    for (int j = rhs_hy.istart(); j < rhs_hy.iend(1) && !found_nan_hy; ++j)
-                    for (int i = rhs_hy.istart(); i < rhs_hy.iend(0) && !found_nan_hy; ++i) {
+                    for (int v = 0; v < rhs_hy.getNumVars(); ++v)
+                    for (int k = rhs_hy.istart(); k < rhs_hy.iend(2); ++k)
+                    for (int j = rhs_hy.istart(); j < rhs_hy.iend(1); ++j)
+                    for (int i = rhs_hy.istart(); i < rhs_hy.iend(0); ++i) {
                         if (std::isnan(rhs_hy.data(v, i, j, k)) || std::isinf(rhs_hy.data(v, i, j, k))) {
                             std::cout << "  [NaN-DIAG] HY_RHS var=" << v << " at (" << i << "," << j << "," << k << ")"
                                       << " val=" << rhs_hy.data(v, i, j, k) << std::endl;
-                            found_nan_hy = true;
+                            goto done_hy;
                         }
                     }
-                    if (!found_nan_hy)
-                        std::cout << "  [NaN-DIAG] HY_RHS: all finite" << std::endl;
+                    std::cout << "  [NaN-DIAG] HY_RHS: all finite" << std::endl;
+                    done_hy:;
                 }
             }
         }
@@ -784,7 +674,7 @@ int main(int argc, char* argv[]) {
     using namespace granite;
 
     std::cout << "================================================================\n";
-    std::cout << " GRANITE v" << "0.6.0" << "\n";
+    std::cout << " GRANITE v" << "0.5.0" << "\n";
     std::cout << " General-Relativistic Adaptive N-body Integrated Tool\n";
     std::cout << " for Extreme Astrophysics\n";
     std::cout << "================================================================\n\n";
@@ -820,18 +710,6 @@ int main(int argc, char* argv[]) {
                     params.domain_hi[1] = grid["domain_hi"][1].as<Real>();
                     params.domain_hi[2] = grid["domain_hi"][2].as<Real>();
                 }
-                
-                // Task 2: Fix 1/r singularity explosion by micro-offsetting the grid.
-                // This ensures coordinate points like (5.0, 0, 0) never land EXACTLY on a cell center
-                // which prevents division-by-zero during Two-Punctures spectral mapping.
-                // Without this, exact alignment generates massive Extrinsic Curvature A_ij values
-                // and unrecoverable CCZ4 shifts/NaNs (Advection CFL > 10^23).
-                constexpr Real MICRO_OFFSET = 1.3621415e-6; // Distinct offset immune to exact binary powers
-                for (int d = 0; d < 3; ++d) {
-                    params.domain_lo[d] += MICRO_OFFSET;
-                    params.domain_hi[d] += MICRO_OFFSET;
-                }
-
                 if (grid["ghost_cells"])
                     params.ghost_cells = grid["ghost_cells"].as<int>();
             }
@@ -843,21 +721,6 @@ int main(int argc, char* argv[]) {
                     params.t_final = time["t_final"].as<Real>();
                 if (time["max_steps"])
                     params.max_steps = time["max_steps"].as<int>();
-            }
-            if (config["amr"]) {
-                auto amr = config["amr"];
-                if (amr["max_levels"])
-                    params.max_levels = amr["max_levels"].as<int>();
-                if (amr["refinement_ratio"])
-                    params.refinement_ratio = amr["refinement_ratio"].as<int>();
-                if (amr["regrid_interval"])
-                    params.regrid_interval = amr["regrid_interval"].as<int>();
-                if (amr["refine_threshold"])
-                    params.refine_threshold = amr["refine_threshold"].as<Real>();
-                if (amr["derefine_threshold"])
-                    params.derefine_threshold = amr["derefine_threshold"].as<Real>();
-                if (amr["truncation_error"])
-                    params.use_truncation_error = amr["truncation_error"].as<bool>();
             }
             if (config["ccz4"]) {
                 auto ccz4 = config["ccz4"];
@@ -930,31 +793,10 @@ int main(int argc, char* argv[]) {
     grmhd::GRMHDEvolution grmhd(grmhd_params, eos);
 
     amr::AMRParams amr_params;
-    amr_params.regrid_interval  = params.regrid_interval;
-    // Bug fix: propagate YAML amr settings into amr_params.
-    // Previously only regrid_interval was set, leaving max_levels=15 (header default).
-    // This caused dt = CFL * dx_coarse / 2^14 = 0.0001M (490× too small → ETA 1000 days).
-    amr_params.max_levels       = params.max_levels > 0 ? params.max_levels : 6;
-    amr_params.refinement_ratio = params.refinement_ratio > 0 ? params.refinement_ratio : 2;
-    amr_params.derefine_threshold   = params.derefine_threshold;
-    amr_params.use_truncation_error = params.use_truncation_error;
-
-    // ── Build physics-aware composite tagger ─────────────────────────────
-    // The tagger is the PRIMARY brain of AMR refinement decisions.
-    // It combines gradient-based criteria that detect ANY topological scenario
-    // autonomously — from single punctures to 5-SMBH configurations, and
-    // automatically adds density gradient tracking for GRMHD matter.
-    std::vector<amr::TaggingFunction> tagger_components;
-    tagger_components.push_back(amr::gradientChiTagger(params.refine_threshold));
-    tagger_components.push_back(amr::gradientLapseTagger(params.refine_threshold * 0.5));
-    if (params.use_truncation_error)
-        tagger_components.push_back(amr::truncationErrorTagger(params.refine_threshold * 2.0));
-    // Density tagger added conditionally after initial data is set (below)
-    auto composite_tagger = amr::compositeTagger(tagger_components);
-
+    amr_params.regrid_interval = params.regrid_interval;
     amr::AMRHierarchy hierarchy(amr_params, params);
     std::cout << "Initializing AMR Hierarchy...\n";
-    hierarchy.initialize(composite_tagger);
+    hierarchy.initialize(amr::gradientChiTagger(params.refine_threshold));
 
     std::vector<BlockBundle> active_bundles;
     std::unordered_map<int, size_t> id_to_index;
@@ -1198,68 +1040,22 @@ int main(int argc, char* argv[]) {
     io_params.checkpoint_interval = params.checkpoint_interval;
     io::HDF5Writer writer(io_params);
 
-    // --- Task 4: Psi4 GW Extractor ---
-    // Extraction radii R=8.0M and R=12.0M are within the default ±16M domain.
-    // n_theta=40, n_phi=80 gives ~3200 points per sphere — sufficient for (l,m)=(2,2).
-    postprocess::GWExtractionParams gw_params;
-    gw_params.extraction_radii = {8.0, 12.0};
-    gw_params.l_max  = 4;
-    gw_params.n_theta = 40;
-    gw_params.n_phi   = 80;
-    postprocess::Psi4Extractor psi4_extractor(gw_params);
-
-    // Open GW output file — written every output_interval steps
-    std::ofstream gw_file(params.output_dir + "/gw_extraction.dat");
-    if (!gw_file.is_open()) {
-        std::cerr << "[GW] WARNING: could not open gw_extraction.dat in '"
-                  << params.output_dir << "'\n";
-    } else {
-        gw_file << "# Granite GW Extraction — Psi4 modes on coordinate spheres\n";
-        gw_file << "# Columns: t  "
-                   "Re(Psi4_22_r8)  Im(Psi4_22_r8)  "
-                   "Re(Psi4_22_r12) Im(Psi4_22_r12)  "
-                   "Re(Psi4_21_r8)  Im(Psi4_21_r8)  "
-                   "E_rad_r12\n";
-        gw_file.flush();
-    }
-
-    // --- Compute time step from ACTUAL finest block dx in the live hierarchy ---
-    // Strategy: after initialize() + any initial regrid, scan ALL blocks and take
-    // the minimum dx. This is more robust than the formula CFL*dx_coarse/ratio^(L-1)
-    // because it directly measures what levels actually exist rather than assuming
-    // all max_levels levels were created.
-    //
-    // Historical bug: amr_params.max_levels was never set from YAML (only regrid_interval
-    // was copied), so it stayed at the header default of 15. That drove
-    // dx_finest = 6.25/(2^14) = 3.8e-4 M and dt = 9.5e-5 M → ETA 1000 days.
+    // --- Compute time step ---
     auto initial_blocks = hierarchy.getAllBlocks();
     GridBlock* base_block = initial_blocks[0];
-    Real dx_coarse = std::min({base_block->dx(0), base_block->dx(1), base_block->dx(2)});
-
-    // Scan for finest dx in hierarchy (accounts for tracking sphere pre-refinement)
-    Real dx_finest = dx_coarse;
-    for (auto* blk : initial_blocks) {
-        Real blk_dx = std::min({blk->dx(0), blk->dx(1), blk->dx(2)});
-        dx_finest = std::min(dx_finest, blk_dx);
-    }
-
-    Real dt = params.cfl * dx_finest;
-    int active_finest_level = hierarchy.numLevels() - 1;
+    Real dx_min = std::min({base_block->dx(0), base_block->dx(1), base_block->dx(2)});
+    Real dt = params.cfl * dx_min;
 
     std::cout << "Grid: " << params.ncells[0] << " x " << params.ncells[1] << " x "
               << params.ncells[2] << "\n";
-    std::cout << "dx_coarse = " << dx_coarse
-              << "  dx_finest(L" << active_finest_level << ") = " << dx_finest << "\n";
-    std::cout << "dt = CFL * dx_finest = " << params.cfl << " * " << dx_finest
-              << " = " << dt << "  (CFL-safe across " << hierarchy.numLevels() << " active levels)\n";
+    std::cout << "dx = " << dx_min << ", dt = " << dt << "\n";
     std::cout << "t_final = " << params.t_final << "\n\n";
 
-    // --- Task 2: Propagate dt across ALL AMR levels (Berger-Oliger CFL fix) ---
-    // propagateDt() sets level L's dt = dt / ratio^L, ensuring CFL ≤ 0.5 on every
-    // fine level. The old setLevelDt(0, dt) only set level 0; fine levels that were
-    // created later kept stale dt values (or dt/ratio from creation time which could
-    // be wrong after the global dt was reduced to hit t_final).
-    hierarchy.propagateDt(dt);
+    // --- Inject level-0 dt into AMR hierarchy (fixes zombie state) ---
+    // The hierarchy's level 0 was initialized with dt=0.0. We must set it
+    // to the CFL-computed dt before subcycle() is called, otherwise
+    // evolve_func always receives cur_dt=0 and the state never advances.
+    hierarchy.setLevelDt(0, dt);
 
     // --- Register BBH tracking spheres (forces AMR around punctures) ---
     // Without this, the gradient tagger alone cannot detect the puncture
@@ -1269,37 +1065,16 @@ int main(int argc, char* argv[]) {
         for (const auto& bh : bh_params) {
             std::array<Real, DIM> center = bh.position;
             Real sphere_radius = std::max(2.0 * bh.mass, 0.5); // at least 2M radius
-            int min_ref_level = std::min(amr_params.max_levels - 1, 2);
+            int min_ref_level = std::min(amr_params.max_levels - 1, 3);
             hierarchy.addTrackingSphere(center, sphere_radius, min_ref_level);
             std::cout << "  [AMR] Tracking sphere @ (" << center[0] << "," << center[1]
                       << "," << center[2] << ") R=" << sphere_radius
                       << " min_level=" << min_ref_level << "\n";
         }
         // Trigger initial regrid to establish refinement before step 0
-        hierarchy.regrid(0, composite_tagger);
+        hierarchy.regrid(0, amr::gradientChiTagger(params.refine_threshold));
         syncBlocks();
         hierarchy.fillGhostZones(0);
-    }
-
-    // ── Conditionally add density tagger if matter is present ────────────
-    // Scan the first block for non-atmosphere density. If detected, rebuild
-    // the composite tagger with gradientRhoTagger included.
-    {
-        bool has_matter = false;
-        for (auto& bundle : active_bundles) {
-            GridBlock& hy = *(bundle.hydro);
-            for (int k = hy.istart(2); k < hy.iend(2) && !has_matter; ++k)
-            for (int j = hy.istart(1); j < hy.iend(1) && !has_matter; ++j)
-            for (int i = hy.istart(0); i < hy.iend(0) && !has_matter; ++i) {
-                if (hy.data(static_cast<int>(HydroVar::D), i, j, k) > params.atm_density * 100.0)
-                    has_matter = true;
-            }
-        }
-        if (has_matter) {
-            std::cout << "  [AMR] Matter detected — activating density gradient tagger\n";
-            tagger_components.push_back(amr::gradientRhoTagger(params.refine_threshold));
-            composite_tagger = amr::compositeTagger(tagger_components);
-        }
     }
 
     // --- Evolution loop ---
@@ -1321,56 +1096,43 @@ int main(int argc, char* argv[]) {
         
         TimeIntegrator::sspRK3Step(cur_bundles, active_bundles, id_to_index, ccz4, grmhd, cur_dt);
 
-        // (Advection CFL tracking removed by user request)
+        // ── Adaptive CFL monitoring (Stream C2) ────────────────────
+        Real max_adv_cfl = 0.0;
+        for (auto* bundle_ptr : cur_bundles) {
+            auto& bundle = *bundle_ptr;
+            GridBlock& g = *(bundle.st);
+            const int bx_var = static_cast<int>(SpacetimeVar::SHIFT_X);
+            const int by_var = static_cast<int>(SpacetimeVar::SHIFT_Y);
+            const int bz_var = static_cast<int>(SpacetimeVar::SHIFT_Z);
+            for (int k = g.istart(); k < g.iend(2); ++k)
+            for (int j = g.istart(); j < g.iend(1); ++j)
+            for (int i = g.istart(); i < g.iend(0); ++i) {
+                Real bx = std::abs(g.data(bx_var, i, j, k));
+                Real by = std::abs(g.data(by_var, i, j, k));
+                Real bz = std::abs(g.data(bz_var, i, j, k));
+                Real local_cfl = bx * cur_dt / g.dx(0)
+                               + by * cur_dt / g.dx(1)
+                               + bz * cur_dt / g.dx(2);
+                max_adv_cfl = std::max(max_adv_cfl, local_cfl);
+            }
+        }
+        if (max_adv_cfl > 0.95) {
+            std::cout << "  [CFL-GUARD] Advection CFL=" << max_adv_cfl << " > 0.95 at sub-step!\n";
+        }
     };
 
-    // Task 1: Keep track of puncture positions across steps
-    std::vector<std::array<Real, DIM>> puncture_positions;
-    // Initialize from initial data BH positions if available
-    if (bh_params.size() >= 2) {
-        for (const auto& bh : bh_params)
-            puncture_positions.push_back(bh.position);
-    }
-
-    // Task 5: Use epsilon-guarded loop condition to ensure we reach exactly t_final
-    // without floating-point accumulation stopping us early (e.g. at 343.75M).
-    while (t < params.t_final - 1.0e-10 * params.t_final && step < params.max_steps) {
+    while (t < params.t_final && step < params.max_steps) {
         if (t + dt > params.t_final)
             dt = params.t_final - t;
 
-        // Task 2: Propagate updated dt (potentially reduced) to all fine levels
-        hierarchy.propagateDt(dt);
+        // Sync dt into hierarchy level 0 in case dt was reduced by CFL guard
+        hierarchy.setLevelDt(0, dt);
 
         // The AMR Hierarchy drives the recursive evolution and regridding
-        hierarchy.subcycle(0, evolve_func, composite_tagger);
+        hierarchy.subcycle(0, evolve_func, amr::gradientChiTagger(params.refine_threshold));
 
         t += dt;
         step++;
-
-        // Track global step for block age / derefine cooldown
-        hierarchy.setGlobalStep(step);
-
-        // Task 1: Dynamic puncture tracking — update tracking sphere centers
-        // every regrid_interval steps so fine blocks follow the inspiral.
-        if (params.regrid_interval > 0 && step % params.regrid_interval == 0) {
-            bool is_bbh = (initial_data_type == "two_punctures" ||
-                           initial_data_type == "brill_lindquist" ||
-                           initial_data_type == "bowen_york");
-            if (is_bbh && bh_params.size() >= 2) {
-                auto new_pos = findPuncturesByLapseMin(hierarchy,
-                                                       static_cast<int>(bh_params.size()));
-                if (!new_pos.empty()) {
-                    puncture_positions = new_pos;
-                    hierarchy.updateTrackingSpheres(new_pos);
-                    // Print tracker update (compact — one line)
-                    std::cout << "  [TRACKER] t=" << t;
-                    for (size_t pi = 0; pi < new_pos.size(); ++pi)
-                        std::cout << "  BH" << pi << "=(" << new_pos[pi][0]
-                                  << "," << new_pos[pi][1] << "," << new_pos[pi][2] << ")";
-                    std::cout << "\n";
-                }
-            }
-        }
 
         // Per-step NaN scan (first 20 loops only — remove once stable)
         if (step <= 20) {
@@ -1427,58 +1189,11 @@ int main(int argc, char* argv[]) {
             if (count > 0)
                 ham_l2 = std::sqrt(ham_l2 / count);
 
-            // Task 3: Compute orbital separation D and determine phase label
-            // Use the last-known puncture positions (updated by tracker above).
-            Real D = computeSeparation(puncture_positions);
-            std::string phase = phaseLabel(D, alpha_center);
-
-            // Build structured separation + orbital frequency string
-            // for the Python telemetry tracker to parse.
-            std::string sep_str;
-            if (D >= 0.0) {
-                Real omega = std::sqrt(1.0 / (D * D * D + 1e-30)); // Kepler estimate
-                char buf[128];
-                std::snprintf(buf, sizeof(buf),
-                    "  D=%.4fM  Omega=%.4e", D, omega);
-                sep_str = buf;
-            }
-
-            std::cout << "  step=" << step << "  t=" << t
-                      << "  \xCE\xB1_center=" << alpha_center
-                      << "  ||H||\xE2\x82\x82=" << ham_l2
-                      << sep_str
-                      << "  [PHASE:" << phase << "]"
-                      << "  [Blocks: " << hierarchy.numBlocks() << "]\n";
+            std::cout << "  step=" << step << "  t=" << t << "  α_center=" << alpha_center
+                      << "  ||H||₂=" << ham_l2 << "  [Blocks: " << hierarchy.numBlocks() << "]\n";
 
             writer.appendTimeSeries(
                 params.output_dir + "/timeseries.h5", "constraints/hamiltonian_l2", t, ham_l2);
-
-            // Task 4: Gravitational wave extraction — Ψ₄ on coordinate spheres
-            // Extract from the finest level that covers the extraction radii.
-            // We accumulate Ψ₄ from all blocks and the Extractor sums them.
-            if (gw_file.is_open()) {
-                // Scan finest available level blocks
-                int finest_lev = hierarchy.numLevels() - 1;
-                auto finest_blocks = hierarchy.getLevel(finest_lev);
-                if (finest_blocks.empty()) finest_blocks = hierarchy.getAllBlocks();
-
-                for (auto* blk : finest_blocks)
-                    psi4_extractor.extract(*blk, t);
-
-                // Get (l=2, m=2) and (l=2, m=1) dominant modes at both radii
-                auto psi4_22_r8  = psi4_extractor.getMode(2,  2, 8.0);
-                auto psi4_22_r12 = psi4_extractor.getMode(2,  2, 12.0);
-                auto psi4_21_r8  = psi4_extractor.getMode(2,  1, 8.0);
-                Real E_rad_r12   = psi4_extractor.computeRadiatedEnergy(12.0);
-
-                gw_file << t
-                        << "  " << psi4_22_r8.real()  << "  " << psi4_22_r8.imag()
-                        << "  " << psi4_22_r12.real() << "  " << psi4_22_r12.imag()
-                        << "  " << psi4_21_r8.real()  << "  " << psi4_21_r8.imag()
-                        << "  " << E_rad_r12
-                        << "\n";
-                gw_file.flush(); // flush every output_interval for safety
-            }
         }
 
         if (step % params.checkpoint_interval == 0 || t >= params.t_final) {
@@ -1487,29 +1202,9 @@ int main(int argc, char* argv[]) {
                 c_blocks.push_back(b);
             writer.writeCheckpoint(c_blocks, step, t, params);
         }
-    } // end main evolution loop
-
-    // Task 5: Graceful teardown — flush and close all open output streams.
-    // This ensures gw_extraction.dat is complete even if the process is SIGKILLed
-    // (kernel flush is non-deterministic). Also write the mandatory final checkpoint.
-    if (gw_file.is_open()) {
-        gw_file.flush();
-        gw_file.close();
-    }
-    std::cout.flush();
-    std::cerr.flush();
-
-    // Final checkpoint (always, regardless of checkpoint_interval)
-    {
-        std::vector<const GridBlock*> c_blocks;
-        for (auto* b : hierarchy.getAllBlocks())
-            c_blocks.push_back(b);
-        writer.writeCheckpoint(c_blocks, step, t, params);
-        std::cout << "[CHECKPOINT] Final checkpoint written at t=" << t
-                  << " step=" << step << "\n";
     }
 
-    std::cout << "Evolution complete. t_final=" << t << "  steps=" << step << "\n";
+    std::cout << "Evolution complete.\n";
 
 #ifdef GRANITE_USE_MPI
     MPI_Finalize();

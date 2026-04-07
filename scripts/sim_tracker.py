@@ -640,15 +640,52 @@ def print_summary(sess: SimSession) -> None:
     # ── Stability summary ─────────────────────────────────────────────────────
     print(f"\n  {c('► Stability Summary', A.BLD)}")
     diags: List[Tuple[str, str]] = []
+
+    # 1. Explicit lapse floor hit (set by print_step)
     if sess.crashed:
         diags.append((A.R, f"Lapse floor hit at step {sess.crash_step} — crash"))
+
+    # 2. NaN alpha in any record (phase = NaN Crash but crashed flag not set)
+    nan_alpha_recs = [r for r in sess.records if r.alpha is None]
+    if nan_alpha_recs:
+        diags.append((A.R, f"NaN/non-finite α_center detected at step {nan_alpha_recs[0].step}"))
+
+    # 3. Final alpha is inf/nan even if wasn't None
+    fin_alpha_vals = [r.alpha for r in sess.records if r.alpha is not None]
+    if fin_alpha_vals:
+        final_a = fin_alpha_vals[-1]
+        if not math.isfinite(final_a):
+            diags.append((A.R, f"Final α_center is non-finite: {final_a}"))
+
+    # 4. Constraint explosion (finite ham values)
     if fin_ham and max(fin_ham) > Thresh.H_CRIT:
         diags.append((A.R, f"Constraint explosion: max ‖H‖₂ = {max(fin_ham):.2e}"))
+
+    # 5. NaN/inf ham in any record (captured as None by safe_float)
+    nan_ham_recs = [r for r in sess.records if r.ham is None]
+    if nan_ham_recs:
+        diags.append((A.R, f"NaN/∞ ‖H‖₂ detected at step {nan_ham_recs[0].step} — constraint explosion"))
+
+    # 6. Explicitly detected NaN events from [NaN@step=] lines
     if sess.nan_events:
         first_nan = sess.nan_events[0]
         diags.append((A.R, f"NaN seeded at step {first_nan.step} in {first_nan.var_type}_var{first_nan.var_id}"))
+
+    # 7. Zombie state
     if sess.zombie_step:
         diags.append((A.R, f"Zombie state from step {sess.zombie_step}"))
+
+    # 8. Phase-label crash detection (catches anything we missed above)
+    if sess.records:
+        last_rec = sess.records[-1]
+        last_phase, _ = classify_phase(sess.scenario, last_rec.t, last_rec.alpha,
+                                       last_rec.ham, last_rec.blocks, sess.t_final or 1.0)
+        if any(kw in last_phase.upper() for kw in ("CRASH", "COLLAPSE", "EXPLOSION", "NAN")):
+            already_noted = any("NaN" in msg or "crash" in msg.lower() or "lapse" in msg.lower()
+                                for _, msg in diags)
+            if not already_noted:
+                diags.append((A.R, f"Crashed phase at last step: {last_phase}"))
+
     if not diags:
         diags.append((A.G, "No catastrophic events — simulation appears healthy ✓"))
     for col, msg in diags:

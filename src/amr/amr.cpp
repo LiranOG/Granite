@@ -28,13 +28,11 @@ AMRHierarchy::AMRHierarchy(const AMRParams& params,
 void AMRHierarchy::initialize(const TaggingFunction& tagger)
 {
     levels_.clear();
-
-    // P0 fix (dangling pointer): reserve levels_ capacity for the maximum number
+    // Memory safety: pre-allocate levels_ vector capacity for the maximum number
     // of refinement levels before any blocks or child levels are created.
     // This guarantees that subsequent push_back() calls in regrid() can NEVER
     // reallocate the vector, which would invalidate raw GridBlock* pointers
     // captured by subcycle()'s current_blocks vector — classic UB.
-    // Cost: one small heap allocation of max_levels * sizeof(Level) at startup.
     levels_.reserve(static_cast<std::size_t>(params_.max_levels));
 
     // ── Level 0: full-domain coarse block ────────────────────────────────────
@@ -281,13 +279,6 @@ void AMRHierarchy::regrid(int level, const TaggingFunction& tagger)
                   << (candidates.size() < tracking_spheres_.size() ? "  [MERGED]" : "")
                   << "\n";
 
-        // Issue 10 fix: sync coarse ghost zones BEFORE prolongating into the new fine block.
-        // The original code prolongated immediately without ensuring the coarse block's
-        // ghost cells were current, which injects stale data from the previous timestep
-        // (or uninitialized initial data) into the fine block ghost zone on the first step,
-        // causing an immediate constraint-violation spike at the coarse-fine boundary.
-        fillGhostZones(level);
-
         // Prolongate current coarse data into the new fine block
         for (const auto& cblk : levels_[level].blocks)
             prolongate(*cblk, *child_blk);
@@ -308,12 +299,10 @@ void AMRHierarchy::subcycle(int level, const EvolutionStepFunc& evolve_func, con
     //    - For level > 0: interpolates CURRENT parent data into ghost cells
     //      at the coarse-fine boundary (the critical step that was missing)
     if (level > 0) {
-        // Interpolate current coarse solution into GHOST cells of fine blocks.
-        // fill_interior=false: the physics RHS owns interior cell data and
-        // must not be overwritten mid-timestep by stale coarse interpolation.
+        // Interpolate current coarse solution into fine ghost cells
         for (auto& fblk : levels_[level].blocks)
             for (auto& cblk : levels_[level - 1].blocks)
-                prolongate(*cblk, *fblk, /*fill_interior=*/false);
+                prolongate(*cblk, *fblk);
     }
     fillGhostZones(level);
 
@@ -400,25 +389,6 @@ void AMRHierarchy::setLevelDt(int level, Real dt)
     }
 }
 
-void AMRHierarchy::propagateDt(Real dt_level0)
-{
-    // Task 2 (Berger-Oliger CFL fix): set every level L's dt to
-    //   dt_level0 / ratio^L
-    // This guarantees that each fine level evolves with CFL_fine = CFL_coarse / ratio,
-    // so if the coarse level is CFL ≤ 0.5 the fine level is CFL ≤ 0.25.
-    //
-    // IMPORTANT: this also sets the dt on levels that do not yet exist in levels_
-    // (new levels get their dt from Level::dt = parentDt/ratio at creation time in
-    // regrid()). This call fixes levels that were under-stepping due to stale dt
-    // from a previous CFL-reduced coarse step.
-    for (int L = 0; L < static_cast<int>(levels_.size()); ++L) {
-        Real level_dt = dt_level0;
-        for (int r = 0; r < L; ++r)
-            level_dt /= static_cast<Real>(params_.refinement_ratio);
-        levels_[L].dt = level_dt;
-    }
-}
-
 void AMRHierarchy::fillGhostZones(int level)
 {
     if (level < 0 || level >= static_cast<int>(levels_.size())) return;
@@ -449,11 +419,9 @@ void AMRHierarchy::fillGhostZones(int level)
                     if (c_hi >= fine_hi - 0.5 * blk->dx(d))
                         filled_hi[d] = true;  // coarse covers hi ghost of fine
                 }
-                // Prolongate into ghost cells ONLY.
-                // fill_interior=false: interior cells on this fine block were already
-                // evolved by the physics RHS. Overwriting them here with coarse
-                // interpolation would corrupt the post-step solution at level boundaries.
-                prolongate(*cblk, *blk, /*fill_interior=*/false);
+                // Prolongate into ALL cells of the fine block (interior + ghost)
+                // This uses the corrected prolongate() which clamps indices safely.
+                prolongate(*cblk, *blk);
             }
         }
 
@@ -505,18 +473,11 @@ void AMRHierarchy::fillGhostZones(int level)
     }
 }
 
-void AMRHierarchy::prolongate(const GridBlock& coarse, GridBlock& fine,
-                               bool fill_interior) const
+void AMRHierarchy::prolongate(const GridBlock& coarse, GridBlock& fine) const
 {
     if (coarse.getLevel() >= fine.getLevel()) return;
 
-    const int nv  = fine.getNumVars();
-    const int ng0 = fine.istart(0);   // == ghost_cells in X
-    const int ng1 = fine.istart(1);   // == ghost_cells in Y
-    const int ng2 = fine.istart(2);   // == ghost_cells in Z
-    const int ie0 = fine.iend(0);     // first index past last interior cell in X
-    const int ie1 = fine.iend(1);
-    const int ie2 = fine.iend(2);
+    const int nv = fine.getNumVars();
 
     // ── Coordinate mapping: x(d, idx) = lo[d] + (idx - ng + 0.5) * dx[d] ────
     // => coarse index for a fine cell at physical coord x:
@@ -531,17 +492,6 @@ void AMRHierarchy::prolongate(const GridBlock& coarse, GridBlock& fine,
         for (int j = 0; j < fine.totalCells(1); ++j)
         for (int i = 0; i < fine.totalCells(0); ++i)
         {
-            // P0 fix: when called from fillGhostZones() or subcycle(),
-            // fill_interior=false. Skip interior cells — the physics RHS
-            // owns them. Only ghost-zone cells (in at least one dimension)
-            // need coarse interpolation to supply boundary conditions.
-            if (!fill_interior) {
-                const bool is_ghost =
-                    (i < ng0) || (i >= ie0) ||
-                    (j < ng1) || (j >= ie1) ||
-                    (k < ng2) || (k >= ie2);
-                if (!is_ghost) continue;
-            }
             // Physical coordinates of this fine cell (including ghost)
             Real x = fine.x(0, i);
             Real y = fine.x(1, j);
@@ -599,17 +549,6 @@ void AMRHierarchy::prolongate(const GridBlock& coarse, GridBlock& fine,
                 w011 * coarse.data(var, ci,  cj1, ck1) +
                 w111 * coarse.data(var, ci1, cj1, ck1);
 
-            // Positivity floor for physical scalars.
-            // var=0 is the conformal factor chi (χ); near punctures the trilinear
-            // stencil can overshoot/undershoot and produce χ ≤ 0 which causes
-            // div-by-zero in the CCZ4 RHS and immediate constraint explosion.
-            // A floor of 1e-6 is below any physical chi value but prevents blow-up.
-            // Similarly we floor var=9 (det(gammabar)-1), which must stay > -1.
-            constexpr int VAR_CHI   = 0;   // conformal factor
-            constexpr Real CHI_MIN  = 1.0e-6;
-            if (var == VAR_CHI && val < CHI_MIN)
-                val = CHI_MIN;
-
             fine.data(var, i, j, k) = val;
         }
     }
@@ -622,68 +561,52 @@ void AMRHierarchy::restrict_data(const GridBlock& fine, GridBlock& coarse) const
     int nv = fine.getNumVars();
     int ratio = params_.refinement_ratio;
     
-    // Issue 1 fix: OMP parallelizes over spatial coarse cells (collapse 3) so each thread
-    // owns a disjoint set of (ci,cj,ck) cells. All writes go to coarse.data(var, ci, cj, ck)
-    // which are disjoint across threads — zero write races regardless of var count or grid size.
-    // This also improves cache locality: all vars for a given cell are written before moving on.
-#ifdef GRANITE_USE_OPENMP
-    #pragma omp parallel for collapse(3) schedule(static)
-#endif
-    for (int ck = coarse.istart(2); ck < coarse.iend(2); ++ck) {
-        for (int cj = coarse.istart(1); cj < coarse.iend(1); ++cj) {
-            for (int ci = coarse.istart(0); ci < coarse.iend(0); ++ci) {
-                Real x = coarse.x(0, ci), y = coarse.x(1, cj), z = coarse.x(2, ck);
-
-                Real fx_float = (x - fine.x(0, 0)) / fine.dx(0);
-                Real fy_float = (y - fine.x(1, 0)) / fine.dx(1);
-                Real fz_float = (z - fine.x(2, 0)) / fine.dx(2);
-
-                // Issue 3 fix: clamp base index to istart() so boundary coarse cells whose
-                // corresponding fi_base would go negative are still restricted using whatever
-                // fine cells are available, instead of being silently skipped with stale data.
-                int fi_base = std::max(
-                    static_cast<int>(std::round(fx_float)) - ratio / 2,
-                    fine.istart(0));
-                int fj_base = std::max(
-                    static_cast<int>(std::round(fy_float)) - ratio / 2,
-                    fine.istart(1));
-                int fk_base = std::max(
-                    static_cast<int>(std::round(fz_float)) - ratio / 2,
-                    fine.istart(2));
-
-                // Compute actual available fine-cell range (may be < ratio at the block boundary)
-                int fi_end = std::min(fi_base + ratio, fine.iend(0));
-                int fj_end = std::min(fj_base + ratio, fine.iend(1));
-                int fk_end = std::min(fk_base + ratio, fine.iend(2));
-
-                int count = (fi_end - fi_base) * (fj_end - fj_base) * (fk_end - fk_base);
-                if (count <= 0) continue; // Coarse cell fully outside fine block — skip
-
-                // Inner var loop: all vars for this cell before moving to next cell.
-                for (int var = 0; var < nv; ++var) {
-                    Real sum = 0.0;
-                    for (int rk = fk_base; rk < fk_end; ++rk)
-                        for (int rj = fj_base; rj < fj_end; ++rj)
-                            for (int ri = fi_base; ri < fi_end; ++ri)
-                                sum += fine.data(var, ri, rj, rk);
-
-                    Real restrict_val = sum / static_cast<Real>(count);
-
-                    // Refluxing logic
-                    // Only applied to conserved GRMHD variables to preserve total mass/energy
-                    if (var == static_cast<int>(HydroVar::D) ||
-                        var == static_cast<int>(HydroVar::TAU) ||
-                        var == static_cast<int>(HydroVar::SX) ||
-                        var == static_cast<int>(HydroVar::SY) ||
-                        var == static_cast<int>(HydroVar::SZ)) {
-
-                        // Flux correction conservatively maps fine grid fluxes back iteratively
-                        // F_fine = sum(F_fine_faces)
-                        // Reflux = dt/dx * (F_coarse - F_fine)
-                        // Here we inject the properly restricted val + reflux ghost
+    #pragma omp parallel for
+    for (int var = 0; var < nv; ++var) {
+        for (int ck = coarse.istart(2); ck < coarse.iend(2); ++ck) {
+            for (int cj = coarse.istart(1); cj < coarse.iend(1); ++cj) {
+                for (int ci = coarse.istart(0); ci < coarse.iend(0); ++ci) {
+                    Real x = coarse.x(0, ci), y = coarse.x(1, cj), z = coarse.x(2, ck);
+                    
+                    Real fx_float = (x - fine.x(0, 0)) / fine.dx(0);
+                    Real fy_float = (y - fine.x(1, 0)) / fine.dx(1);
+                    Real fz_float = (z - fine.x(2, 0)) / fine.dx(2);
+                    
+                    int fi_base = static_cast<int>(std::round(fx_float)) - ratio/2;
+                    int fj_base = static_cast<int>(std::round(fy_float)) - ratio/2;
+                    int fk_base = static_cast<int>(std::round(fz_float)) - ratio/2;
+                    
+                    if (fi_base >= fine.istart(0) && fi_base + ratio <= fine.iend(0) + fine.getNumGhost() &&
+                        fj_base >= fine.istart(1) && fj_base + ratio <= fine.iend(1) + fine.getNumGhost() &&
+                        fk_base >= fine.istart(2) && fk_base + ratio <= fine.iend(2) + fine.getNumGhost()) {
+                        
+                        Real sum = 0.0;
+                        for(int rk=0; rk<ratio; ++rk) {
+                            for(int rj=0; rj<ratio; ++rj) {
+                                for(int ri=0; ri<ratio; ++ri) {
+                                    sum += fine.data(var, fi_base+ri, fj_base+rj, fk_base+rk);
+                                }
+                            }
+                        }
+                        
+                        Real restrict_val = sum / (ratio * ratio * ratio);
+                        
+                        // Refluxing logic
+                        // Only applied to conserved GRMHD variables to preserve total mass/energy
+                        if (var == static_cast<int>(HydroVar::D) || 
+                            var == static_cast<int>(HydroVar::TAU) ||
+                            var == static_cast<int>(HydroVar::SX) ||
+                            var == static_cast<int>(HydroVar::SY) ||
+                            var == static_cast<int>(HydroVar::SZ)) {
+                            
+                            // Flux correction conservatively maps fine grid fluxes back iteratively
+                            // F_fine = sum(F_fine_faces)
+                            // Reflux = dt/dx * (F_coarse - F_fine)
+                            // Here we inject the properly restricted val + reflux ghost
+                        }
+                        
+                        coarse.data(var, ci, cj, ck) = restrict_val;
                     }
-
-                    coarse.data(var, ci, cj, ck) = restrict_val;
                 }
             }
         }
@@ -706,11 +629,6 @@ void AMRHierarchy::updateTrackingSpheres(const std::vector<std::array<Real, DIM>
 void AMRHierarchy::redistributeBlocks()
 {
     // Stub: no load balancing for single-rank / single-block
-}
-
-void AMRHierarchy::setGlobalStep(int step)
-{
-    global_step_ = step;
 }
 
 Real AMRHierarchy::effectiveResolution(const std::array<Real, DIM>& /*point*/) const
@@ -798,21 +716,6 @@ TaggingFunction compositeTagger(std::vector<TaggingFunction> taggers)
             if (tagger(block, i, j, k)) return true;
         }
         return false;
-    };
-}
-
-TaggingFunction truncationErrorTagger(Real /*threshold*/)
-{
-    // Stub: Richardson extrapolation-based truncation error estimation
-    // requires evolving a coarsened shadow grid in lockstep, which is a
-    // significant infrastructure investment (Phase 2 AMR work).
-    // This stub satisfies the linker while the feature remains gated
-    // behind use_truncation_error=false (the safe default).
-    // When fully implemented, this tagger will compute:
-    //   tau_ij = |u_h(x) - u_2h(x)| / (2^p - 1)   (p = order of scheme)
-    // and refine cells where tau exceeds the threshold.
-    return [](const GridBlock& /*block*/, int /*i*/, int /*j*/, int /*k*/) -> bool {
-        return false;  // Always no-op until properly implemented
     };
 }
 
