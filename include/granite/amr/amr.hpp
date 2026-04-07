@@ -21,13 +21,14 @@
 namespace granite::amr {
 
 struct AMRParams {
-    int max_levels          = 15;     ///< Maximum refinement levels
+    int max_levels          = 3;      ///< Maximum refinement levels
     int refinement_ratio    = 2;      ///< Ratio between consecutive levels
     int regrid_interval     = 4;      ///< Coarse steps between regridding
     int buffer_width        = 4;      ///< Buffer cells around tagged region
     Real refine_threshold   = 0.1;    ///< Gradient threshold for tagging
     Real derefine_threshold = 0.05;   ///< Threshold for de-refinement
     bool subcycling         = true;   ///< Berger-Oliger time subcycling
+    bool use_truncation_error = false; ///< Enable Richardson truncation-error tagger (off by default)
 };
 
 struct TrackingSphere {
@@ -114,6 +115,11 @@ public:
 
     const AMRParams& params() const { return params_; }
 
+    /// Notify the AMR hierarchy of the current global simulation step counter.
+    /// Used by diagnostic taggers (e.g. truncation-error tagger) that need
+    /// step-parity information for Richardson extrapolation scheduling.
+    void setGlobalStep(int step);
+
 private:
     AMRParams params_;
     SimulationParams sim_params_;
@@ -127,6 +133,7 @@ private:
 
     std::vector<Level> levels_;
     std::vector<TrackingSphere> tracking_spheres_;
+    int global_step_ = 0;   ///< Current global step counter, set via setGlobalStep()
 };
 
 // ===========================================================================
@@ -136,6 +143,7 @@ private:
 TaggingFunction gradientChiTagger(Real threshold);
 TaggingFunction gradientRhoTagger(Real threshold);
 TaggingFunction gradientLapseTagger(Real threshold);
+TaggingFunction truncationErrorTagger(Real threshold);   ///< Richardson extrapolation-based truncation error tagger
 TaggingFunction compositeTagger(std::vector<TaggingFunction> taggers);
 
 } // namespace granite::amr

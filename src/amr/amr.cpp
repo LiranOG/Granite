@@ -708,6 +708,11 @@ void AMRHierarchy::redistributeBlocks()
     // Stub: no load balancing for single-rank / single-block
 }
 
+void AMRHierarchy::setGlobalStep(int step)
+{
+    global_step_ = step;
+}
+
 Real AMRHierarchy::effectiveResolution(const std::array<Real, DIM>& /*point*/) const
 {
     // Return coarsest level dx
@@ -793,6 +798,21 @@ TaggingFunction compositeTagger(std::vector<TaggingFunction> taggers)
             if (tagger(block, i, j, k)) return true;
         }
         return false;
+    };
+}
+
+TaggingFunction truncationErrorTagger(Real /*threshold*/)
+{
+    // Stub: Richardson extrapolation-based truncation error estimation
+    // requires evolving a coarsened shadow grid in lockstep, which is a
+    // significant infrastructure investment (Phase 2 AMR work).
+    // This stub satisfies the linker while the feature remains gated
+    // behind use_truncation_error=false (the safe default).
+    // When fully implemented, this tagger will compute:
+    //   tau_ij = |u_h(x) - u_2h(x)| / (2^p - 1)   (p = order of scheme)
+    // and refine cells where tau exceeds the threshold.
+    return [](const GridBlock& /*block*/, int /*i*/, int /*j*/, int /*k*/) -> bool {
+        return false;  // Always no-op until properly implemented
     };
 }
 
