@@ -17,6 +17,7 @@
 #include <memory>
 #include <vector>
 #include <array>
+#include <unordered_map>
 
 namespace granite::amr {
 
@@ -27,7 +28,9 @@ struct AMRParams {
     int buffer_width        = 4;      ///< Buffer cells around tagged region
     Real refine_threshold   = 0.1;    ///< Gradient threshold for tagging
     Real derefine_threshold = 0.05;   ///< Threshold for de-refinement
-    bool subcycling         = true;   ///< Berger-Oliger time subcycling
+    bool subcycling             = true;   ///< Berger-Oliger time subcycling
+    int  refine_cooldown_steps  = 2;      ///< Min steps before block eligible for derefine
+    bool use_truncation_error   = false;  ///< Enable Richardson truncation error tagger (disabled by default; ~15% overhead)
 };
 
 struct TrackingSphere {
@@ -106,6 +109,15 @@ public:
     /// Get the effective resolution at a given spatial point
     Real effectiveResolution(const std::array<Real, DIM>& point) const;
 
+    /// Remove fine blocks where gradients have smoothed below derefine_threshold
+    void removeUntaggedBlocks(int level);
+
+    /// Total interior cells across all blocks (memory reporting)
+    int totalCells() const;
+
+    /// Set global evolution step counter (for block cooldown tracking)
+    void setGlobalStep(int step) { global_step_ = step; }
+
     const AMRParams& params() const { return params_; }
 
 private:
@@ -121,6 +133,8 @@ private:
 
     std::vector<Level> levels_;
     std::vector<TrackingSphere> tracking_spheres_;
+    int global_step_ = 0;                              ///< Current evolution step
+    std::unordered_map<int, int> block_creation_step_;  ///< block_id → step created
 };
 
 // ===========================================================================
@@ -130,6 +144,7 @@ private:
 TaggingFunction gradientChiTagger(Real threshold);
 TaggingFunction gradientRhoTagger(Real threshold);
 TaggingFunction gradientLapseTagger(Real threshold);
+TaggingFunction truncationErrorTagger(Real threshold);
 TaggingFunction compositeTagger(std::vector<TaggingFunction> taggers);
 
 } // namespace granite::amr
