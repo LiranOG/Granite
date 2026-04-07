@@ -33,7 +33,7 @@
 ![License](https://img.shields.io/badge/license-GPL--3.0-green.svg)
 ![C++ Standard](https://img.shields.io/badge/c%2B%2B-17%2F20-purple.svg)
 
-> **Status: 🟢 Universal Deployment & Tracking (v0.6.0)** — CCZ4 spacetime evolution, full GR-MHD, dynamic Berger-Oliger AMR subcycling, moving-puncture tracking, and diagnostic Python dashboards are fully integrated. 92 tests / 100% pass rate.
+> **Status: 🟢 The Stability Update (v0.6.5)** — CCZ4 spacetime evolution, full GR-MHD, dynamic Berger-Oliger AMR subcycling, moving-puncture tracking, and diagnostic Python dashboards are fully integrated. 92 tests / 100% pass rate. `single_puncture` + `B2_eq` benchmarks validated stable.
 
 GRANITE is a high-performance, next-generation numerical relativity and General-Relativistic Magnetohydrodynamics (GRMHD) engine. Designed from the ground up to model extreme astrophysical events—such as the inspiral and merger of multiple Supermassive Black Holes (SMBHs) interacting with dense stellar environments and accretion discs—GRANITE brings state-of-the-art multi-scale physics into a cohesive, open-source framework.
 
@@ -276,7 +276,7 @@ Granite/
 >
 > **What this means for contributors and users:**
 > - The `CHANGELOG.md` file is the canonical record of every bug fix, new feature, architectural decision, and test count milestone.
-> - GitHub Tags (e.g. `v0.5.0`) mark stable integration points but carry minimal release notes — refer to `CHANGELOG.md` for the full picture.
+> - GitHub Tags (e.g. `v0.6.5`) mark stable integration points but carry minimal release notes — refer to `CHANGELOG.md` for the full picture.
 > - GitHub Releases will be created officially at `v1.0.0` — the first production-ready, fully-coherent version of the engine.
 
 ---
