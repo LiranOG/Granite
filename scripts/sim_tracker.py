@@ -390,11 +390,11 @@ class GraniteTracker:
     )
     # Lapse metric: "alpha_center = X.XXXX" or "α_center = X.XXXX"
     _RE_ALPHA  = re.compile(r"(?:alpha_center|α_center|α_center)\s*[=]\s*([\d.eE+\-]+)")
-    # Hamiltonian constraint: "‖H‖₂ = X" or "||H||₂=X" or "Ham = X"
-    # Also captures "inf" and "-inf" so the Python tracker can display the blow-up.
-    _RE_HAMIL  = re.compile(r"(?:‖H‖₂|\|\|H\|\|[₂2]|Ham(?:iltonian)?)\s*[=]\s*([\d.eE+\-]+|inf|-inf)")
-    # AMR block count: "Blocks = N" or "nblocks = N"
-    _RE_BLOCKS = re.compile(r"(?:Blocks?|nblocks?)\s*=\s*(\d+)")
+    # Hamiltonian: anchored to a digit to avoid capturing trailing hyphens
+    # (e.g. the hyphen in γ=-0.006/M must not be captured as the value).
+    _RE_HAMIL  = re.compile(r"(?:‖H‖₂|\|\|H\|\|[₂2]|Ham(?:iltonian)?)\s*[=:]\s*(inf|-inf|\d[\d.eE+\-]*)")
+    # AMR block count: handles "Blocks = N", "nblocks = N", "[Blocks: N]"
+    _RE_BLOCKS = re.compile(r"(?:Blocks?|nblocks?)[\s=:]+([\d]+)")
     # NaN detection: "[NaN@step=X]"
     _RE_NAN    = re.compile(r"\[NaN@step=(\d+)\]")
     # Engine version: "GRANITE v0.5.0"
@@ -506,10 +506,12 @@ class GraniteTracker:
 
     def _hamil_tag(self, hamil: float) -> str:
         """Colour-coded health tag for Hamiltonian constraint ‖H‖₂."""
+        if math.isnan(hamil) or math.isinf(hamil):
+            return _col("RED", "[INF/NaN]")
         if hamil < 1e-3:
             return _col("GREEN", "[OK]")
         if hamil < 1e-1:
-            return _col("YELLOW", "[MARGINAL]")
+            return _col("YELLOW", "[WARN]")
         return _col("RED", "[VIOLATED]")
 
     # ------------------------------------------------------------------
@@ -544,43 +546,62 @@ class GraniteTracker:
     # ------------------------------------------------------------------
 
     def _print_step(self, step: int, t: float, wall: float, speed: float) -> None:
-        """Render and emit the coloured per-step progress line."""
+        """Render one step block exactly matching the classic DEV_LOG format.
+
+        Target (from DEV_LOG_2BH.txt):
+          step=2  t=3.1250M  wall=27.1s  speed=0.1154 M/s  ETA 1:11:44  [...]
+          alpha_center = 0.81207  [HEALTHY]
+          ||H||_2      = 4.9286e-04  [OK]  gamma=-0.006/M
+          Blocks       = 3  Phase: ◎ Early Inspiral
+        """
+        thin    = "─" * 72
         t_final = self._store.t_final or 1.0
         frac    = min(t / t_final, 1.0)
         bar     = self._bar(frac)
         eta     = self._eta_str(t, wall)
         pct     = frac * 100.0
-        tag     = f"[{self._profile.id_type}]"
 
-        # ── Main progress line ─────────────────────────────────────────
-        step_line = (
-            f"  {_col('CYAN', f'step={step}  t={t:.4f}M  wall={wall:.1f}s  '
-                              f'{speed:.4f} M/s  ETA {eta}')}  "
-            f"[{bar}]   {pct:.1f}%  {tag}"
+        # separator line (matches DEV_LOG)
+        self._dl.emit(f"  {thin}")
+
+        # Line 1: step / progress bar
+        self._dl.emit(
+            f"  step={step}  t={t:.4f}M  wall={wall:.1f}s  "
+            f"speed={speed:.4f} M/s  ETA {eta}  [{bar}]  {pct:5.1f}%"
         )
-        self._dl.emit(step_line)
 
-        # ── Metrics sub-lines ──────────────────────────────────────────
-        # ‖H‖₂ is the PRIMARY stability metric — always shown first.
+        # Line 2: alpha_center
+        if not _is_nan(self._alpha):
+            self._dl.emit(
+                f"  α_center = {self._alpha:.5f}  {self._alpha_tag(self._alpha)}"
+            )
+
+        # Line 3: Hamiltonian constraint + optional gamma trend
         if not _is_nan(self._hamil):
             htag = self._hamil_tag(self._hamil)
-            self._dl.emit(f"  ‖H‖₂     = {self._hamil:.4e}  {htag}  [PRIMARY]")
+            if math.isinf(self._hamil):
+                self._dl.emit(f"  ‖H‖₂     = inf  {_col('RED', '[INF — SINGULARITY]')}")
+            else:
+                gamma_str = ""
+                if len(self._store.steps) >= 2:
+                    prev = self._store.steps[-2]
+                    curr = self._store.steps[-1]
+                    dts  = curr["t"] - prev["t"]
+                    if (dts > 0
+                            and not math.isnan(prev["hamil"])
+                            and not math.isnan(curr["hamil"])
+                            and prev["hamil"] > 0
+                            and curr["hamil"] > 0):
+                        gv   = (curr["hamil"] - prev["hamil"]) / dts
+                        sign = "+" if gv >= 0 else ""
+                        gamma_str = f"  γ={sign}{gv:.3f}/M"
+                self._dl.emit(f"  ‖H‖₂     = {self._hamil:.4e}  {htag}{gamma_str}")
 
-        if not _is_nan(self._alpha):
-            atag = self._alpha_tag(self._alpha)
-            self._dl.emit(f"  α_center = {self._alpha:.5f}  {atag}")
-
-        # Phase is now parsed from the C++ engine’s [PHASE:...] output.
-        phase = self._store.current_phase
-        self._current_phase = phase
-
-        # Separation sub-line (only if the engine reports it)
-        sep_str = ""
-        if self._store.separation_history:
-            last_d = self._store.separation_history[-1][1]
-            sep_str = f"  D={last_d:.4f}M"
-
-        self._dl.emit(f"  Blocks   = {self._blocks}  Phase: {phase}{sep_str}")
+        # Line 4: Blocks + Phase
+        phase = self._store.current_phase or "◎ Early Inspiral"
+        if phase and not phase.startswith("◎"):
+            phase = "◎ " + phase
+        self._dl.emit(f"  Blocks   = {self._blocks}  Phase: {phase}")
 
     # ------------------------------------------------------------------
     # 6.6  Final Summary block
