@@ -380,15 +380,19 @@ class GraniteTracker:
     # 6.1  Regex patterns for parsing C++ engine stdout
     # ------------------------------------------------------------------
 
-    # Step progress line: "step=X  t=Y.YYYYM  wall=Zs  ..."
+    # Step progress line — wall= is OPTIONAL (the C++ engine may omit it).
+    # Matches both:
+    #   step=2  t=3.125  wall=1.5s  α_center=0.798  ||H||₂=inf  ...
+    #   step=2  t=3.125  α_center=0.798  ||H||₂=inf  D=10.0000M  ...
     _RE_STEP   = re.compile(
-        r"step\s*=\s*(\d+)\s+t\s*=\s*([\d.]+)\s*M?\s+"
-        r"wall\s*=\s*([\d.]+)s"
+        r"step\s*=\s*(\d+)\s+t\s*=\s*([\d.]+)\s*M?"
+        r"(?:\s+wall\s*=\s*([\d.]+)s)?"
     )
     # Lapse metric: "alpha_center = X.XXXX" or "α_center = X.XXXX"
-    _RE_ALPHA  = re.compile(r"(?:alpha_center|α_center)\s*=\s*([\d.eE+\-]+)")
-    # Hamiltonian constraint: "‖H‖₂ = X.XXXX" or "Ham = X.XXXX"
-    _RE_HAMIL  = re.compile(r"(?:‖H‖₂|Ham(?:iltonian)?)\s*=\s*([\d.eE+\-]+)")
+    _RE_ALPHA  = re.compile(r"(?:alpha_center|α_center|α_center)\s*[=]\s*([\d.eE+\-]+)")
+    # Hamiltonian constraint: "‖H‖₂ = X" or "||H||₂=X" or "Ham = X"
+    # Also captures "inf" and "-inf" so the Python tracker can display the blow-up.
+    _RE_HAMIL  = re.compile(r"(?:‖H‖₂|\|\|H\|\|[₂2]|Ham(?:iltonian)?)\s*[=]\s*([\d.eE+\-]+|inf|-inf)")
     # AMR block count: "Blocks = N" or "nblocks = N"
     _RE_BLOCKS = re.compile(r"(?:Blocks?|nblocks?)\s*=\s*(\d+)")
     # NaN detection: "[NaN@step=X]"
@@ -522,7 +526,7 @@ class GraniteTracker:
 
         lines = [
             f"  {border}",
-            f"  GRANITE SIM TRACKER — CONTEXT-AWARE DASHBOARD",
+            f"  GRANITE SIM TRACKER — UNIVERSAL LIVE DASHBOARD",
             f"  {ts}",
             f"  Scenario: {self._profile.name}",
             f"  Source  : {binary_label}",
@@ -757,7 +761,11 @@ class GraniteTracker:
         if m:
             step   = int(m.group(1))
             t      = float(m.group(2))
-            wall   = float(m.group(3))
+            # wall= is optional — fall back to elapsed Python-side wall time
+            if m.group(3) is not None:
+                wall = float(m.group(3))
+            else:
+                wall = time.monotonic() - self._start_wall
             speed  = t / wall if wall > 0 else 0.0
 
             self._step_count = step

@@ -940,8 +940,16 @@ void CCZ4Evolution::computeConstraints(
                 // Note: For extreme performance, this duplicates some compute from computeRHS,
                 // but constraints are typically evaluated sparingly in an MPI block.
                 
-                Real chi = grid.data(iCHI, i, j, k);
+                Real chi_raw = grid.data(iCHI, i, j, k);
+                // Apply the SAME floor as computeRHS (line 263). Without this,
+                // chi→0 at the puncture makes (0.5/(chi+1e-30)) in Rchi large
+                // but finite, then R_scalar *= chi should cancel it — EXCEPT
+                // that floating-point cancellation is not guaranteed near zero,
+                // and intermediate overflow produces +inf which the *= chi cannot
+                // recover from.  The floor 1e-4 matches the RHS floor exactly.
+                Real chi = (std::isfinite(chi_raw) && chi_raw >= 1.0e-4) ? chi_raw : 1.0e-4;
                 Real K = grid.data(iK, i, j, k);
+                if (!std::isfinite(K)) K = 0.0;  // guard stale/NaN from ghost zone
                 
                 Real gt[6] = {grid.data(iGXX, i, j, k), grid.data(iGXY, i, j, k), grid.data(iGXZ, i, j, k),
                               grid.data(iGYY, i, j, k), grid.data(iGYZ, i, j, k), grid.data(iGZZ, i, j, k)};
@@ -1085,7 +1093,11 @@ void CCZ4Evolution::computeConstraints(
                 R_scalar *= chi; // Physical scalar
 
                 Real rho = 0.0; // Assume matter density falls back to zero for vacuum constraints
-                ham[flat] = R_scalar + (2.0/3.0)*K*K - AtAt - 16.0 * constants::PI * rho;
+                Real ham_val = R_scalar + (2.0/3.0)*K*K - AtAt - 16.0 * constants::PI * rho;
+                // Guard: if intermediate arithmetic overflowed to inf/NaN (can happen
+                // at step 1 before gauge has fully settled near puncture), record 0.0
+                // rather than propagating inf into the L2 norm in main.cpp.
+                ham[flat] = std::isfinite(ham_val) ? ham_val : 0.0;
 
                 const int At_vars[6] = {iAXX, iAXY, iAXZ, iAYY, iAYZ, iAZZ};
                 Real d_At[6][3];
