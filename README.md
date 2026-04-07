@@ -67,7 +67,7 @@ python3 scripts/run_granite.py build
 ```
 
 #### 🪟 Windows — Native PowerShell / CMD
-*Use for: Native terminal without WSL2. Requires CMake + VS Build Tools + vcpkg (see [INSTALLATION.md](./INSTALLATION.md))*
+*Use for: Native terminal without WSL2. Requires CMake + VS Build Tools + vcpkg (see [INSTALLATION.md](./docs/INSTALLATION.md))*
 ```powershell
 cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE="../vcpkg/scripts/buildsystems/vcpkg.cmake" -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release
@@ -213,7 +213,7 @@ python3 scripts/run_granite.py run --benchmark my_sim
 ```
 
 > [!IMPORTANT]
-> Before launching `B2_eq` or any long-running simulation, always run `health_check.py` first (Step 3) and review [`DEPLOYMENT_AND_PERFORMANCE.md`](./DEPLOYMENT_AND_PERFORMANCE.md) to maximize native hardware utilization.
+> Before launching `B2_eq` or any long-running simulation, always run `health_check.py` first (Step 3) and review [`DEPLOYMENT_AND_PERFORMANCE.md`](./docs/DEPLOYMENT_AND_PERFORMANCE.md) to maximize native hardware utilization.
 
 ---
 
