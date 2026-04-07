@@ -79,6 +79,31 @@ def sep(char: str = "─", width: int = 74, col: str = A.DIM) -> str:
 def heavy(width: int = 74) -> str:
     return c("═" * width, A.W + A.BLD)
 
+def strip_ansi(text: str) -> str:
+    return re.sub(r"\033\[[0-9;]*m", "", text)
+
+class TeeLogger:
+    def __init__(self, filename: Path):
+        self.file = open(filename, "w", encoding="utf-8")
+        self.stdout = sys.stdout
+
+    def write(self, data: str):
+        self.stdout.write(data)
+        self.file.write(strip_ansi(data))
+        self.file.flush()
+
+    def flush(self):
+        self.stdout.flush()
+        self.file.flush()
+
+    def __enter__(self):
+        sys.stdout = self
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        sys.stdout = self.stdout
+        self.file.close()
+
 # ─────────────────────────────────────────────────────────────────────────────
 # 2. Physics thresholds
 # ─────────────────────────────────────────────────────────────────────────────
@@ -737,12 +762,13 @@ def print_summary(sess: SimSession) -> None:
 # 9. Line processor
 # ─────────────────────────────────────────────────────────────────────────────
 def process_line(line: str, sess: SimSession, verbose: bool) -> None:
-    """Parse a single output line and update the session."""
-    raw = line.rstrip("\n")
-    if sess._log_fh:
-        sess._log_fh.write(raw + "\n")
-        sess._log_fh.flush()
+    """Parse a single output line and update the session.
 
+    NOTE: raw C++ stdout is intentionally NOT written to the log here.
+    The TeeLogger context in run() intercepts every print() call instead,
+    mirroring the rich dashboard output (ANSI-stripped) to the log file.
+    """
+    raw = line.rstrip("\n")
     stripped = raw.strip()
     if not stripped:
         return
@@ -934,9 +960,12 @@ def run(args: argparse.Namespace) -> None:
 
     signal.signal(signal.SIGINT, _sigint)
 
-    with open(logfile, "w", encoding="utf-8") as _fh:
-        sess._log_fh = _fh
-
+    # ── Rich-telemetry log mirroring ─────────────────────────────────────────
+    # TeeLogger intercepts every print() call, writes colour-stripped text to
+    # the log file, and passes the coloured version through to the real stdout.
+    # This means the .log file is an exact, human-readable mirror of the terminal
+    # dashboard — not the raw C++ output that was written before v0.6.5.
+    with TeeLogger(logfile) as _tee:
         if args.stdin:
             for raw in sys.stdin:
                 process_line(raw, sess, args.verbose)
@@ -958,7 +987,9 @@ def run(args: argparse.Namespace) -> None:
             except Exception as exc:
                 print(c(f"\n  Process error: {exc}", A.R))
 
-    print_summary(sess)
+        # print_summary() is inside the TeeLogger context so the full
+        # Final Summary block is also captured in the log file.
+        print_summary(sess)
 
     # ── Optional matplotlib plot ──────────────────────────────────────────────
     try:

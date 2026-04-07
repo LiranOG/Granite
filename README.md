@@ -239,32 +239,49 @@ Logs are automatically saved to `dev_logs/dev_benchmark_<timestamp>.log`.
 The architectural layout of the GRANITE engine is cleanly decoupled into modular subsystems. Below is the structural overview of the physics modules, diagnostics, and deployment ecosystem.
 
 ```text
-Granite/
-├── benchmarks/          # Central hub for YAML physics scenarios and simulation presets.
-│   ├── B2_eq/           # Equal-mass (M=1.0) Binary Black Hole merger geometry configuration.
-│   ├── gauge_wave/      # 1D sinusoidal gauge validation for CCZ4 advection consistency.
-│   └── single_puncture/ # Standard 3D moving-puncture BH stability benchmark.
-├── CMakeLists.txt       # Master build configuration. Orchestrates MSVC/GCC, vcpkg, and MPI linkage.
-├── docs/                # Core documentation, engineering installation guides, and internal notes.
-├── include/granite/     # Public C++ interface headers defining the numerical abstractions.
-│   ├── amr/             # Adaptive mesh structures, tracking spheres, and Berger-Oliger interfaces.
-│   ├── core/            # Low-level primitives, dimension traits, and `GridBlock` memory boundaries.
-│   ├── grmhd/           # General Relativistic Magnetohydrodynamics routines and EOS lookup tables.
-│   ├── initial_data/    # Analytic metric setters for Brill-Lindquist and Bowen-York geometries.
-│   ├── io/              # MPI-aware HDF5 parallel data streamers and exact-state checkpoint managers.
-│   ├── postprocess/     # Gravitational wave (Ψ₄) spherical harmonic extraction and EM estimates.
-│   └── spacetime/       # Conformal and Covariant Z4 (CCZ4) evolution equations and constraints.
-├── scripts/             # Python-based diagnostic suite, health telemetry, and CI/CD wrappers.
-│   ├── dev_benchmark.py         # Real-time forensic stability monitor for Hamiltonian constraints and NaNs.
-│   ├── health_check.py          # Pre-flight hardware validation ensuring maximum OpenMP core saturation.
-│   ├── run_granite.py           # Unified cross-platform CLI tool for building, testing, and running sims.
-│   └── run_granite_hpc.py       # HPC launch wrapper: manual NUMA/MPI overrides, AMR scaling telemetry.
-├── setup_windows.ps1    # Automated Bootstrap tool deploying vcpkg, MS-MPI, and CMake on Windows.
-├── src/                 # High-performance C++ implementation algorithms and physics kernels.
-│   ├── amr/             # Implements spatial restriction, 4th-order prolongation, and regridding.
-│   ├── spacetime/       # Highly parallelized CCZ4 right-hand-side loops computing Ricci sensors.
-│   └── main.cpp         # Main execution loop managing AMR hierarchies, I/O burst intervals, and RK3.
-└── tests/               # 92 integrated GoogleTest suite verifying physics accuracy and advection stability.
+GRANITE/
+├── benchmarks/              # Self-contained simulation presets (YAML + expected output).
+│   ├── B2_eq/               # Equal-mass (M=1.0) binary BH merger — inspiral + ringdown.
+│   ├── gauge_wave/          # 1-D sinusoidal gauge validation for CCZ4 advection stability.
+│   ├── scaling_tests/       # SLURM/PBS strong & weak-scaling job templates for HPC.
+│   └── single_puncture/     # Standard 3-D moving-puncture Schwarzschild stability benchmark.
+├── CMakeLists.txt           # Master CMake build: MPI, OpenMP, HDF5, CUDA/HIP, Google Test.
+├── containers/              # Container definitions for reproducible HPC deployments.
+│   ├── Dockerfile           # Docker multi-stage image (Ubuntu 22.04, HDF5, OpenMPI).
+│   └── granite.def          # Singularity/Apptainer definition file for cluster environments.
+├── docs/                    # Permanent technical reference documentation.
+│   ├── diagnostic_handbook.md       # Telemetry interpretation guide: lapse, ‖H‖₂, NaN forensics.
+│   ├── v0.6.5_master_dictionary.md  # Exhaustive CLI, parameter, and stability-patch reference.
+│   ├── INSTALL.md           # A-to-Z installation guide with per-terminal dependency setup.
+│   ├── internal/            # Internal architecture notes (not user-facing).
+│   ├── theory/              # Physics derivations and CCZ4 notation reference.
+│   └── user_guide/          # End-user tutorials and worked examples.
+├── include/granite/         # Public C++ interface headers indexed by subsystem.
+│   ├── amr/                 # AMR hierarchy, Berger-Oliger interfaces, tracking spheres.
+│   ├── core/                # Low-level primitives: GridBlock, type aliases, dimension traits.
+│   ├── grmhd/               # GRMHD Valencia-formulation routines and EOS lookup tables.
+│   ├── initial_data/        # Analytic metric setters: Brill-Lindquist, Bowen-York, SKS.
+│   ├── io/                  # MPI-aware HDF5 streamers and exact-state checkpoint managers.
+│   ├── postprocess/         # Ψ₄ GW extraction, horizon finder, recoil estimator headers.
+│   └── spacetime/           # CCZ4 evolution equations, constraint monitor, gauge drivers.
+├── python/                  # Installable Python analysis package (pip install -e .).
+│   └── granite_analysis/    # HDF5 reader, GW strain extraction, matplotlib plot helpers.
+├── runs/                    # ⚠ gitignored. Job scripts and parameter-scan configs (env-specific).
+├── scripts/                 # Python build/run wrappers and live diagnostics dashboard.
+│   ├── dev_benchmark.py     # Forensic diagnostic runner: NaN propagation + constraint tracking.
+│   ├── dev_stability_test.py # Extended stability sweep across t-target values.
+│   ├── health_check.py      # Pre-flight: verifies Release flags, OMP core count, memory.
+│   ├── run_granite.py       # Unified CLI: build / run / clean / format subcommands.
+│   ├── run_granite_hpc.py   # HPC launch wrapper: NUMA overrides, MPI ranks, AMR telemetry.
+│   └── sim_tracker.py       # Context-aware live dashboard with rich telemetry log mirroring.
+├── src/                     # High-performance C++ physics kernels and engine entry point.
+│   ├── amr/                 # Restriction, 4th-order prolongation, regridding, ghost sync.
+│   ├── initial_data/        # BL conformal factor solver and Bowen-York Newton-Raphson.
+│   ├── spacetime/           # OpenMP-parallelised CCZ4 RHS loops (Ricci, KO dissipation).
+│   └── main.cpp             # Engine entry point: YAML load, AMR init, RK3 time loop.
+├── tests/                   # 92-test GoogleTest suite (physics accuracy + advection stability).
+└── viz/                     # Post-processing and visualisation scripts (future home of plotters).
+    └── README.md            # Documents planned plot_constraints.py, plot_gw.py, etc.
 ```
 
 ## 📋 Versioning Policy (Pre-1.0.0)

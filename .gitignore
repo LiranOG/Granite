@@ -6,6 +6,7 @@ bin/
 # Simulation runtime outputs (auto-generated, not source-controlled)
 dev_logs/
 output/
+runs/
 *.h5
 *.dat
 gw_extraction.dat
