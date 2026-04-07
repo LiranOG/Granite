@@ -13,7 +13,6 @@
 #include "granite/spacetime/ccz4.hpp"
 #include "granite/core/types.hpp"
 
-#include <cassert>
 #include <cmath>
 #include <stdexcept>
 
@@ -191,18 +190,14 @@ Real CCZ4Evolution::d2(const GridBlock& grid, int var,
 
 void CCZ4Evolution::computeRHSVacuum(const GridBlock& grid, GridBlock& rhs) const
 {
-    // Issue 6 fix: use size() != N (not < N) so that if a different-sized grid block
-    // is passed on a subsequent call (e.g. AMR refined block is later replaced by a
-    // coarser one with smaller totalSize()), the thread_local vectors are re-initialized
-    // with the correct zero-fill. The original size() < N check only grew the vectors
-    // and never shrank them, leaving stale data from a previous larger block.
+    // Fix: Pre-allocate static vectors to avoid dynamic allocation per call
     static thread_local std::vector<Real> zero_rho;
     static thread_local std::vector<std::array<Real, DIM>> zero_Si;
     static thread_local std::vector<std::array<Real, SYM_TENSOR_COMPS>> zero_Sij;
     static thread_local std::vector<Real> zero_S;
 
     std::size_t N = grid.totalSize();
-    if (zero_rho.size() != N) {
+    if (zero_rho.size() < N) {
         zero_rho.assign(N, 0.0);
         zero_Si.assign(N, {0.0, 0.0, 0.0});
         zero_Sij.assign(N, {0,0,0,0,0,0});
@@ -232,18 +227,6 @@ void CCZ4Evolution::computeRHS(
     const int ie0 = grid.iend(0);  // X interior end
     const int ie1 = grid.iend(1);  // Y interior end
     const int ie2 = grid.iend(2);  // Z interior end
-
-    // Issue 7 fix: assert that matter source vectors are sized to at least totalSize()
-    // so that caller-side sizing bugs are caught immediately rather than producing
-    // silent out-of-bounds reads via the flat = nx*(ny*k+j)+i indexing below.
-    assert(rho_matter.size() >= grid.totalSize() &&
-           "rho_matter must be allocated to grid.totalSize() (including ghost cells)");
-    assert(Si_matter.size()  >= grid.totalSize() &&
-           "Si_matter must be allocated to grid.totalSize() (including ghost cells)");
-    assert(Sij_matter.size() >= grid.totalSize() &&
-           "Sij_matter must be allocated to grid.totalSize() (including ghost cells)");
-    assert(S_trace.size()    >= grid.totalSize() &&
-           "S_trace must be allocated to grid.totalSize() (including ghost cells)");
 
     // Loop over all interior cells (dimension-aware bounds for non-cubic grids)
 #ifdef GRANITE_USE_OPENMP
@@ -921,14 +904,6 @@ void CCZ4Evolution::computeConstraints(
     const int ie1 = grid.iend(1);
     const int ie2 = grid.iend(2);
 
-    // Issue 11 fix: computeConstraints was missing OpenMP parallelism despite being
-    // structurally identical to computeRHS (same triple loop, same per-cell compute).
-    // ham[flat] and mom[flat] are indexed by unique flat = nx*(ny*k+j)+i per cell,
-    // so there are no write races. Adding collapse(3) gives up to 8× speedup on
-    // constraint evaluation output steps which previously ran single-threaded.
-#ifdef GRANITE_USE_OPENMP
-    #pragma omp parallel for collapse(3) schedule(static)
-#endif
     for (int k = is; k < ie2; ++k) {
         for (int j = is; j < ie1; ++j) {
             for (int i = is; i < ie0; ++i) {
@@ -940,15 +915,8 @@ void CCZ4Evolution::computeConstraints(
                 // Note: For extreme performance, this duplicates some compute from computeRHS,
                 // but constraints are typically evaluated sparingly in an MPI block.
                 
-                // Strict chi floor matching computeRHS: ensures the Rchi
-                // denominators (chi + eps) and (chi*chi + eps) are safely
-                // bounded. Ghost-zone chi may still be 0 (stencil reads them),
-                // so we also clamp d_chi components after computing them.
-                Real chi_raw = grid.data(iCHI, i, j, k);
-                Real chi = std::max(std::isfinite(chi_raw) ? chi_raw : 1.0e-4,
-                                    1.0e-4);
+                Real chi = grid.data(iCHI, i, j, k);
                 Real K = grid.data(iK, i, j, k);
-                if (!std::isfinite(K)) K = 0.0;  // guard stale/NaN from ghost zone
                 
                 Real gt[6] = {grid.data(iGXX, i, j, k), grid.data(iGXY, i, j, k), grid.data(iGXZ, i, j, k),
                               grid.data(iGYY, i, j, k), grid.data(iGYZ, i, j, k), grid.data(iGZZ, i, j, k)};
@@ -1004,25 +972,12 @@ void CCZ4Evolution::computeConstraints(
                 }
                 Real d_chi[3];
                 Real dd_chi[3][3];
-                for (int d = 0; d < 3; ++d) {
+                for(int d=0; d<3; ++d) {
                     d_chi[d] = d1_4th(iCHI, d);
-                    for (int d2_idx = d; d2_idx < 3; ++d2_idx) {
+                    for(int d2_idx=d; d2_idx<3; ++d2_idx) {
                         dd_chi[d][d2_idx] = d2_4th(iCHI, d, d2_idx);
                         dd_chi[d2_idx][d] = dd_chi[d][d2_idx];
                     }
-                }
-                // Clamp d_chi magnitudes: 4th-order stencils reach into ghost
-                // cells where chi is still raw/zero; the resulting d_chi values
-                // can be O(chi_floor/dx) ~ 1e4/dx per unit which, when squared
-                // and divided by chi^2, overflows to +inf even though the centre
-                // chi was safely floored above.
-                // Max physical |∂_i chi| ≈ O(1/M) ~ 1.0 for a typical run;
-                // 1e6 gives generous headroom for highest refinement levels.
-                constexpr Real D_CHI_MAX = 1.0e6;
-                for (int d = 0; d < 3; ++d) {
-                    d_chi[d] = std::max(-D_CHI_MAX, std::min(D_CHI_MAX, d_chi[d]));
-                    for (int d2 = 0; d2 < 3; ++d2)
-                        dd_chi[d][d2] = std::max(-D_CHI_MAX, std::min(D_CHI_MAX, dd_chi[d][d2]));
                 }
 
                 Real chris[3][6]; 
@@ -1091,12 +1046,8 @@ void CCZ4Evolution::computeConstraints(
                             }
                         }
                         // Baumgarte-Shapiro eq. 3.68: coefficient is -3, NOT +2
-                        Real Rchi_ij = (0.5 / (chi + 1e-4)) * (D_i_D_j_chi + gt[ij] * D_k_D_k_chi)
-                                     - (0.25 / ((chi*chi) + 1e-8)) * (d_chi[ii]*d_chi[jj] - 3.0 * gt[ij] * d_chi_sq);
-                        // Guard: stencil over ghost-zone zero-chi can still produce
-                        // a very large but finite value that, once summed and multiplied
-                        // by chi, yields ±inf.  Clamp to keep ham_val finite.
-                        Rchi[ij] = std::isfinite(Rchi_ij) ? Rchi_ij : 0.0;
+                        Rchi[ij] = (0.5 / (chi + 1e-30)) * (D_i_D_j_chi + gt[ij] * D_k_D_k_chi)
+                                 - (0.25 / ((chi*chi) + 1e-30)) * (d_chi[ii]*d_chi[jj] - 3.0 * gt[ij] * d_chi_sq);
                     }
                 }
 
@@ -1109,11 +1060,7 @@ void CCZ4Evolution::computeConstraints(
                 R_scalar *= chi; // Physical scalar
 
                 Real rho = 0.0; // Assume matter density falls back to zero for vacuum constraints
-                Real ham_val = R_scalar + (2.0/3.0)*K*K - AtAt - 16.0 * constants::PI * rho;
-                // Guard: if intermediate arithmetic overflowed to inf/NaN (can happen
-                // at step 1 before gauge has fully settled near puncture), record 0.0
-                // rather than propagating inf into the L2 norm in main.cpp.
-                ham[flat] = std::isfinite(ham_val) ? ham_val : 0.0;
+                ham[flat] = R_scalar + (2.0/3.0)*K*K - AtAt - 16.0 * constants::PI * rho;
 
                 const int At_vars[6] = {iAXX, iAXY, iAXZ, iAYY, iAYZ, iAZZ};
                 Real d_At[6][3];

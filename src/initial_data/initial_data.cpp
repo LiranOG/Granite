@@ -140,10 +140,7 @@ void BrillLindquist::apply(GridBlock& grid) const
                     const Real rz = z - bh.position[2];
                     const Real r2 = rx*rx + ry*ry + rz*rz + 1.0e-20; // regularize puncture
                     const Real r3 = r2 * std::sqrt(r2);
-                    // Clamp 1/r³ to prevent 10^{30} injections when a grid node
-                    // lands exactly on the puncture (MICRO_OFFSET reduces but
-                    // does not eliminate this risk on all refinement levels).
-                    const Real c  = std::max(-1.0e10, -bh.mass / (2.0 * r3));
+                    const Real c  = -bh.mass / (2.0 * r3);
                     dpsi_dx += c * rx;
                     dpsi_dy += c * ry;
                     dpsi_dz += c * rz;
@@ -277,15 +274,7 @@ void BowenYorkPuncture::solve(GridBlock& grid) const
                                  u[flat + nx] + u[flat - nx] + 
                                  u[flat + nx*ny] + u[flat - nx*ny];
                     
-                    // Issue 9 fix: floor psi_val above 1e-4 before raising to the 7th power.
-                    // If the SOR correction u overshoots to u < -(psi_BL - 1e-4), then
-                    // psi+u would be <= 0, causing std::pow(<=0, 7.0) to return NaN (for even
-                    // powers via pow(negative, even) = positive, but pow(0, 7) = 0 and
-                    // on some implementations pow(negative, odd_non-integer) -> NaN).
-                    // The floor value 1e-4 matches the CCZ4 chi floor for self-consistency.
-                    Real psi_val = psi_BL[flat] + u[flat];
-                    if (psi_val < 1.0e-4) psi_val = 1.0e-4;
-                    Real psi7_inv = 1.0 / std::pow(psi_val, 7.0);
+                    Real psi7_inv = 1.0 / std::pow(psi_BL[flat] + u[flat], 7.0);
                     Real rhs = -0.125 * Atilde2[flat] * psi7_inv;
                     Real unew = (u_avg - dx2 * rhs) / 6.0;
                     
@@ -340,9 +329,7 @@ void BowenYorkPuncture::setBowenYorkExtrinsicCurvature(GridBlock& grid) const
                     Real dz = z - bh.position[2];
                     Real r2 = dx*dx + dy*dy + dz*dz + 1.0e-30;
                     Real r = std::sqrt(r2);
-                    // Clamp 1/r² and 1/r³: prevents 10^{30}/10^{45} injections
-                    // if a cell centre lands on the puncture location.
-                    Real inv_r2 = std::min(1.0 / r2, 1.0e15);
+                    Real inv_r2 = 1.0 / r2;
 
                     Real n[3] = {dx/r, dy/r, dz/r};
                     Real P[3] = {bh.momentum[0], bh.momentum[1], bh.momentum[2]};
@@ -362,7 +349,7 @@ void BowenYorkPuncture::setBowenYorkExtrinsicCurvature(GridBlock& grid) const
 
                     // Spin contribution: (3/r³) ε_{kl(i} S^l n_{j)} n^k
                     Real S[3] = {bh.spin[0], bh.spin[1], bh.spin[2]};
-                    Real inv_r3 = std::min(inv_r2 / r, 1.0e22);
+                    Real inv_r3 = inv_r2 / r;
 
                     // ε_{kli} S^l n_j n^k (symmetrized over ij)
                     // Using Levi-Civita: ε_{012}=1, etc.
