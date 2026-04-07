@@ -787,6 +787,19 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    // --- MICRO_OFFSET: phase-shift the grid away from integer/zero coordinates ---
+    // Prevents any grid cell center from coinciding with the puncture at r=0,
+    // which causes a 1/r² singularity in the Brill-Lindquist conformal factor.
+    // The value is irrational w.r.t. any typical dx to avoid resonant re-alignment
+    // across refinement levels.
+    {
+        constexpr Real MICRO_OFFSET = 1.3621415e-6;
+        for (int d = 0; d < 3; ++d) {
+            params.domain_lo[d] += MICRO_OFFSET;
+            params.domain_hi[d] += MICRO_OFFSET;
+        }
+    }
+
     // --- Create Grids & Systems ---
     grmhd::GRMHDParams grmhd_params;
     auto eos = std::make_shared<grmhd::IdealGasEOS>(5.0 / 3.0);
