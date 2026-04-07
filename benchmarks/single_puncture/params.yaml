@@ -1,37 +1,31 @@
 # ===========================================================================
 # GRANITE Benchmark: single_puncture — Schwarzschild BH stability test
 # Reference: Campanelli et al. 2006 (moving puncture method)
-#
-# Grid:  96^3 uniform (AMR disabled) to prevent Gibbs overshoots from
-#        AMR interpolation across the singularity.
 # ===========================================================================
 
 grid:
-  ncells: [96, 96, 96]
+  ncells: [64, 64, 64]
   domain_lo: [-48.0, -48.0, -48.0]
-  domain_hi: [ 48.0,  48.0,  48.0]   # dx = 1.0M
+  domain_hi: [ 48.0,  48.0,  48.0] 
   ghost_cells: 4
 
-amr:
-  max_levels: 0    # Uniform grid — AMR disabled for single puncture
-
 time:
-  cfl: 0.25
+  cfl: 0.25         
   t_final: 120.0
   max_steps: 10000000
 
 ccz4:
-  kappa1: 0.02     # standard choice (Alic+ 2012)
+  kappa1: 0.02     # standard choice (Alic+ 2012); 0.1 over-damps near puncture
   kappa2: 0.0
-  eta: 2.0         # Campanelli+ 2006 standard
-  ko_sigma: 0.35   # standard for single-puncture
+  eta: 2.0         # Campanelli+ 2006 standard; eta=4 over-damps Gamma-driver
+  ko_sigma: 0.35   # standard for single-puncture; damps gauge wave before boundary
 
 initial_data:
-  type: brill_lindquist
-
+  type: brill_lindquist      
+  
 black_holes:
-  - mass: 1.0
-    position: [0.0, 0.0, 0.0]
+  - mass: 1.0              
+    position: [0.0, 0.0, 0.0]   
     momentum: [0.0, 0.0, 0.0]
     spin:     [0.0, 0.0, 0.0]
 

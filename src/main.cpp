@@ -674,7 +674,7 @@ int main(int argc, char* argv[]) {
     using namespace granite;
 
     std::cout << "================================================================\n";
-    std::cout << " GRANITE v" << "0.5.0" << "\n";
+    std::cout << " GRANITE v" << "0.6.5" << "\n";
     std::cout << " General-Relativistic Adaptive N-body Integrated Tool\n";
     std::cout << " for Extreme Astrophysics\n";
     std::cout << "================================================================\n\n";

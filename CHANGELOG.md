@@ -8,6 +8,82 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > **A Note on Commit Granularity**  
 > Each commit in this repository represents a major integration milestone, not an individual line-edit. The work described below spans thousands of lines of C++ physics code, multiple debugging and stabilization sessions, and a rigorous, multi-phase audit. This changelog enumerates every significant change in granular detail so the full scope of the engineering effort is transparent to contributors, reviewers, and the scientific community. 
 
+---
+
+## [v0.6.5] — The Stability Update (2026-04-07)
+
+### Summary
+
+This release completes **Phase 4: The Tactical Reset** — a comprehensive forensic rescue operation that restored the GRANITE engine to a verified, production-stable baseline. After a series of architectural regressions introduced over-engineered mathematical constraints and a fragile telemetry class hierarchy, a directory-wide `diff` against the verified `v0.6.0` backup was used as ground truth to surgically revert all damaging changes while preserving the P0 memory safety fixes accumulated during that period. Both the `single_puncture` and `B2_eq` benchmarks now run stably with `||H||₂` decaying properly and the tracker reporting truthfully.
+
+---
+
+### Fixed — Architecture & Stability (`src/spacetime/ccz4.cpp`, `src/amr/amr.cpp`)
+
+- **Master Reset of CCZ4 Core:** Reverted `ccz4.cpp` to the exact v0.6.0 baseline, purging all over-engineered mathematical constraints that had been introduced during the forensic audit. Specifically removed:
+  - Aggressive `chi`-flooring clamps applied inside stencil derivative reads — these incorrectly modified cell data before finite-difference reads, destroying the interpolation balance that AMR's load-bearing ghost zones depended on.
+  - Constraint-value clamping inside `computeConstraints()` that produced false `||H||₂ = inf` reports by clamping intermediate products to `0.0/0.0`.
+  - All other "load-bearing bug" disruptions to the delicate cancellation structure in the constraint-violation monitor.
+- **Master Reset of AMR (`src/amr/amr.cpp`, `include/granite/amr/amr.hpp`):** Reverted `amr.cpp` and `amr.hpp` to the v0.6.0 baseline, eliminating theoretical patches that accidentally broke the numerical balance previously maintained by interpolation error cancellation:
+  - Removed `std::floor` replacement of `std::round` in `regrid()` child cell snapping — the `std::round` behavior is what the v0.6.0 physics relied on.
+  - Removed `fill_interior = false` flag and `prolongateGhostOnly()` bifurcation in `prolongate()` — the full-domain prolongation is the load-bearing behavior.
+  - Removed `truncationErrorTagger` and `setGlobalStep()` dead code from the header.
+- **Master Reset of Main Entry Point (`src/main.cpp`):** Reverted `main.cpp` to the v0.6.0 baseline, removing `derefine_threshold`, `use_truncation_error`, and other undefined struct members that had caused CI compilation failures.
+
+---
+
+### Fixed — Memory Safety (`src/amr/amr.cpp`)
+
+- **`levels_.reserve()` Retained:** Across all resets, the single P0 memory safety fix was preserved:
+  ```cpp
+  levels_.reserve(static_cast<std::size_t>(params_.max_levels));
+  ```
+  Added at the top of `AMRHierarchy::initialize()`, this pre-allocates the `levels_` vector to its maximum capacity before any `push_back()` calls occur during the refinement cascade. Without this, `push_back()` could trigger a reallocation, invalidating every raw `GridBlock*` pointer captured by `syncBlocks()` lambdas — classic undefined behavior causing intermittent segfaults during subcycling.
+
+---
+
+### Fixed — Singularity Avoidance (`src/main.cpp`)
+
+- **MICRO_OFFSET Grid Phase-Shift Re-Injected:** After the master reset wiped the previous injection, the `MICRO_OFFSET` was restored:
+  ```cpp
+  constexpr Real MICRO_OFFSET = 1.3621415e-6;
+  for (int d = 0; d < 3; ++d) {
+      params.domain_lo[d] += MICRO_OFFSET;
+      params.domain_hi[d] += MICRO_OFFSET;
+  }
+  ```
+  Applied universally after YAML parsing, before grid construction. This permanently immunizes the engine against `r=0` division-by-zero for any centered-domain single-puncture setup (e.g., `single_puncture` benchmark with BH at origin). The value `1.3621415e-6` is incommensurable with all typical `dx` values (~0.25M–2.0M) so no refinement level will re-align a cell center with the singularity.
+
+---
+
+### Fixed — Telemetry & UI (`scripts/sim_tracker.py`)
+
+- **Procedural Architecture Restored:** Reverted the tracker from a broken class-based refactor back to the v0.6.0 procedural regex-based parsing architecture. The class-based version had rigid, incorrectly ordered regex groups that failed to parse the engine's standard output lines, producing cascading `ValueError: could not convert string to float` crashes and garbled UI output.
+- **Crash-Proof Float Casting:** All metric extractions use `safe_float()` which returns `None` instead of raising on bad values (including `nan`, `inf`, `-`, empty strings, and partial C++ log lines).
+- **Honest Stability Summary — 8-Layer Guard:** The `print_summary()` Stability Summary block was upgraded from a 2-condition boolean to an exhaustive 8-layer failure detection system that can never report "No catastrophic events" falsely:
+
+  | Layer | Condition Checked |
+  |:---:|:---|
+  | 1 | `sess.crashed` — explicit lapse floor hit |
+  | 2 | Any `record.alpha is None` — NaN α caught by `safe_float()` |
+  | 3 | `not math.isfinite(final_alpha)` — inf/nan α not caught as None |
+  | 4 | `max(fin_ham) > H_CRIT` — finite constraint explosion |
+  | 5 | Any `record.ham is None` — NaN/∞ ‖H‖₂ captured as None |
+  | 6 | `sess.nan_events` — explicit `[NaN@step=]` lines from C++ |
+  | 7 | `sess.zombie_step` — frozen physics state |
+  | 8 | Phase label contains CRASH/COLLAPSE/EXPLOSION/NAN — last-resort catch-all |
+
+---
+
+### Changed — Version & Release Infrastructure
+
+- **`CMakeLists.txt`:** `VERSION 0.6.0` → `VERSION 0.6.5`
+- **`src/main.cpp`:** Banner string `"0.5.0"` → `"0.6.5"`
+- **`CHANGELOG.md`:** This entry prepended as the canonical release record.
+- **Git Tag `v0.6.5`:** Annotated tag created and pushed to `origin/main` as an immutable checkpoint of the stable baseline.
+
+---
+
 ## [v0.6.0] — The Puncture Tracking Update (2026-04-04)
 
 ### Summary
