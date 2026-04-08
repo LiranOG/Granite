@@ -1,88 +1,52 @@
-# CodeQL Advanced Security Analysis
-# https://docs.github.com/en/code-security/code-scanning
-#
-# You may wish to alter this file to override the set of languages analyzed,
-# or to provide custom queries or build logic.
-#
-# ******** NOTE ********
-# We have attempted to detect the languages in your repository. Please check
-# the `language` matrix defined below to confirm you have the correct set of
-# supported CodeQL languages.
-# https://aka.ms/codeql-docs/language-support
-
-name: "CodeQL Advanced"
+# .github/workflows/codeql.yml
+name: "CodeQL Advanced Security"
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "develop" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "develop" ]
   schedule:
-    - cron: '26 15 * * 5'  # Run at 15:26 UTC every Friday
+    - cron: '0 4 * * 1'   # יום שני ב-04:00 UTC (nightly)
 
 jobs:
   analyze:
-    name: Analyze (${{ matrix.language }})
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
+    name: Analyze (C++ + Python)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75          # ← הגדלתי כדי שלא יקרה cancel אחרי 45 דקות
 
     permissions:
       security-events: write
-      packages: read
-      actions: read
-      contents: read
 
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - language: c-cpp
-            build-mode: manual
-          - language: python
-            build-mode: none
+        language: [ 'cpp', 'python' ]
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # Initializes the CodeQL tools for scanning.
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
+        uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
-          build-mode: ${{ matrix.build-mode }}
-          # To use custom queries, uncomment the line below:
-          # queries: security-extended,security-and-quality
+          build-mode: ${{ matrix.language == 'cpp' && 'manual' || 'none' }}
 
-      # Install all build dependencies required by CMakeLists.txt
-      - name: Install dependencies (C/C++ only)
-        if: matrix.language == 'c-cpp'
+      - name: Install dependencies (C++ only)
+        if: matrix.language == 'cpp'
         run: |
           sudo apt-get update && sudo apt-get install -y \
-            cmake ninja-build \
-            g++-12 \
-            libopenmpi-dev openmpi-bin \
-            libhdf5-mpi-dev libhdf5-dev \
-            libomp-dev \
-            libyaml-cpp-dev
+            cmake ninja-build g++-12 libopenmpi-dev libhdf5-mpi-dev libyaml-cpp-dev
 
-      # Build the project so CodeQL can trace the compilation
-      - name: Build (C/C++ only)
-        if: matrix.build-mode == 'manual'
-        env:
-          CC: gcc-12
-          CXX: g++-12
+      - name: Build project for CodeQL (C++ only)
+        if: matrix.language == 'cpp'
         run: |
           cmake -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DGRANITE_ENABLE_MPI=ON \
             -DGRANITE_ENABLE_OPENMP=ON \
-            -DGRANITE_ENABLE_GPU=OFF \
-            -DGRANITE_ENABLE_TESTS=OFF \
-            -DCMAKE_CXX_FLAGS="-w"
-          cmake --build build -j$(nproc)
+            -DGRANITE_ENABLE_TESTS=OFF
+          cmake --build build -j4
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v4
-        with:
-          category: "/language:${{ matrix.language }}"
+        uses: github/codeql-action/analyze@v3
