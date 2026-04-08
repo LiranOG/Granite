@@ -33,7 +33,7 @@
 ![License](https://img.shields.io/badge/license-GPL--3.0-green.svg)
 ![C++ Standard](https://img.shields.io/badge/c%2B%2B-17%2F20-purple.svg)
 
-> **Status: 🟢 The Stability Update (v0.6.5)** — CCZ4 spacetime evolution, full GR-MHD, dynamic Berger-Oliger AMR subcycling, moving-puncture tracking, and diagnostic Python dashboards are fully integrated. 92 tests / 100% pass rate. `single_puncture` + `B2_eq` benchmarks validated stable.
+> **Status: 🟢 The Stability Update (v0.6.5)** — CCZ4 spacetime evolution, full GRMHD, dynamic Berger-Oliger AMR subcycling, moving-puncture tracking, and diagnostic Python dashboards are fully integrated. 92 tests / 100% pass rate. `single_puncture` + `B2_eq` benchmarks validated stable.
 
 GRANITE is a high-performance, next-generation numerical relativity and General-Relativistic Magnetohydrodynamics (GRMHD) engine. Designed from the ground up to model extreme astrophysical events—such as the inspiral and merger of multiple Supermassive Black Holes (SMBHs) interacting with dense stellar environments and accretion discs—GRANITE brings state-of-the-art multi-scale physics into a cohesive, open-source framework.
 
@@ -43,7 +43,7 @@ GRANITE is a high-performance, next-generation numerical relativity and General-
 - **GRMHD & Matter:** High-resolution shock-capturing (HRSC) schemes in the Valencia formulation, incorporating magnetic fields and realistic equations of state.
 - **Adaptive Mesh Refinement (AMR):** Block-structured Berger-Oliger subcycling with dynamic gradient-based refinement to resolve multiple dynamic scales.
 - **Multi-BH Initial Data:** Built-in solvers for Brill-Lindquist, Bowen-York, and Superposed Kerr-Schild initial conditions for arbitrarily complex N-body BH configurations.
-- **Radiation & Neutrino Transport:** Hybrid Leakage + M1 closure schemes for modeling photon and neutrino emission/absorption in hot nuclear matter.
+- **Radiation & Neutrino Transport:** Hybrid Leakage + M1 Closure schemes for modeling photon and neutrino emission/absorption in hot nuclear matter.
 - **Diagnostics & Apparent Horizons:** Built-in flow-method Apparent Horizon finder, Newman-Penrose (Ψ₄) gravitational wave extraction, and recoil velocity estimation.
 - **HDF5 I/O:** Fully parallel MPI-IO utilizing HDF5 for grid snapshots, checkpoints, and time-series data.
 
