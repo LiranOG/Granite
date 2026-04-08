@@ -49,6 +49,17 @@ GRANITE is a high-performance, next-generation numerical relativity and General-
 
 ## 🚀 Quick Start Guide
 
+
+> [!NOTE]
+> **OS Requirement:** To bypass cross-OS dependency quirks and ensure maximum performance, GRANITE is currently optimized exclusively for **Linux** and **WSL2**.
+>
+>  Native Windows and macOS are strictly unsupported.
+> 
+>
+>  *Hitting a wall?* If you encounter any errors during this quick start, jump over to the comprehensive [**INSTALL.md**](./docs/INSTALL.md) for step-by-step terminal guides and exhaustive troubleshooting.
+
+
+
 Choose your environment below and run the commands in order to get GRANITE running.
 
 ### Step 1 — Clone the Repository
