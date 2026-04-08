@@ -3,6 +3,16 @@
 This guide provides complete, step-by-step instructions for setting up **GRANITE** from scratch on any system.
 Navigate to your platform below, follow every step in order, and run the final build command.
 
+
+> ### 🚀 **Welcome to the GRANITE Installation Guide!**
+> 
+> To ensure maximum performance and stability, running GRANITE currently requires **Linux** or **Windows Subsystem** for Linux **(WSL2)**.
+> 
+> Why the restriction? The engine has been heavily optimized for environments where its dependencies are natively and seamlessly supported. My primary goal is to allow you to completely bypass frustrating installation headaches, dependency conflicts, and configuration loops, so you can focus entirely on what matters most: the science.
+> 
+> #### **My promise to you**: This OS restriction is temporary. In the future, once the core engine is completely flawless, battle-tested, and perfectly optimized, I will dedicate the necessary time to build native cross-platform support. GRANITE will eventually become a true, seamless **plug-and-play** experience across every operating system. Until then, the setups below will provide the most powerful and stable experience.
+
+
 ---
 
 ## 📋 General Requirements
@@ -26,6 +36,15 @@ Every platform requires the following tools before installation:
 ---
 
 ## 🪟 Windows Setup
+
+
+⚙️ Windows Installation (via WSL2)
+> Windows users, you're in the right place!
+>
+> While GRANITE is built for Linux, you don't need to dual-boot or run sluggish virtual machines.
+> By using WSL2 (Windows Subsystem for Linux), you get the full, native performance of Linux directly within your familiar Windows environment.
+> 
+> The guide below will walk you through setting up WSL2 and getting GRANITE running smoothly in just a few steps.
 
 Windows users have three supported paths. **WSL2 is strongly recommended** for best compatibility.
 
@@ -198,6 +217,15 @@ python3 scripts/run_granite.py run --benchmark single_puncture
 ---
 
 ## 🍎 macOS Setup
+
+
+🍏 macOS Installation
+> Welcome, Mac users!
+> 
+> Since macOS is a Unix-based operating system, we have a solid foundation to work with. However, because GRANITE is fundamentally optimized for Linux architectures, setting it up on macOS requires a few extra steps to bridge the gap (such as configuring specific dependencies or using containerization).
+> 
+> Don't worry—this section will guide you through the necessary tweaks to get the engine successfully compiled and running on your machine.
+
 
 **Step 1: Install Homebrew** (if not already installed)
 ```bash
