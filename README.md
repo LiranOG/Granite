@@ -2,7 +2,7 @@
 > 
 > **Welcome to GRANITE.** This project was born from a simple but overwhelming ambition: *to simulate the unimaginable*. I wanted to build an engine capable of modeling scenarios that still feel like science fiction—multiple supermassive black holes merging, tearing through stars, and interacting with extreme matter, all happening simultaneously. Currently, existing engines struggle to couple all these physics (CCZ4 spacetime evolution, GRMHD, and Adaptive Mesh Refinement) without collapsing under the computational weight. My goal is to build the architecture that finally solves this.
 > 
-> **But here is the reality: I am building, optimizing, and debugging this entirely alone.**
+> **Currently, GRANITE is driven by a single independent developer. To transition from a powerful solo-architected engine into a universally trusted scientific instrument, it is time to open the doors to the community.**
 > 
 > ---
 > 
