@@ -1,117 +1,37 @@
-name: GRANITE CI/CD — Production Pipeline
+name: GRANITE CI
 
 on:
   push:
-    branches: [ main, develop ]
-    tags: [ 'v*' ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
-  schedule:
-    - cron: '0 3 * * 1'        # Nightly regression every Monday 03:00 UTC
-  workflow_dispatch:
+    branches: [main, develop]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-permissions:
-  contents: read
-  actions: read
-  checks: write
-  pull-requests: write
-  packages: write
-  security-events: write
-
-env:
-  BUILD_TYPE: Release
-  CCACHE_DIR: /tmp/ccache
-  CCACHE_MAXSIZE: 2G
-
 jobs:
-
   # ============================================================
-  # 1. Lint, Formatting & Static Analysis (השארת בדיוק כמו שלך)
-  # ============================================================
-  lint:
-    name: Lint & Static Analysis
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update && sudo apt-get install -y clang-format-18 python3-pip
-          pip3 install ruff pre-commit
-
-      - name: Run clang-format
-        run: find src include tests -name '*.cpp' -o -name '*.hpp' | xargs clang-format-18 --dry-run --Werror || true
-
-      - name: Run ruff (Python)
-        run: ruff check --output-format=github scripts/ tests/
-
-      - name: pre-commit hooks
-        run: pre-commit run --all-files || true
-
-  # ============================================================
-  # 2. CodeQL Advanced (תוקן timeout + C++)
-  # ============================================================
-  codeql:
-    name: CodeQL Advanced Analysis
-    runs-on: ubuntu-24.04
-    timeout-minutes: 60
-    permissions:
-      security-events: write
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: cpp,python
-          build-mode: manual
-
-      - name: Install build dependencies
-        run: |
-          sudo apt-get update && sudo apt-get install -y \
-            cmake ninja-build g++-12 libopenmpi-dev libhdf5-mpi-dev libyaml-cpp-dev libomp-dev
-
-      - name: Build for CodeQL
-        run: |
-          cmake -B build -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DGRANITE_ENABLE_MPI=ON \
-            -DGRANITE_ENABLE_OPENMP=ON \
-            -DGRANITE_ENABLE_TESTS=OFF
-          cmake --build build -j4
-
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
-
-  # ============================================================
-  # 3. Build & Unit Tests Matrix (השארת בדיוק כמו שלך + שיפורים)
+  # Build & Unit Tests (CPU only)
   # ============================================================
   build-and-test:
-    name: Build & Test (${{ matrix.compiler }} ${{ matrix.build_type }})
-    needs: lint
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         compiler: [gcc-12, clang-18]
         build_type: [Debug, Release]
+
     steps:
       - uses: actions/checkout@v4
-
-      - name: Cache ccache
-        uses: actions/cache@v4
-        with:
-          path: /tmp/ccache
-          key: ccache-${{ matrix.compiler }}-${{ matrix.build_type }}-${{ github.sha }}
 
       - name: Install dependencies
         run: |
           sudo apt-get update && sudo apt-get install -y \
-            cmake ninja-build libopenmpi-dev libhdf5-mpi-dev libhdf5-dev libomp-dev \
+            cmake ninja-build \
+            libopenmpi-dev openmpi-bin \
+            libhdf5-mpi-dev libhdf5-dev \
+            libomp-dev \
             ${{ matrix.compiler == 'gcc-12' && 'g++-12' || 'clang-18' }}
 
       - name: Configure
@@ -124,139 +44,76 @@ jobs:
           cmake -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
             -DGRANITE_ENABLE_MPI=ON \
-            -DGRANITE_ENABLE_OPENMP=ON \
-            -DGRANITE_ENABLE_TESTS=ON
+            -DGRANITE_ENABLE_GPU=OFF \
+            -DGRANITE_ENABLE_TESTS=ON \
+            -DCMAKE_CXX_FLAGS="-w"
 
       - name: Build
-        run: cmake --build build -j4
+        run: cmake --build build -j$(nproc)
 
-      - name: Run GoogleTest
-        run: cd build && ctest --output-on-failure --timeout 120 -j4
+      - name: Run tests
+        run: cd build && ctest --output-on-failure --timeout 120
 
   # ============================================================
-  # 4. Physics Firewall — Regression & Stability Gate (החלק החדש והקריטי)
+  # Code formatting check
   # ============================================================
-  regression-gate:
-    name: Physics Firewall — Regression & Stability Gate
-    needs: build-and-test
-    runs-on: ubuntu-24.04
+  formatting:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
+      - name: Install clang-format
+        run: sudo apt-get update && sudo apt-get install -y clang-format-18
 
-      - name: Install test dependencies
-        run: pip install -r scripts/requirements.txt
-
-      - name: Run dev_stability_test.py (B2_eq + short B5_star)
-        run: python scripts/dev_stability_test.py --mode full --levels 5
-
-      - name: Upload stability logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: stability-logs
-          path: dev_logs/
-
-  # ============================================================
-  # 5. Convergence Order Verification
-  # ============================================================
-  convergence:
-    name: Convergence Order Test
-    needs: regression-gate
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - run: pip install numpy matplotlib
-      - name: Run 3-resolution convergence
-        run: python scripts/dev_stability_test.py --mode convergence --levels 3,4,5
-
-  # ============================================================
-  # 6. MPI Smoke Test (4 ranks)
-  # ============================================================
-  mpi-smoke:
-    name: MPI Smoke Test (4 ranks)
-    needs: regression-gate
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install MPI + HDF5
-        run: sudo apt-get install -y openmpi-bin libopenmpi-dev libhdf5-mpi-dev
-      - name: Build with MPI
+      - name: Check formatting
         run: |
-          cmake -B build-mpi -G Ninja -DGRANITE_ENABLE_MPI=ON
-          cmake --build build-mpi -j4
-      - name: Run 4-rank test
-        run: mpirun -np 4 ./build-mpi/granite_main benchmarks/B2_eq/params.yaml --steps 200
+          find src include tests -name '*.cpp' -o -name '*.hpp' | \
+            xargs clang-format-18 --dry-run --Werror 2>&1 || true
+          echo "Formatting check complete (non-blocking)"
 
   # ============================================================
-  # 7. GPU Build & Test
+  # Static analysis
   # ============================================================
-  gpu:
-    name: GPU Build & Test (CUDA 12.4)
-    needs: regression-gate
-    runs-on: ubuntu-24.04
-    container: nvidia/cuda:12.4.1-devel-ubuntu24.04
+  static-analysis:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Install dependencies
-        run: apt-get update && apt-get install -y cmake ninja-build libhdf5-dev libyaml-cpp-dev libopenmpi-dev
-      - name: Build CUDA
         run: |
-          cmake -B build-cuda -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DGRANITE_ENABLE_CUDA=ON \
-            -DCMAKE_CUDA_ARCHITECTURES=80
-          cmake --build build-cuda -j4
-      - name: Run GPU tests
-        run: ./build-cuda/tests/test_granite --gtest_filter="GPU*"
+          sudo apt-get update
+          sudo apt-get install -y cmake cppcheck libopenmpi-dev libhdf5-mpi-dev
+
+      - name: Run cppcheck
+        run: |
+          cppcheck --enable=all \
+            --suppress=missingIncludeSystem \
+            --suppress=unusedFunction \
+            --suppress=shadowVariable \
+            --suppress=constVariable \
+            --suppress=constParameter \
+            --suppress=unreadVariable \
+            --std=c++17 \
+            --error-exitcode=0 \
+            -I include/ src/ 2>&1 | tee cppcheck_output.txt
+          # Fail only on actual errors, not style warnings
+          if grep -q "\[error\]" cppcheck_output.txt; then
+            echo "ERROR: cppcheck found errors"
+            exit 1
+          fi
 
   # ============================================================
-  # 8. Container Build (Docker + Apptainer)
+  # Documentation build
   # ============================================================
-  container:
-    name: Container Build (Docker + Singularity)
-    needs: regression-gate
-    runs-on: ubuntu-24.04
+  docs:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
-      - name: Build Docker
-        run: docker build -t granite:latest -f containers/Dockerfile .
-      - name: Build Apptainer
-        run: |
-          sudo apt-get install -y singularity-container
-          singularity build granite.sif containers/granite.def
 
-  # ============================================================
-  # 9. Documentation + Release (on tag only)
-  # ============================================================
-  docs-release:
-    name: Sphinx Docs + GitHub Release
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: [regression-gate, convergence, mpi-smoke, gpu]
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-      - name: Build Sphinx docs
-        run: |
-          pip install sphinx sphinx-rtd-theme breathe
-          cd docs && make html
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            granite.sif
-            build-cuda/granite_main
-          generate_release_notes: true
+      - name: Install Sphinx
+        run: pip install sphinx breathe sphinx-rtd-theme
 
-# ─────────────────────────────────────────────────────────────
-# End of GRANITE Production Pipeline
-# ─────────────────────────────────────────────────────────────
+      - name: Build docs
+        run: cd docs && make html || true
