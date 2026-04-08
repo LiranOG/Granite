@@ -18,7 +18,7 @@ To the scientific community, physicists, and HPC administrators: The foundationa
 
 # 🚀 GRANITE Quick-Run Guide (v0.6.5)
 
-> This is a streamlined cheat-sheet for deploying GRANITE on **Linux or WSL2 only**. If you encounter errors, please consult the complete technical guide: [`docs/INSTALL.md`]((https://github.com/LiranOG/Granite/blob/main/docs/INSTALL.md))
+> This is a streamlined cheat-sheet for deploying GRANITE on **Linux or WSL2 only**. If you encounter errors, please consult the complete technical guide: [`docs/INSTALL.md`](https://github.com/LiranOG/Granite/blob/main/docs/INSTALL.md)
 
 ---
 
