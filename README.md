@@ -469,6 +469,36 @@ Job scheduler templates (SLURM + PBS/Torque): [`benchmarks/scaling_tests/`](./be
 
 ---
 
+## 📖 Deep-Dive Documentation — GRANITE Wiki
+
+The `docs/` directory covers the essentials, but GRANITE is a large and technically demanding engine. For researchers, contributors, and institutions who need to go beyond the surface level, every subsystem has its own dedicated Wiki page — written at the same level of technical depth as a peer-reviewed software paper.
+
+> **[→ Visit the GRANITE Wiki](https://github.com/LiranOG/Granite/wiki)**
+
+The Wiki covers, in full technical detail:
+
+| Topic | Wiki Page |
+| --- | --- |
+| Engine architecture, data flow, and memory layout | [Architecture Overview](https://github.com/LiranOG/Granite/wiki/Architecture-Overview) |
+| Every `params.yaml` parameter with ranges, units, and failure modes | [Parameter Reference](https://github.com/LiranOG/Granite/wiki/Parameter-Reference) |
+| Simulation health, ‖H‖₂ interpretation, NaN forensics, debugging flowchart | [Simulation Health & Debugging](https://github.com/LiranOG/Granite/wiki/Simulation-Health-&-Debugging) |
+| All confirmed fixed bugs with code diffs — never re-introduce these | [Known Fixed Bugs](https://github.com/LiranOG/Granite/wiki/Known-Fixed-Bugs) |
+| Full CCZ4, GRMHD, M1, and CT governing equations with references | [Physics Formulations](https://github.com/LiranOG/Granite/wiki/Physics-Formulations) |
+| Bowen-York momenta, TOV solver, initial data compatibility matrix | [Initial Data](https://github.com/LiranOG/Granite/wiki/Initial-Data) |
+| Berger-Oliger subcycling, prolongation, restriction, ghost zones | [AMR Design](https://github.com/LiranOG/Granite/wiki/AMR-Design) |
+| Ψ₄ extraction, spherical harmonics, strain recovery, recoil kick | [GW Extraction](https://github.com/LiranOG/Granite/wiki/Gravitational-Wave-Extraction) |
+| Full benchmark tables, reproducibility commands, HPC projections | [Benchmarks & Validation](https://github.com/LiranOG/Granite/wiki/Benchmarks-&-Validation) |
+| SLURM templates, Lustre I/O tuning, container deployment, GPU roadmap | [HPC Deployment](https://github.com/LiranOG/Granite/wiki/HPC-Deployment) |
+| Coding standards, PR checklist, CI/CD, adding physics modules | [Developer Guide](https://github.com/LiranOG/Granite/wiki/Developer-Guide) |
+| B5_star scenario, multi-messenger physics, LISA / PTA signals | [Scientific Context](https://github.com/LiranOG/Granite/wiki/Scientific-Context) |
+| Version targets, GPU porting plan, Tier-1 blockers for v0.7 | [Roadmap](https://github.com/LiranOG/Granite/wiki/Roadmap) |
+| 15 answered questions on science, engineering, and HPC | [FAQ](https://github.com/LiranOG/Granite/wiki/FAQ) |
+| Complete inventory of every document in the repository | [Documentation Index](https://github.com/LiranOG/Granite/wiki/Documentation-Index-&-Master-Reference) |
+
+If something is unclear — in the code, in the physics, or in the parameters — the answer is almost certainly in one of these pages.
+
+---
+
 ## 🤝 Contributing
 
 We welcome contributions from the scientific and open-source communities. Please read [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md) and adhere to [`.github/CODE_OF_CONDUCT.md`](.github/CODE_OF_CONDUCT.md).
