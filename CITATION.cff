@@ -13,6 +13,16 @@ keywords:
   - GRMHD
   - gravitational-waves
   - adaptive-mesh-refinement
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.19502265"
+    description: "Zenodo DOI for GRANITE v0.6.5"
+  - type: doi
+    value: "10.5281/zenodo.19502264"
+    description: "Zenodo concept DOI (always resolves to latest version)"
+  - type: url
+    value: "https://zenodo.org/records/19502265"
+    description: "Zenodo record for GRANITE v0.6.5"
 authors:
   - name: "GRANITE Collaboration"
   - given-names: "Liran M."
