@@ -26,6 +26,8 @@ option(GRANITE_ENABLE_TESTS    "Build unit and integration tests"          ON)
 option(GRANITE_ENABLE_DOCS     "Build documentation"                       OFF)
 option(GRANITE_ENABLE_PYTHON   "Install Python analysis package"           OFF)
 option(GRANITE_DOUBLE_PRECISION "Use double precision (always true for NR)" ON)
+# Code-coverage instrumentation (GCC / Clang only — requires lcov)
+option(ENABLE_COVERAGE         "Enable gcov/lcov code-coverage reporting" OFF)
 
 # ---------------------------------------------------------------------------
 # C++ standard
@@ -68,6 +70,30 @@ else()
     set(CMAKE_CXX_FLAGS_DEBUG         "-g -O0 -DGRANITE_DEBUG")
     set(CMAKE_CXX_FLAGS_RELEASE       "-O3 -DNDEBUG -march=native -ffast-math")
     set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g -DNDEBUG")
+endif()
+
+# ---------------------------------------------------------------------------
+# Code-coverage instrumentation
+# Only meaningful on GCC or Clang; MSVC does not support --coverage.
+# Usage:
+#   cmake -B build -DENABLE_COVERAGE=ON -DCMAKE_BUILD_TYPE=Debug
+#   cmake --build build --target coverage
+# ---------------------------------------------------------------------------
+if(ENABLE_COVERAGE)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        message(STATUS "[GRANITE] Code coverage: --coverage flags enabled")
+        # Instrument all translation units with gcov-compatible data
+        set(CMAKE_CXX_FLAGS    "${CMAKE_CXX_FLAGS}    --coverage")
+        set(CMAKE_C_FLAGS      "${CMAKE_C_FLAGS}      --coverage")
+        # Link the gcov / libgcov runtime into every executable
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
+    else()
+        message(WARNING
+            "[GRANITE] ENABLE_COVERAGE=ON is ignored — "
+            "coverage instrumentation requires GCC or Clang, "
+            "but the active compiler is '${CMAKE_CXX_COMPILER_ID}'."
+        )
+    endif()
 endif()
 
 # ---------------------------------------------------------------------------
@@ -328,6 +354,76 @@ if(GRANITE_ENABLE_TESTS)
 endif()
 
 # ---------------------------------------------------------------------------
+# Coverage report target
+# Generates coverage/index.html and coverage.info from a fresh test run.
+#
+# Prerequisites (Ubuntu/Debian):
+#   sudo apt-get install -y lcov
+#
+# How to use (from the build directory):
+#   cmake -B build -DENABLE_COVERAGE=ON -DCMAKE_BUILD_TYPE=Debug
+#   cmake --build build --target coverage
+#
+# The resulting coverage.info is the file uploaded to Codecov.
+# ---------------------------------------------------------------------------
+if(ENABLE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    find_program(LCOV_EXECUTABLE  lcov  REQUIRED
+        HINTS /usr/bin /usr/local/bin)
+    find_program(GENHTML_EXECUTABLE genhtml REQUIRED
+        HINTS /usr/bin /usr/local/bin)
+
+    # Absolute path to the granite_tests binary (set by add_subdirectory(tests))
+    set(COVERAGE_TEST_BINARY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/granite_tests")
+
+    add_custom_target(coverage
+        # ── Step 1: Reset all counters to zero ────────────────────────────
+        COMMAND ${LCOV_EXECUTABLE}
+                --zerocounters
+                --directory ${CMAKE_BINARY_DIR}
+
+        # ── Step 2: Run the test suite ────────────────────────────────────
+        COMMAND ${COVERAGE_TEST_BINARY}
+
+        # ── Step 3: Capture coverage data ─────────────────────────────────
+        COMMAND ${LCOV_EXECUTABLE}
+                --capture
+                --directory ${CMAKE_BINARY_DIR}
+                --output-file coverage.info
+
+        # ── Step 4: Strip third-party & system headers ────────────────────
+        #   Remove Google Test internals, system stdlib, and build-time
+        #   FetchContent copies from the report.
+        COMMAND ${LCOV_EXECUTABLE}
+                --remove coverage.info
+                    '/usr/*'
+                    '${CMAKE_BINARY_DIR}/_deps/*'
+                    '*/googletest/*'
+                --output-file coverage.info
+                --ignore-errors unused
+
+        # ── Step 5: Generate HTML report ──────────────────────────────────
+        COMMAND ${GENHTML_EXECUTABLE}
+                coverage.info
+                --output-directory coverage
+                --title "GRANITE Coverage Report"
+                --legend
+                --show-details
+
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        DEPENDS granite_tests
+        COMMENT
+            "[GRANITE] Generating code coverage report → "
+            "${CMAKE_BINARY_DIR}/coverage/index.html"
+        VERBATIM
+    )
+
+    message(STATUS
+        "[GRANITE] 'coverage' target registered — "
+        "run: cmake --build build --target coverage"
+    )
+endif()
+
+# ---------------------------------------------------------------------------
 # Installation
 # ---------------------------------------------------------------------------
 install(TARGETS granite_main granite_lib
@@ -354,6 +450,7 @@ message(STATUS "  GPU:              ${GRANITE_ENABLE_GPU} (${GRANITE_GPU_BACKEND
 message(STATUS "  HDF5:             ${GRANITE_ENABLE_HDF5} (${HDF5_VERSION})")
 message(STATUS "  PETSc:            ${GRANITE_ENABLE_PETSC}")
 message(STATUS "  Tests:            ${GRANITE_ENABLE_TESTS}")
+message(STATUS "  Coverage:         ${ENABLE_COVERAGE}")
 message(STATUS "  Double precision: ${GRANITE_DOUBLE_PRECISION}")
 if(MSVC)
 message(STATUS "  MSVC Release:     /Ox /arch:AVX2 /fp:fast /GL /openmp:llvm")
