@@ -44,6 +44,13 @@ docs(user-guide): add tutorial for binary BH setup
 perf(riemann): optimize HLLD solver inner loop
 ```
 
+### What We Especially Need Right Now
+- GPU (CUDA/HIP) support
+- macOS native support
+- Additional initial data solvers
+- Validation against Einstein Toolkit / GRChombo benchmarks
+- Cluster scaling tests (SLURM/PBS)
+
 ### Pull Request Process
 
 1. Ensure all tests pass (`ctest --output-on-failure`)
@@ -90,3 +97,10 @@ Reviewers should verify:
 - [ ] Memory management is correct (no leaks, RAII)
 - [ ] GPU kernels have correct thread/block configuration
 - [ ] Documentation is updated
+
+> [!NOTE]
+> We are actively looking for **collaborators** from numerical relativity groups, LIGO/Virgo/KAGRA, and supercomputing centers.
+>
+> Questions? Open a Discussion or contact the maintainer directly.
+>
+> **Let's build the ultimate extreme-astrophysics engine together.**
