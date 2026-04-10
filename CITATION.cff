@@ -4,7 +4,6 @@ message: "If you use GRANITE in your research, please cite the following paper."
 type: software
 license: GPL-3.0-or-later
 repository-code: "https://github.com/LiranOG/Granite"
-url: "https://granite-nr.org"
 version: 0.6.5
 date-released: "2026-04-07"
 keywords:
@@ -16,6 +15,10 @@ keywords:
   - adaptive-mesh-refinement
 authors:
   - name: "GRANITE Collaboration"
+  - given-names: "Liran M."
+    family-names: "Schwartz"
+    orcid: "https://orcid.org/0009-0008-8035-1308"
+    email: "scliran9@gmail.com"
 preferred-citation:
   type: article
   title: "GRANITE: A General-Relativistic Adaptive N-body Integrated Tool for Extreme Astrophysical Simulations"
