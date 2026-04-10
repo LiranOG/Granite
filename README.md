@@ -92,9 +92,9 @@ No single existing open-source code simultaneously handles all of these capabili
 |---|:---:|:---:|:---:|:---:|:---:|
 | CCZ4 formulation | ✅ | ✅ | ✅ | ❌ | ✅ |
 | Full GRMHD (Valencia) | ✅ | ✅ | 🔶 | ✅ | ✅ |
-| M1 radiation transport | ✅ | ❌ | ❌ | ❌ | ✅ |
-| Neutrino leakage | ✅ | ❌ | ❌ | ❌ | ✅ |
-| Dynamic AMR (subcycling) | ✅ | ✅ | ✅ | ✅ | ✅ |
+| M1 radiation transport | ✅ | ❌ | ❌ | ❌ | 🔶 |
+| Neutrino leakage | ✅ | ❌ | ❌ | ❌ | 🔶 | 
+| Dynamic AMR (subcycling) | ✅ | ✅ | ✅ | ✅ | 🔶 |
 | N > 2 BH simultaneous merger | ❌ | ❌ | ❌ | ❌ | ✅ |
 | Single unified codebase | ❌ | ✅ | ✅ | ✅ | ✅ |
 | MP5 + HLLD + CT combined | ❌ | ❌ | ❌ | ✅ | ✅ |
