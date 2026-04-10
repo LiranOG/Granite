@@ -415,9 +415,13 @@ If any of this resonates, open an issue tagged `[partnership]` or contact the ma
 ### 🙏 A Genuine Thank You
 
 To those who will file a bug report at 11pm because something didn't converge and they couldn't let it go — thank you in advance.
+
 To those who will spend a Saturday writing a test for a corner case nobody asked them to cover — thank you in advance.
+
 To those who will send a message saying "I ran `B2_eq` on our cluster and here's what happened" — thank you in advance.
-To those who will read a formula in `ccz4_rhs.cpp` and say "wait, shouldn't that sign be negative?" — *especially* thank you in advance.
+
+To those who will read a formula in `ccz4.cpp` and say "wait, shouldn't that sign be negative?" — *especially* thank you in advance.
+
 
 This project exists because the science demands it. It will reach its potential because the community makes it.
 
