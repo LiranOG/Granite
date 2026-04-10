@@ -357,11 +357,15 @@ Scientific integrity demands transparency. These limitations are known, document
 ## 📋 Versioning Policy (Pre-1.0.0)
 
 > [!IMPORTANT]
-> **All version history, phase documentation, and change logs are tracked exclusively inside [`CHANGELOG.md`](./CHANGELOG.md)** — not GitHub Releases.
+> **Until the official `v1.0.0` full release, all version history, phase documentation, and change logs are tracked exclusively inside [`CHANGELOG.md`](./CHANGELOG.md)** — not through GitHub Releases or GitHub's release notes UI.
 >
-> - `CHANGELOG.md` is the canonical record of every bug fix, feature, and architectural decision.
-> - GitHub Tags (e.g. `v0.6.5`) mark stable integration points — refer to `CHANGELOG.md` for the full picture.
-> - GitHub Releases will be created officially at `v1.0.0`.
+> This is an intentional decision to keep the complete engineering audit trail (Phases 0–5 and beyond) in a single, richly-documented source of truth that lives alongside the code.
+>
+> **What this means for contributors and users:**
+> - The `CHANGELOG.md` file is the canonical record of every bug fix, new feature, architectural decision, and test count milestone.
+> - GitHub Tags (e.g. `v0.6.5`) mark stable integration points but carry minimal release notes — refer to `CHANGELOG.md` for the full picture.
+> - GitHub Releases will be created officially at `v1.0.0` — the first production-ready, fully-coherent version of the engine.
+
 
 ---
 
