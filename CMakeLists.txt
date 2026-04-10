@@ -367,10 +367,44 @@ endif()
 # The resulting coverage.info is the file uploaded to Codecov.
 # ---------------------------------------------------------------------------
 if(ENABLE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    find_program(LCOV_EXECUTABLE  lcov  REQUIRED
-        HINTS /usr/bin /usr/local/bin)
-    find_program(GENHTML_EXECUTABLE genhtml REQUIRED
-        HINTS /usr/bin /usr/local/bin)
+    find_program(LCOV_EXECUTABLE    lcov    REQUIRED HINTS /usr/bin /usr/local/bin)
+    find_program(GENHTML_EXECUTABLE genhtml REQUIRED HINTS /usr/bin /usr/local/bin)
+
+    # ── Detect the gcov tool that matches the active compiler ────────────
+    # lcov must use the same gcov version the compiler embedded in .gcno files.
+    # On Ubuntu systems with multiple GCC versions, /usr/bin/gcov may point to
+    # a different version than the compiler, causing an "incompatible versions"
+    # error.  We prefer gcov-<MAJOR> (e.g. gcov-12) over the generic gcov.
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+        string(REGEX MATCH "^[0-9]+" _GCC_MAJOR "${CMAKE_CXX_COMPILER_VERSION}")
+        find_program(GCOV_EXECUTABLE
+            NAMES gcov-${_GCC_MAJOR} gcov
+            HINTS /usr/bin /usr/local/bin
+        )
+        if(NOT GCOV_EXECUTABLE)
+            set(GCOV_EXECUTABLE gcov)
+        endif()
+        message(STATUS "[GRANITE] Coverage: using gcov tool → ${GCOV_EXECUTABLE}")
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        # For Clang we need a thin wrapper: `llvm-cov gcov`
+        # Create a small shell script at configure time so lcov can call it.
+        set(GCOV_WRAPPER_SCRIPT "${CMAKE_BINARY_DIR}/llvm-cov-wrapper.sh")
+        find_program(_LLVM_COV llvm-cov HINTS /usr/bin /usr/local/bin)
+        if(_LLVM_COV)
+            file(WRITE "${GCOV_WRAPPER_SCRIPT}"
+                "#!/bin/sh\nexec \"${_LLVM_COV}\" gcov \"$@\"\n")
+            # Make executable at build time (file(WRITE) doesn't chmod)
+            file(CHMOD "${GCOV_WRAPPER_SCRIPT}" PERMISSIONS
+                OWNER_READ OWNER_WRITE OWNER_EXECUTE
+                GROUP_READ GROUP_EXECUTE
+                WORLD_READ WORLD_EXECUTE)
+            set(GCOV_EXECUTABLE "${GCOV_WRAPPER_SCRIPT}")
+            message(STATUS "[GRANITE] Coverage: using llvm-cov wrapper → ${GCOV_EXECUTABLE}")
+        else()
+            set(GCOV_EXECUTABLE gcov)
+            message(WARNING "[GRANITE] llvm-cov not found; falling back to gcov")
+        endif()
+    endif()
 
     # Absolute path to the granite_tests binary (set by add_subdirectory(tests))
     set(COVERAGE_TEST_BINARY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/granite_tests")
@@ -378,6 +412,7 @@ if(ENABLE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     add_custom_target(coverage
         # ── Step 1: Reset all counters to zero ────────────────────────────
         COMMAND ${LCOV_EXECUTABLE}
+                --gcov-tool ${GCOV_EXECUTABLE}
                 --zerocounters
                 --directory ${CMAKE_BINARY_DIR}
 
@@ -386,6 +421,7 @@ if(ENABLE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 
         # ── Step 3: Capture coverage data ─────────────────────────────────
         COMMAND ${LCOV_EXECUTABLE}
+                --gcov-tool ${GCOV_EXECUTABLE}
                 --capture
                 --directory ${CMAKE_BINARY_DIR}
                 --output-file coverage.info
@@ -394,6 +430,7 @@ if(ENABLE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
         #   Remove Google Test internals, system stdlib, and build-time
         #   FetchContent copies from the report.
         COMMAND ${LCOV_EXECUTABLE}
+                --gcov-tool ${GCOV_EXECUTABLE}
                 --remove coverage.info
                     '/usr/*'
                     '${CMAKE_BINARY_DIR}/_deps/*'
