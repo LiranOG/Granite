@@ -34,8 +34,8 @@
 [![ORCID](https://img.shields.io/badge/ORCID-Profile-A6CE39?logo=orcid&logoColor=white)](https://orcid.org/0009-0008-8035-1308)
 [![C++ Standard](https://img.shields.io/badge/c%2B%2B-17-purple.svg)](https://isocpp.org/)
 [![Python](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://python.org)
+[![OpenMP](https://img.shields.io/badge/OpenMP-4.5%2B-orange.svg)](https://www.openmp.org/)
 [![MPI](https://img.shields.io/badge/MPI-OpenMPI%20%7C%20MS--MPI-0B598F.svg)](https://www.open-mpi.org/)
-[![OpenMP](https://img.shields.io/badge/OpenMP-4.5%2B-blue.svg)](https://www.openmp.org/)
 [![Wiki](https://img.shields.io/badge/docs-GRANITE%20Wiki-purple.svg)](https://github.com/LiranOG/Granite/wiki)
 
 > **Status: 🟢 The Stability Update (v0.6.5)** — CCZ4 spacetime evolution, full GRMHD, dynamic Berger-Oliger AMR subcycling, moving-puncture tracking, and diagnostic Python dashboards are fully integrated. 92 tests / 100% pass rate. `single_puncture` + `B2_eq` benchmarks validated stable through t = 500 M.
