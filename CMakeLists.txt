@@ -420,11 +420,17 @@ if(ENABLE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
         COMMAND ${COVERAGE_TEST_BINARY}
 
         # ── Step 3: Capture coverage data ─────────────────────────────────
+        # --ignore-errors mismatch: suppresses "mismatched end line" errors
+        #   that arise from C++ templates, macros, and inlined functions whose
+        #   line numbers geninfo cannot perfectly reconcile with the source.
+        # --ignore-errors unused:   suppresses warnings about .gcno files with
+        #   no matching .gcda (e.g. files never reached by any test).
         COMMAND ${LCOV_EXECUTABLE}
                 --gcov-tool ${GCOV_EXECUTABLE}
                 --capture
                 --directory ${CMAKE_BINARY_DIR}
                 --output-file coverage.info
+                --ignore-errors mismatch,unused
 
         # ── Step 4: Strip third-party & system headers ────────────────────
         #   Remove Google Test internals, system stdlib, and build-time
@@ -436,7 +442,7 @@ if(ENABLE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
                     '${CMAKE_BINARY_DIR}/_deps/*'
                     '*/googletest/*'
                 --output-file coverage.info
-                --ignore-errors unused
+                --ignore-errors unused,mismatch
 
         # ── Step 5: Generate HTML report ──────────────────────────────────
         COMMAND ${GENHTML_EXECUTABLE}
