@@ -28,15 +28,15 @@
 **General-Relativistic Adaptive N-body Integrated Tool for Extreme Astrophysics**
 
 [![Build Status](https://github.com/LiranOG/Granite/actions/workflows/ci.yml/badge.svg)](https://github.com/LiranOG/Granite/actions)
+[![codecov](https://codecov.io/gh/LiranOG/Granite/branch/main/graph/badge.svg)](https://codecov.io/gh/LiranOG/Granite)
 [![License: GPL v3](https://img.shields.io/badge/license-GPL--3.0-green.svg)](LICENSE)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19502265.svg)](https://doi.org/10.5281/zenodo.19502265)
 [![ORCID](https://img.shields.io/badge/ORCID-Profile-A6CE39?logo=orcid&logoColor=white)](https://orcid.org/0009-0008-8035-1308)
 [![C++ Standard](https://img.shields.io/badge/c%2B%2B-17-purple.svg)](https://isocpp.org/)
 [![Python](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://python.org)
-[![Tests](https://img.shields.io/badge/tests-92%20%2F%20100%25-brightgreen.svg)](tests/)
-[![AMR Levels](https://img.shields.io/badge/max%20AMR%20levels-12-orange.svg)](docs/DEVELOPER_GUIDE.md)
-[![Physics Modules](https://img.shields.io/badge/physics%20modules-6-blueviolet.svg)](src/)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](.github/CONTRIBUTING.md)
+[![MPI](https://img.shields.io/badge/MPI-OpenMPI%20%7C%20MS--MPI-0B598F.svg)](https://www.open-mpi.org/)
+[![OpenMP](https://img.shields.io/badge/OpenMP-4.5%2B-blue.svg)](https://www.openmp.org/)
+[![Wiki](https://img.shields.io/badge/docs-GRANITE%20Wiki-purple.svg)](https://github.com/LiranOG/Granite/wiki)
 
 > **Status: 🟢 The Stability Update (v0.6.5)** — CCZ4 spacetime evolution, full GRMHD, dynamic Berger-Oliger AMR subcycling, moving-puncture tracking, and diagnostic Python dashboards are fully integrated. 92 tests / 100% pass rate. `single_puncture` + `B2_eq` benchmarks validated stable through t = 500 M.
 
