@@ -29,7 +29,7 @@
 
 [![Build Status](https://github.com/LiranOG/Granite/actions/workflows/ci.yml/badge.svg)](https://github.com/LiranOG/Granite/actions)
 [![License: GPL v3](https://img.shields.io/badge/license-GPL--3.0-green.svg)](LICENSE)
-[![DOI](https://sandbox.zenodo.org/badge/DOI/10.5072/zenodo.486359.svg)](https://sandbox.zenodo.org/record/486359)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19502265.svg)](https://doi.org/10.5281/zenodo.19502265)
 [![C++ Standard](https://img.shields.io/badge/c%2B%2B-17-purple.svg)](https://isocpp.org/)
 [![Python](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://python.org)
 [![Tests](https://img.shields.io/badge/tests-92%20%2F%20100%25-brightgreen.svg)](tests/)
