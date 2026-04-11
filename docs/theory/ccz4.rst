@@ -2,7 +2,7 @@ CCZ4 Formulation
 =================
 
 GRANITE evolves the Einstein field equations using the CCZ4 formulation
-[Alic2012]_, which extends the BSSN system with constraint-damping terms.
+`[Alic2012] <https://arxiv.org/abs/1106.2254>`_, which extends the BSSN system with constraint-damping terms.
 
 .. math::
 
@@ -62,9 +62,10 @@ and :math:`Z_i` to zero exponentially:
 
 Typical values: :math:`\kappa_1 = 0.02`, :math:`\kappa_2 = 0`.
 
+
 References
 ----------
 
-.. [Alic2012] Alic, D., Bona-Casas, C., Bona, C., Rezzolla, L., & Palenzuela, C.
+`[Alic2012] <https://arxiv.org/abs/1106.2254>`_ Alic, D., Bona-Casas, C., Bona, C., Rezzolla, L., & Palenzuela, C.
    (2012). "Conformal and covariant formulation of the Z4 system with
    constraint-violation damping." *Phys. Rev. D*, **85**, 064040.
