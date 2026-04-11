@@ -88,21 +88,29 @@ GRANITE is a high-performance, next-generation numerical relativity and General-
 
 No single existing open-source code simultaneously handles all of these capabilities in a unified framework. GRANITE is specifically architected to close this gap.
 
+### Summary Comparison
+
 | Capability | Einstein Toolkit | GRChombo | SpECTRE | AthenaK | **GRANITE v0.6.5** |
 |---|:---:|:---:|:---:|:---:|:---:|
 | CCZ4 formulation | ✅ | ✅ | ✅ | ❌ | ✅ |
 | Full GRMHD (Valencia) | ✅ | ✅ | 🔶 | ✅ | ✅ |
-| M1 radiation transport | ✅ | ❌ | ❌ | ❌ | 🔶 |
-| Neutrino leakage | ✅ | ❌ | ❌ | ❌ | 🔶 | 
-| Dynamic AMR (subcycling) | ✅ | ✅ | ✅ | ✅ | 🔶 |
-| N > 2 BH simultaneous merger | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Single unified codebase | ❌ | ✅ | ✅ | ✅ | ✅ |
-| MP5 + HLLD + CT combined | ❌ | ❌ | ❌ | ✅ | ✅ |
-| Python real-time telemetry | ❌ | ❌ | ❌ | ❌ | ✅ |
+| M1 radiation transport | ✅ | ❌ | ❌ | ❌ | 🔵 |
+| Dynamic AMR (subcycling) | ✅ | ✅ | ✅ | ✅ | 🔵 |
+| N > 2 BH simultaneous merger | ❌ | ❌ | ❌ | ❌ | 🔵 |
 | Open license | LGPL | ✅ MIT | ✅ MIT | ✅ BSD | ✅ GPL-3.0 |
 
-> 🔶 = partial / in development. Full source-cited analysis: [`docs/COMPARISON.md`](./docs/COMPARISON.md)
+*(Table abridged. See the full feature matrix below.)*
 
+**Legend:**
+* ✅ = **Fully implemented** (Production-ready and integrated)
+* 🔵 = **Core module built, pending integration** (Mathematical logic and tests pass, pending wiring into the main RK3 loop)
+* 🔶 = **Partial / in development** (Currently being actively developed)
+* ❌ = **Not available**
+
+---
+
+> 💡 **Deep-Dive Architectural Analysis & Full Comparison**
+> The table above provides only a high-level overview. For an exhaustive, source-cited capability breakdown against *Einstein Toolkit, GRChombo, SpECTRE, and AthenaK*, please refer to our **[Detailed Comparison & Architecture Guide](docs/COMPARISON.md)**. 
 ---
 
 ## 📊 Benchmark Results
