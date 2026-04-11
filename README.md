@@ -1,3 +1,4 @@
+<div align="center">
 
 # GRANITE 🌌
 ### **General-Relativistic Adaptive N-body Integrated Tool for Extreme Astrophysics**
@@ -15,6 +16,10 @@
 [![MPI](https://img.shields.io/badge/MPI-OpenMPI%20%7C%20MS--MPI-0B598F.svg)](https://www.open-mpi.org/)
 
 [![Wiki](https://img.shields.io/badge/docs-GRANITE%20Wiki-purple.svg)](https://github.com/LiranOG/Granite/wiki)
+
+---
+
+</div>
 
 > **Status: 🟢 The Stability Update (v0.6.5)** — CCZ4 spacetime evolution, full GRMHD, dynamic Berger-Oliger AMR subcycling, moving-puncture tracking, and diagnostic Python dashboards are fully integrated. 92 tests / 100% pass rate. `single_puncture` + `B2_eq` benchmarks validated stable through t = 500 M.
 
