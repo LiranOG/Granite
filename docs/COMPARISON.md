@@ -133,7 +133,7 @@ SpECTRE represents the state of the art in spectral numerical relativity. Its DG
 
 ## 5. AthenaK
 
-**Website:** https://github.com/PrincetonUniversity/AthenaK  
+**Website:** [https://github.com/PrincetonUniversity/AthenaK](https://github.com/IAS-Astrophysics/athenak)  
 **Language:** C++17 + Kokkos  
 **License:** BSD-3  
 **Architecture:** GPU-native, performance-portable (Kokkos)
