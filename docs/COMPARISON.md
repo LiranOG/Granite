@@ -44,7 +44,7 @@
 | **N-Body Configurations** | | | | | |
 | Binary BBH | ✅ | ✅ | ✅ | ❌ | ✅ |
 | Binary BNS | ✅ | ✅ | 🔶 | ❌ | 🔶 (v0.8) |
-| N > 2 BH simultaneous merger | ❌ | ❌ | ❌ | ❌ | ✅ |
+| N > 2 BH simultaneous merger | ❌ | ❌ | ❌ | ❌ | 🔶 (v0.9) |
 | **Infrastructure** | | | | | |
 | Language | C/C++/Fortran | C++17 | C++17 | C++17 | C++17 |
 | MPI + OpenMP | ✅ | ✅ | ✅ | ✅ | ✅ |
