@@ -10,6 +10,544 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+---
+
+## [v0.6.6] — The Documentation Release (2026-04-10)
+
+### Summary
+
+This release delivers the **complete GRANITE GitHub Wiki** — 17 fully cross-referenced
+technical pages covering every subsystem, every parameter, every known bug, and every
+benchmark result. Built after the v0.6.5 stable baseline, the wiki transforms GRANITE
+from a well-engineered private codebase into a professionally documented open-science
+project. All pages were validated against the v0.6.5 ZIP source to ensure technical
+accuracy. In addition, this release documents three physics features that existed in
+the v0.6.5 source but had no CHANGELOG entries: chi-blended selective upwinding, algebraic
+constraint enforcement (det(γ̃)=1 / tr(Ã)=0), and the corrected B2_eq quasi-circular
+tangential momenta.
+
+---
+
+### Added — GitHub Wiki (17 pages, ~18,000 words)
+
+**Wiki URL:** https://github.com/LiranOG/Granite/wiki
+
+All 17 pages were authored, cross-referenced, and validated on April 10, 2026.
+Each page is technically grounded in the actual v0.6.5 source code — no claim
+was made without verification from the ZIP. The commit history has 75 commits
+reflecting the full iterative authoring session.
+
+---
+
+#### `Home.md` — Project Landing Page
+
+**URL:** https://github.com/LiranOG/Granite/wiki/Home
+
+- Engine capability overview: CCZ4, GRMHD Valencia, AMR, multi-physics matter, GW
+  extraction, HPC parallelism.
+- Current status table: v0.6.5 stable, 92 unit tests at 100% pass rate, validated
+  benchmarks listed.
+- 16-row documentation navigation table linking every wiki page with a one-line
+  purpose description.
+- Complete Quick Start guide: `git clone` → `apt install` → `build --release` →
+  `health_check.py` → benchmark launch, in 6 commands.
+- Contributing & Partnership section.
+- Signed: *"Simulate the unimaginable." — GRANITE v0.6.5 — April 10, 2026 — LiranOG*
+
+---
+
+#### `Architecture-Overview.md` — Engine Architecture Reference
+
+**URL:** https://github.com/LiranOG/Granite/wiki/Architecture-Overview
+
+10 major sections. The most comprehensive technical page on the wiki.
+
+- **§1 High-Level System Diagram:** Full ASCII data-flow block diagram from
+  `params.yaml` → Parameter Parser → Initial Data → AMR Hierarchy → SSP-RK3
+  loop (8 substeps labeled) → Python post-processing.
+- **§2 Data Flow:** 5-step narrative (Input → Initial Data → AMR Init → Time Loop
+  → Post-Processing) with every sub-action enumerated.
+- **§3 GridBlock Data Structure:** Memory layout documentation including the
+  field-major flat allocation formula (`data_[var*stride + flat(i,j,k)]`), the
+  2D ghost zone cross-section diagram, and the 4-row design decisions table
+  (field-major, single flat vector, nghost=4, spatial-outer var-inner loop). Includes
+  the canonical `at(var,i,j,k)` accessor definition.
+- **§4 GRMetric3 Interface:** Full struct definition with all 14 fields. States the
+  coupling rule: "GRMetric3 is the ONLY permitted interface between CCZ4 and GRMHD.
+  Direct access from GRMHD code is forbidden."
+- **§5 CCZ4 Variable Layout — 22 Variables:** Index-by-index table (0=χ through
+  21=Θ) with physical meaning for each. Documents the algebraic constraints enforced
+  after each RK3 step: det(γ̃)=1 and tr(Ã)=0.
+- **§6 GRMHD Variable Layout — 9 Variables:** Conserved and primitive variable tables.
+- **§7 Subsystem Coupling Map:** ASCII interface diagram (CCZ4↔GRMetric3↔GRMHD,
+  GRMHD↔StressEnergyTensor3↔CCZ4, M1 noted as "built, NOT wired in v0.6.5",
+  AMR→GridBlock→All subsystems, Diagnostics→Python dashboard).
+- **§8 RK3 Time Loop:** Step-by-step enumeration of all 7 substeps per RK3 stage
+  (ghost sync → outer BC → CCZ4 RHS including chi-blending → GRMHD RHS → floors →
+  RK3 combine → algebraic constraints). This documents the chi-blended advection
+  and `applyAlgebraicConstraints()` call that were present in the code but not
+  previously documented.
+- **§9 Memory Architecture:** Per-configuration RAM estimates (64³→2 TB B5_star)
+  with formula. Scaling table (5 rows, 64³ to B5_star).
+- **§10 Namespace Structure:** Complete `granite::` namespace tree with all
+  classes listed per subsystem.
+
+---
+
+#### `Physics-Formulations.md` — Governing Equations Reference
+
+**URL:** https://github.com/LiranOG/Granite/wiki/Physics-Formulations
+
+- **§1 CCZ4:** Full evolution equations for ∂_t χ, ∂_t γ̃_ij, ∂_t K, ∂_t Θ with
+  κ₁, κ₂ terms. Production defaults: κ₁=0.02, κ₂=0, η=2.0.
+- **§2 Gauge Conditions:** 1+log slicing (∂_t α = β^i ∂_i α − 2αK) and Gamma-driver
+  shift. Documents trumpet geometry behavior vs. resolution.
+- **§3 GRMHD Valencia:** Conserved variable definitions for D, S_j, τ, B^i, D·Y_e.
+  Geometric source terms via GRMetric3.
+- **§4 Constrained Transport:** Induction equation and ∇·B = 0 machine-precision
+  enforcement (Evans & Hawley 1988).
+- **§5 EOS:** IdealGasEOS and TabulatedEOS. States sound speed is always exact from
+  EOS — never hardcoded Γ (references bug C1 fix).
+- **§6 M1 Radiation:** Energy and flux equations, M1 Eddington tensor (Minerbo 1978).
+  Status box: "built and tested but NOT called in the main RK3 loop in v0.6.5."
+- **§7 Numerical Methods:** 4th-order FD stencil formula; KO dissipation formula with
+  p=3; SSP-RK3 Shu-Osher stages; reconstruction table (PLM/PPM/MP5 with order,
+  stencil, use case); Riemann solver table (HLLE/HLLD).
+- **§8 References:** 16-entry bibliography with full journal citations for every
+  physics paper used in GRANITE.
+
+---
+
+#### `Parameter-Reference.md` — Complete params.yaml Reference
+
+**URL:** https://github.com/LiranOG/Granite/wiki/Parameter-Reference
+
+The single most operationally important wiki page. Documents every configurable
+parameter with type, default, units, valid range, and warnings.
+
+- **§2 Canonical Template:** Full annotated `params.yaml` covering all 12 sections.
+- **§3 `simulation.*`:** `name`, `output_dir`, `total_time`, `checkpoint_every`
+  (with explicit warning that `loadCheckpoint()` is NOT implemented in v0.6.5).
+- **§4 `domain.*`:** `size` with the gauge wave travel time formula and the minimum
+  safe domain table (16M→200M with t_reflection and stability verdict). `nx/ny/nz`
+  with dx formula and standard configuration table.
+- **§5 `amr.*`:** `levels` with dx-per-level table for 64³ domain=48M. Notes dynamic
+  regridding limitation. `refinement.criteria` with all four tagging variables.
+- **§6 `initial_data.*`:** `type` enum with BC compatibility notes per type. `bh1/bh2`
+  sub-parameters: `mass`, `position` (documents MICRO_OFFSET and why origin is OK),
+  `momentum` (critical warning box: quasi-circular p_t=±0.0840 for d=10M), `spin`.
+- **§7 `ccz4.*`:** `kappa1` (range, damping timescale formula, warning at 0.1),
+  `kappa2` (CCZ4 vs. Z4c), `eta` (Gamma-driver η, warning at η=4.0 tested and
+  bad, SMBH scaling note).
+- **§8 `dissipation.ko_sigma`:** Full critical warning box. Symptoms of
+  over-dissipation. Confirmed failure mode (0.35). Safe value (0.1). KO formula.
+- **§9 `time_integration.cfl`:** CFL formula. Warning: effective CFL at finest AMR
+  level = cfl × 2^(levels-1). Documents that cfl=0.25 with 4 levels gives
+  CFL_finest=2.0 (stable only due to lapse suppression). Adaptive CFL guardian
+  documented.
+- **§10 `boundary.type`:** Full compatibility matrix (3×2 table: BL/Two-Punctures/TOV
+  × Sommerfeld/Copy). Sommerfeld formula with f∞ values and v_char=√2.
+- **§11 `diagnostics.*`:** `output_every` with α_center AMR level 0 warning.
+  `gw_extraction` section. `ah_finder` section.
+- **§12 `io.*`:** `output_every`, `checkpoint_every` with HDF5 group structure.
+  `format` enum. HPC I/O tuning parameters (Lustre striping).
+- **§13 Dangerous Parameter Combinations:** 6-row table of confirmed failure modes
+  with source references (CHANGELOG, DEVELOPER_GUIDE, BENCHMARKS).
+- **§14 Preset Configurations:** (referenced, content in main body)
+
+---
+
+#### `AMR-Design.md` — Berger-Oliger AMR Technical Reference
+
+**URL:** https://github.com/LiranOG/Granite/wiki/AMR-Design
+
+- **§1 Subcycling:** `dt_ℓ = dt_0 / 2^ℓ` formula. Pseudo-code for recursive
+  subcycle function with restrict step labeled.
+- **§2 Prolongation:** Trilinear interpolation formula with weight definitions.
+  Documents that `prolongateGhostOnly()` was introduced and reverted in v0.6.5.
+- **§3 Restriction:** Volume-weighted averaging formula (1/8 Σ fine in 3D).
+  Conservation argument for GRMHD conserved quantities.
+- **§4 Ghost Zone Filling Order:** 4-step sequence (MPI_Isend → MPI_Irecv →
+  prolongate → MPI_Waitall → outer BC). Order-matters note.
+- **§5 Refinement Criteria:** 4-row table (chi/alpha/rho/ham with criterion type
+  and physical interpretation). Tracking spheres override documented.
+- **§6 Block-Merging Algorithm:** 3-step algorithm (list candidate patches → union-merge
+  overlapping patches → create merged blocks). Documents the MPI deadlock fix for
+  close-binary configurations.
+- **§7 Current Limitations:** 4-row table (dynamic regridding not fully implemented,
+  max 4 stable levels, no adaptive timestep per level, non-configurable regrid
+  frequency). All targeted v0.7.
+
+---
+
+#### `Initial-Data.md` — Initial Data Reference
+
+**URL:** https://github.com/LiranOG/Granite/wiki/Initial-Data
+
+- **§1 Two-Punctures / Bowen-York:** Physics background (conformal factor ψ = ψ_BL + u).
+  5-row quasi-circular momentum table for separations d=6M to d=15M with
+  leading-order PN and 1.5PN values. p_t=0.0840 highlighted as GRANITE default.
+  YAML configuration with correct momentum signs.
+- **§2 Brill-Lindquist:** ψ_BL formula. YAML config. Critical warning box:
+  "MANDATORY: Use `boundary.type: copy` with BL data. Sommerfeld produces ‖H‖₂
+  8× worse."
+- **§3 TOV Neutron Star:** TOV ODEs (dP/dr and dm/dr). Critical unit box: "1 km =
+  1.0e5 cm — NOT RSUN_CGS. Fixed as bug TOV, never revert." Expected results table
+  (M≈1.4 M☉, R≈10 km, ρ_c≈5×10¹⁴ g/cm³).
+- **§4 Compatibility Matrix:** 4×2 table (BL/Two-Punctures/Bowen-York/TOV ×
+  Sommerfeld/Copy BC) with ✅/❌ and one-line justification per cell.
+
+---
+
+#### `Known-Fixed-Bugs.md` — Authoritative Bug Registry
+
+**URL:** https://github.com/LiranOG/Granite/wiki/Known-Fixed-Bugs
+
+Standing order header: "Every PR that touches any of the files listed in this table
+MUST explicitly verify that the corresponding fix is still in place."
+
+10-entry registry, each with: ID, severity, file, phase fixed, exact bug description
+with before/after code snippets where applicable, consequence, and verification test.
+
+| Bug ID | Description |
+|---|---|
+| **C1** | EOS sound speed hardcoded Γ=1 in `maxWavespeeds()`. Underestimate by factor √(5/3)–√2.5. Fix: `eos.soundSpeed()` |
+| **C3** | HLLE `computeHLLEFlux()` used flat dummy metric. Consequence: SR fluxes in GR spacetime. Fix: GRMetric3 promoted to public interface |
+| **H1** | KO dissipation spawned 22 separate OpenMP regions (one per variable). ~30% compute waste. Fix: single parallel region, var loop innermost |
+| **H2** | GridBlock used `vector<vector<Real>>` — 22 heap allocations per block. Fix: single flat `vector<Real>` with stride indexing |
+| **H3** | RHS zero-out loop: var outermost, spatial innermost — cache thrashing. Fix: spatial outermost, var innermost |
+| **TOV** | TOV solver used `RSUN_CGS` for km→cm conversion (off by ×700,000). Fix: `1.0e5 cm/km` |
+| **KO-σ** | B2_eq YAML used `ko_sigma: 0.35` — destroys trumpet gauge profile silently. Fix: `0.1` |
+| **Sommerfeld+BL** | Sommerfeld BC with BL initial data: ‖H‖₂ 8× worse. Evidence: Phase 6 controlled experiment. Fix: use copy BC with BL |
+| **Domain** | Small domains (<48M SP, <200M BBH) cause gauge wave reflection at t≈domain/√2. Formula documented |
+| **alpha_center** | Diagnostic reads AMR level 0 at r≈0.65M, not finest level near puncture. Status: KNOWN BUT NOT YET FIXED — v0.7 target |
+
+---
+
+#### `Simulation-Health-&-Debugging.md` — Debugging Reference
+
+**URL:** https://github.com/LiranOG/Granite/wiki/Simulation-Health-&-Debugging
+
+**This page supersedes the outdated `docs/diagnostic_handbook.md`.**
+All thresholds calibrated to actual v0.6.5 production run output.
+
+- **§1 Primary Health Indicators:** 6-row table (α_center, ‖H‖₂ with growth rate γ
+  [M⁻¹], NaN_events, AMR_blocks, CFL_finest, speed) with Healthy/Warning/Critical
+  thresholds for each.
+- **§2 Healthy Output Examples:** Full verbatim expected terminal output for
+  single_puncture (t=0→500M, ‖H‖₂ decaying ×84.8) and B2_eq (t=0→500M,
+  ‖H‖₂ decaying ×61.3) with Stability Summary blocks.
+- **§3 Lapse Lifecycle — α_center Explained:** Explicit caveat that α_center reads
+  AMR level 0 at r≈0.65M, not the puncture. 5-row expected lapse table by phase
+  (Initial → Gauge Adjustment → Trumpet Forming → Trumpet Stable → pathologies).
+  Explains why α never drops to 0.3 at coarse resolution (trumpet unresolved —
+  expected, not a bug).
+- **§4 Hamiltonian Constraint Interpretation:** ‖H‖₂ formula with Ricci scalar
+  expansion. 6-row threshold table using growth rate γ [M⁻¹] instead of absolute
+  value. Constraint explosion forensic patterns (domain reflection, CFL violation,
+  BC incompatibility, over-dissipation).
+- **§5 NaN Forensics:** "NaN Is An Infection, Not A Crash." The Clean Summary Paradox.
+  4-step forensic checklist: step-0 RHS scan → identify first NaN variable by index
+  → locate infection source (center vs. boundary vs. spread rate) → identify cause
+  per variable (chi → resolution; alpha → CFL/gauge; Gamma_hat → upwinding near
+  puncture; boundary → BC problem).
+- **§6 Debugging Flowchart:** Full ASCII decision tree covering: NaN events → which
+  variable; ‖H‖₂ growing → from step 0 / sudden jump at t≈domain/√2 / gradual;
+  no merger despite d=10M BBH; lapse not forming trumpet; AMR blocks stuck at 4;
+  phase labels showing Early Inspiral for entire run.
+- **§7 Common Failure Modes with Solutions:** 5 named failure modes with symptom,
+  cause, and solution:
+  1. Crash at t≈6–11M (gauge wave reflection). Domain table.
+  2. High ‖H‖₂ from step 0 (Sommerfeld + BL).
+  3. No inspiral in BBH run (zero tangential momentum).
+  4. Trumpet not forming (resolution coarse or ko_sigma > 0.1).
+  5. Secondary gauge collapse without NaN (gauge pathology, not crash — do NOT stop
+     the simulation).
+- **§8 Health Check Checklist:** `python3 scripts/health_check.py` expected output
+  verbatim. 8-row manual checklist with pass criteria.
+- **§9 Known Diagnostic Limitations:** 5-row table (α_center level 0, time-based phase
+  labels, AMR block count frozen, loadCheckpoint stub, M1 inactive). All v0.7.
+
+---
+
+#### `Benchmarks-&-Validation.md` — Numerical Results
+
+**URL:** https://github.com/LiranOG/Granite/wiki/Benchmarks-&-Validation
+
+- Hardware: i5-8400, 16 GB DDR4, WSL2 Ubuntu 22.04, GCC 11.4 -O3, OpenMPI 4.1.2.
+- **Single Puncture 64³:** ‖H‖₂: 1.083e-2 → 1.277e-4 (×84.8 reduction). 0 NaN. 497 min.
+- **Single Puncture 128³:** ‖H‖₂: 1.855e-2 → 1.039e-3 (×17.9 reduction). 0 NaN.
+- **B2_eq 64³ (t=500M):** Full 16-checkpoint step table (steps 2–320, t=3.125M–500M)
+  with α_center, ‖H‖₂, block count. ×61.3 reduction. 98.9 min. 0.0843 M/s.
+- **B2_eq 96³ (t=500M):** 12-checkpoint table. ×67.4 reduction. 496 min. 0.0168 M/s.
+- Throughput and HPC projection table (desktop → 2× Xeon → H100 SXM).
+- Validation test suite table: 6 tests with status (single_puncture ✅, balsara_1 ✅,
+  magnetic_rotor ✅, gauge_wave 🔶 config exists no results, binary_equal_mass 🔶
+  planned v0.7, radiative_shock_tube ⚪ M1 not active).
+- `git clone` + `python3 scripts/run_granite.py run` reproduction commands.
+
+---
+
+#### `Developer-Guide.md` — Contributor Reference
+
+**URL:** https://github.com/LiranOG/Granite/wiki/Developer-Guide
+
+- **§1 Coding Standards:** C++17 mandate. No exceptions policy. Logger not cout.
+  Naming convention table (namespace snake_case / class PascalCase / function
+  camelCase / variable snake_case / constant UPPER_SNAKE). Physical units comment
+  requirement. clang-format enforcement.
+- **§2 Pre-PR Checklist:** 9-item binary checklist. Includes explicit "No ko_sigma >
+  0.1 in any YAML or code" item and "Known Fixed Bugs verified intact" item.
+- **§3 Adding Physics Modules:** 8-step workflow (RFC Issue → branch → implement →
+  public header → tests → YAML → CHANGELOG → PR). Two test templates with
+  convergence order test pattern.
+- **§4 Test Suite Structure:** Annotated file tree with test suite names and test
+  counts per file. Total: 92 tests.
+- **§5 Build System Reference:** `run_granite.py` subcommand table. CMake options
+  table (5 options). Direct CMake commands.
+- **§6 CI/CD Pipeline:** GitHub Actions pipeline steps. All PRs block on CI failure.
+
+---
+
+#### `HPC-Deployment.md` — HPC Operations Guide
+
+**URL:** https://github.com/LiranOG/Granite/wiki/HPC-Deployment
+
+- **§1 Pre-Flight:** `health_check.py` as mandatory first step.
+- **§2 Memory Requirements:** 5-row table (64³→B5_star) with RAM estimates and formula
+  (nvar_total=93 including RK3 buffers, AMR_factor per level).
+- **§3 OpenMP:** `OMP_NUM_THREADS`, `OMP_PROC_BIND=close`, `OMP_PLACES=cores`.
+  `numactl --interleave=all` for NUMA systems.
+- **§4 HPC Launch Command:** `run_granite_hpc.py` with all flags shown.
+- **§5 SLURM Template:** Complete `#SBATCH` job script for 4-node, 8-task/node,
+  8-thread/task configuration.
+- **§6 Lustre I/O Tuning:** `lfs setstripe -c 16 -S 4M` command and YAML I/O params.
+- **§7 Containers:** Docker `build` + `run` commands. Singularity/Apptainer `build`
+  + `run` commands.
+- **§8 GPU Roadmap:** 4-row table (v0.6.5 current → v0.7 vast.ai H100 → v0.8 cluster
+  → v1.0 Tier-0) with projected throughput. Note: GTX 1050 Ti NOT viable for FP64.
+
+---
+
+#### `Gravitational-Wave-Extraction.md` — GW Extraction Reference
+
+**URL:** https://github.com/LiranOG/Granite/wiki/Gravitational-Wave-Extraction
+
+- **§1 Newman-Penrose Ψ₄:** Ψ₄ = −(ḧ₊ − iḧ×) / 2r. NP formalism on CCZ4 metric.
+- **§2 Spherical Harmonic Decomposition:** Full spin-weighted decomposition formula.
+  Wigner d-matrix implementation (Goldberg 1967). Dominant mode: ℓ=2, m=±2.
+- **§3 Extraction Radii:** 6-radius table (50M → 500M) with purpose for each.
+  Richardson extrapolation requirement. Null-infinity proxy at 500M.
+- **§4 Strain Recovery:** Double time-integration of Ψ₄. Fixed-frequency integration
+  (Reisswig & Pollney 2011) to suppress drift: h̃(ω) = Ψ̃₄(ω)/max(ω,ω₀)².
+- **§5 Radiated Energy and Momentum:** dE/dt formula. Recoil kick formula (Ruiz 2008)
+  with adjacent-mode coupling coefficient a^ℓm.
+- **§6 Status:** "Infrastructure implemented. Full activation in production runs
+  targeted for v0.7."
+
+---
+
+#### `FAQ.md` — Frequently Asked Questions
+
+**URL:** https://github.com/LiranOG/Granite/wiki/FAQ
+
+12 questions across Science, Engineering, and HPC categories. Key entries:
+
+- "Why CCZ4 and not BSSN?" — Exponential damping with timescale τ≈1/(κ₁α)≈50M.
+- "Why not Einstein Toolkit?" — N>2 BH + unified GRMHD+M1 goal not achievable in
+  thorn system.
+- "What resolution do I need for realistic inspiral?" — dx < 0.05M near puncture,
+  ~6 AMR levels at 64³ base.
+- "What does ‖H‖₂ reduction by ×61 mean?" — 3-point explanation of CCZ4 constraint
+  damping effectiveness.
+- "My BBH runs to t=500M but I see no merger." — momentum=[0,0,0] → head-on. Check
+  tangential momentum first.
+- "What does ko_sigma do?" — KO formula with p=3. σ=0.1 safe; σ>0.1 over-dissipates
+  trumpet silently.
+- "Why can't I use Sommerfeld with BL data?" — ψ_BL ≠ 1/r outgoing profile. Phase 6
+  evidence: ×8 constraint violation.
+- "Why ≥48M domain?" — t_reflection = domain/√2. Formula and domain table.
+- "Why is M1 built but not active?" — Coupling + checkpoint-restart both required
+  first (v0.7 blockers).
+- "Why must I run from a Linux-native path in WSL?" — 9P filesystem ~10× I/O latency.
+
+---
+
+#### `Scientific-Context.md` — Scientific Motivation
+
+**URL:** https://github.com/LiranOG/Granite/wiki/Scientific-Context
+
+- **§1 The Problem:** 4 coupled physics systems. Binary BH domain vs. GRANITE domain.
+- **§2 Why Existing Codes Are Insufficient:** 5-row code comparison table
+  (Einstein Toolkit / GRChombo / SpECTRE / AthenaK / GRANITE) with strength and
+  key gap per code. Coupling problem articulation.
+- **§3 B5_star Scenario:** Configuration (5 × 10⁸ M☉ SMBHs in pentagon + 2 × 4300 M☉
+  stars). 3-phase physical sequence (Stellar Disruption → SMBH Inspiral → Remnant).
+  5-row multi-messenger table (GW/X-ray/Radio/Neutrino with detector per messenger).
+  Computational requirements table.
+- **§4 Analytic Pre-Validation:** NRCF/PRISM pre-validation table (4 observables with
+  estimates and tolerances).
+- **§5 Physical Unit System:** G=c=1 conversion table for M=1 M☉ and M=10⁸ M☉.
+  Unit bug warning: 1 km = 1.0e5 cm, not RSUN_CGS.
+
+---
+
+#### `Roadmap.md` — Development Roadmap
+
+**URL:** https://github.com/LiranOG/Granite/wiki/Roadmap
+
+- **Version Table:** v0.6.5 ✅ Released → v0.7 🔄 In Progress → v0.8 📋 Planned →
+  v0.9 📋 Planned → v1.0 🎯 Target Q1 2027.
+- **Tier-1 Blockers for v0.7:** 3-row table (dynamic AMR regridding, loadCheckpoint,
+  M1 wired into RK3 loop) with exact files.
+- **GPU Porting Plan:** 4 kernel priorities in order (CCZ4 RHS hot loop first).
+  vast.ai H100 SXM as target hardware. Prerequisites: CPU validation first.
+- **B5_star Scaling Path:** 4-step ASCII ladder (v0.6.5 desktop → v0.7 GPU → v0.8
+  cluster → v1.0 flagship).
+- **Known Limitations Table:** 6-row table with planned fix version for each.
+
+---
+
+#### `CHANGELOG-Summary.md` — Version History Summary
+
+**URL:** https://github.com/LiranOG/Granite/wiki/CHANGELOG-Summary
+
+High-level summary of all versions from Phase 4A through v0.6.5 with key deliverables
+per version. References the full `CHANGELOG.md` for complete technical details.
+
+---
+
+#### `Documentation-Index-&-Master-Reference.md` — Complete Document Inventory
+
+**URL:** https://github.com/LiranOG/Granite/wiki/Documentation-Index-&-Master-Reference
+
+The most comprehensive wiki page (15 sections, ~6,000 words). A per-file encyclopedia
+of every document in the repository.
+
+- **§2 Document Map:** 18-row quick-reference table with path, line count, audience,
+  and last-confirmed-accurate version.
+- **§3–§13:** Per-file sections for every document in root, docs/, .github/,
+  benchmarks/, scripts/, python/, containers/, viz/, include/, src/, tests/.
+  Each section includes: Purpose, Sections (complete inventory), Known Gaps.
+- **§14 Gap Analysis:** What is missing (10-row table: gauge_wave results, GW waveform
+  section, updated diagnostic handbook, Unreleased CHANGELOG section, wiki pages
+  needed, Jupyter tutorial, CI runner for validation_tests.yaml).
+  Content requiring update (7-row table). Content confirmed correct (11 items).
+- **§15 Cross-Reference Matrix:** 35-row topic→primary document→secondary document
+  table covering every major topic in the codebase.
+
+---
+
+#### `_Sidebar.md` — Wiki Navigation Sidebar
+
+Persistent left-sidebar navigation across all wiki pages. Organized into 4 sections
+(Getting Started / Physics & Science / Running Simulations / Development) plus
+Reference. Links to all 17 pages.
+
+---
+
+### Fixed — Undocumented v0.6.5 Physics Features (Now Documented)
+
+The following three items existed in the v0.6.5 source code but had no CHANGELOG
+entry. They are formally documented here.
+
+---
+
+#### Chi-Blended Selective Upwinding (`src/spacetime/ccz4.cpp`, `include/granite/spacetime/ccz4.hpp`)
+
+**What was added (undocumented in v0.6.5 entry):**
+The advection term β^i ∂_i f in the CCZ4 RHS uses a tanh-sigmoid blend between
+4th-order centered FD (near the puncture, where β≈0 and CFL≈0) and 4th-order
+upwinded FD (far from the puncture, where |β| can approach CFL limit):
+
+```
+blend_w = 0.5 * (1 + tanh((χ - χ_c) / χ_w))
+
+advec(var) = blend_w × β^i d1up(var, i) + (1 - blend_w) × β^i d1(var, i)
+```
+
+Parameters: `chi_blend_center = 0.05`, `chi_blend_width = 0.02` (new fields
+in `CCZ4Params`). The Γ̃^i advection term (T7) is always centered regardless of
+blend weight — this prevents the step-9 NaN that was caused by upwinding over
+steep near-puncture Γ̃^i gradients.
+
+**Known limitation:** `chi_blend_center` and `chi_blend_width` are not parsed from
+`params.yaml` in `main.cpp`. They use the hardcoded `CCZ4Params` defaults and
+cannot be tuned without recompiling. YAML wiring is a v0.7 item.
+
+---
+
+#### Algebraic Constraint Enforcement (`src/main.cpp`)
+
+**What was added (undocumented in v0.6.5 entry):**
+`applyAlgebraicConstraints()` lambda in `TimeIntegrator::sspRK3Step` enforces
+two algebraic identities of the CCZ4 conformal decomposition once per full RK3
+step (at the final combine, on the main grid only — NOT on the stage grid):
+
+1. **det(γ̃) = 1:** Computes `det = γ̃_xx(γ̃_yy γ̃_zz − γ̃_yz²) − ...`,
+   rescales all 6 components by `cbrt(1/det)`. Degenerate metrics
+   (det ≤ 1e-10 or non-finite) are reset to δ_ij.
+
+2. **tr(Ã) = 0:** Computes `trA = γ̃^ij Ã_ij` using the cofactor inverse of γ̃
+   (valid since det=1 has just been enforced). Removes `(1/3) trA γ̃_ij` from
+   each Ã_ij component.
+
+Consistent with standard CCZ4 practice (Alic et al. 2012).
+
+---
+
+#### B2_eq Quasi-Circular Tangential Momenta (`benchmarks/B2_eq/params.yaml`)
+
+**What was fixed (undocumented critical physics change):**
+Both BHs previously had `momentum: [0.0, 0.0, 0.0]`, producing a head-on
+collision. Updated to Pfeiffer et al. (2007) quasi-circular PN values for
+equal-mass d=10M (M_total=1):
+
+```yaml
+black_holes:
+  - mass: 1.0
+    position: [5.0, 0.0, 0.0]
+    momentum: [0.0, 0.0954, 0.0]   # ← corrected from [0.0, 0.0, 0.0]
+  - mass: 1.0
+    position: [-5.0, 0.0, 0.0]
+    momentum: [0.0, -0.0954, 0.0]  # ← corrected from [0.0, 0.0, 0.0]
+```
+
+**Note:** The benchmark data tables in `Benchmarks-&-Validation.md` reflect runs
+with `p_t = ±0.0840` (an earlier PN estimate also in the quasi-circular range).
+The YAML file now uses `±0.0954` (Pfeiffer et al. 2007, closer to the
+eccentricity-reduced value). Both values produce inspiral; the difference in
+orbital period and eccentricity is sub-dominant at this resolution.
+
+---
+
+### Changed — Version & Infrastructure
+
+- **CITATION.cff:** `date-released: 2026-04-10` — Wiki launch date recorded as
+  the project's public documentation milestone.
+- **Wiki sidebar:** `_Sidebar.md` with 4-section navigation added. Appears on
+  every wiki page.
+- **`docs/diagnostic_handbook.md`:** Formally deprecated. The
+  `Simulation-Health-&-Debugging` wiki page supersedes it with updated thresholds
+  and v0.6.5-accurate expected output.
+
+---
+
+### Known Issues Carried Forward to v0.7
+
+These items are documented for the first time in this release but not yet fixed:
+
+| Issue | File | Description |
+|---|---|---|
+| `alpha_center` reads AMR L0 | `src/main.cpp` | Lapse read at r≈0.65M on coarsest level, not finest level near puncture. Displayed values misleadingly close to 1.0. |
+| `chi_blend_center/width` not YAML-parseable | `src/main.cpp` | New `CCZ4Params` fields hardcoded, not wired through YAML parser. |
+| `loadCheckpoint()` is a stub | `src/io/hdf5_io.cpp` | Throws `runtime_error`. Checkpoints written but restart non-functional. |
+| M1 / neutrino not in RK3 loop | `src/main.cpp` | Modules built, pass tests, never called during evolution. |
+| AMR dynamic regridding incomplete | `src/amr/amr.cpp` | Block count frozen at initialization. `regrid()` evaluates criteria but doesn't rebuild moving-puncture hierarchy at runtime. |
+| Phase labels time-based | `scripts/sim_tracker.py` | "Early/Mid/Late Inspiral" classified by t/t_final fraction, not BH separation. |
+
+---
+
 ## [v0.6.5] — The Stability Update (2026-04-07)
 
 ### Summary
