@@ -10,9 +10,194 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [v0.6.5.5] — README Documentation Overhaul (2026-04-11)
+
+### Summary
+
+Completely rebuilt `README.md` from its v0.6.5 baseline. The restructure adds a linked table of contents, a quantified benchmark results section, a competitor feature matrix, a formal roadmap, a transparent known-limitations register, a community engagement narrative, a GitHub Wiki documentation index, and a BibTeX citation block. Cosmetically, the header block was centre-aligned and the badge suite was significantly expanded. The legacy inline developer warning (the "Note from the Developer" blockquote) was retired in favour of a dedicated community section.
+
 ---
 
-## [v0.6.6] — The Documentation Release (2026-04-10)
+### Changed — Header & Badge Suite (`README.md`)
+
+- **Centre-Aligned Title Block:** Wrapped the project title and all badge rows inside a `<div align="center">` block, matching standard academic open-source presentation.
+- **Expanded Badge Row:** The previous four badges (Build, Python, License, C++ Standard) were replaced with a richer, grouped suite:
+  - **Row 1 — CI/Status:** `Build Status` (linked to Actions) + `Development Status` (active-development indicator).
+  - **Row 2 — Identity:** `ORCID` profile link + Zenodo `DOI` badge (`10.5281/zenodo.19502265`) + `License: GPL v3`.
+  - **Row 3 — Stack:** `C++17`, `Python 3.8+`, `OpenMP 4.5+`, `MPI (OpenMPI | MS-MPI)`.
+  - **Row 4 — Docs:** `GRANITE Wiki` hyperlink badge.
+- **C++ Standard Badge:** Narrowed from `c++17/20` → `c++17` to match the authoritative `CMakeLists.txt` version declaration.
+- **Status Blurb:** Appended "stable through t = 500 M" to the `v0.6.5` status line; changed `GR-MHD` → `GRMHD` for consistency with body text.
+
+---
+
+### Added — Table of Contents (`README.md`)
+
+- **`## 📖 Table of Contents`:** Inserted anchor-linked navigation covering all 13 top-level sections, including the new Roadmap, Known Limitations, Community, Wiki, Citing, and Contributors entries absent from the v0.6.5 baseline.
+
+---
+
+### Changed — Key Features Section (`README.md`)
+
+- **CCZ4:** Added explicit constraint-damping coefficients (`κ₁=0.02, η=2.0`).
+- **GRMHD:** Specified reconstruction schemes (`MP5/PPM/PLM`), Riemann solvers (`HLLE/HLLD`), and constrained transport (`∇·B = 0` to machine precision).
+- **AMR:** Added maximum refinement depth (up to 12 levels), prolongation order (trilinear), and restriction method (volume-weighted).
+- **Multi-BH Initial Data:** Added `Two-Punctures` as a supported initial data type alongside the existing Brill-Lindquist, Bowen-York, and Superposed Kerr-Schild entries.
+- **Radiation:** Reworded from generic "hybrid leakage + M1" to specify neutrino leakage explicitly.
+- **Diagnostics:** Expanded GW extraction to list radii range (`50–500 r_g`) and added real-time constraint monitoring as a named feature.
+
+---
+
+### Added — Competitor Feature Matrix (`README.md`)
+
+- **`## ⚖️ How GRANITE Compares`:** New section providing a capability comparison across five codes: Einstein Toolkit, GRChombo, SpECTRE, AthenaK, and GRANITE v0.6.5.
+
+  | Capability | Einstein Toolkit | GRChombo | SpECTRE | AthenaK | **GRANITE v0.6.5** |
+  |---|:---:|:---:|:---:|:---:|:---:|
+  | CCZ4 formulation | ✅ | ✅ | ✅ | ❌ | ✅ |
+  | Full GRMHD (Valencia) | ✅ | ✅ | 🔶 | ✅ | ✅ |
+  | M1 radiation transport | ✅ | ❌ | ❌ | ❌ | 🔵 |
+  | Dynamic AMR (subcycling) | ✅ | ✅ | ✅ | ✅ | 🔵 |
+  | N > 2 BH simultaneous merger | ❌ | ❌ | ❌ | ❌ | 🔵 |
+  | Open license | LGPL | MIT | MIT | BSD | GPL-3.0 |
+
+- **Legend defined:** ✅ = Production-ready; 🔵 = Core module built, pending RK3 wiring; 🔶 = Partial/in development; ❌ = Not available.
+- **Pointer to extended analysis:** Cross-referenced `docs/COMPARISON.md` for exhaustive, source-cited per-feature breakdown.
+
+---
+
+### Added — Benchmark Results Section (`README.md`)
+
+- **`## 📊 Benchmark Results`:** New section reporting production run data from a single desktop workstation (Intel i5-8400, 6-core, 16 GB DDR4, Linux/WSL2) with all numbers sourced directly from simulation logs.
+- **Single Moving Puncture — Schwarzschild Stability:**
+
+  | Resolution | AMR Levels | dx finest | ‖H‖₂ t=0 | ‖H‖₂ final | Reduction | t\_final | NaN events |
+  |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+  | 64³ | 4 | 0.1875 M | 1.083 × 10⁻² | 1.277 × 10⁻⁴ | **×84.8** | 500 M ✅ | 0 |
+  | 128³ | 4 | 0.09375 M | 1.855 × 10⁻² | 1.039 × 10⁻³ | **×17.9** | 120 M ✅ | 0 |
+
+- **Binary Black Hole Inspiral — Equal-Mass, Two-Punctures / Bowen-York:**
+
+  | Resolution | AMR Levels | dx finest | ‖H‖₂ peak | ‖H‖₂ final (t=500M) | Reduction | Wall time | Throughput | NaN events |
+  |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+  | 64³ | 4 | 0.781 M | 8.226 × 10⁻⁴ | **1.341 × 10⁻⁵** | **×61.3** | 98.9 min | 0.084 M/s | 0 |
+  | 96³ | 4 | 0.521 M | 2.385 × 10⁻³ | **3.538 × 10⁻⁵** | **×67.4** | 496 min | 0.017 M/s | 0 |
+
+- **Raw telemetry pointer:** `docs/BENCHMARKS.md` linked for full per-step logs and extended resolution tables.
+
+---
+
+### Changed — Quick Start Guide (`README.md`)
+
+- **OS Notice:** Replaced the top-of-file developer warning blockquote with a compact `> [!NOTE]` admonition at the top of the Quick Start section: "GRANITE is currently optimized exclusively for **Linux** and **WSL2**. Native Windows and macOS are strictly unsupported."
+- **Step 2 — WSL2 sub-header:** Removed the `*Use for: WSL2 terminal inside Windows*` italic descriptor line.
+- **Step 4 — Windows command block:** Condensed the two-option (`Option A` / `Option B`) listing into a single inline comment block, removing the duplicate `cd build` warning.
+- **Step 5 — Windows command block:** Removed per-command inline comment labels (standard run, verbose, extended), unifying into a clean unlabelled command list.
+- **Step 6 — Windows command block:** Removed per-command inline comments (`# 1.`, `# 2.`, `# 3.`, `# 4. Custom scenario`), retaining only the three canonical benchmark invocations; removed the custom-scenario example.
+- **`DEPLOYMENT_AND_PERFORMANCE.md` link:** Updated reference path from `./DEPLOYMENT_AND_PERFORMANCE.md` → `./docs/DEPLOYMENT_AND_PERFORMANCE.md`.
+
+---
+
+### Changed — Repository Structure Tree (`README.md`)
+
+- **Root label:** `Granite/` → `GRANITE/` (capitalised to match project name convention).
+- **`benchmarks/`:** Added `scaling_tests/` entry (SLURM/PBS strong & weak-scaling templates). Updated descriptions to reflect self-contained simulation preset framing.
+- **`CMakeLists.txt`:** Description expanded to name CUDA/HIP and Google Test as managed targets alongside MPI, OpenMP, and HDF5.
+- **`containers/` (new):** Added directory entry documenting `Dockerfile` (Ubuntu 22.04 multi-stage) and `granite.def` (Singularity/Apptainer definition).
+- **`docs/` (expanded):** Replaced sparse single-line entry with an exhaustive index of named documents: `DEVELOPER_GUIDE.md`, `BENCHMARKS.md`, `COMPARISON.md`, `SCIENCE.md`, `FAQ.md`, `diagnostic_handbook.md`, `v0.6.5_master_dictionary.md`, `INSTALL.md`, `internal/`, `theory/`, `user_guide/`.
+- **`python/` (new):** Added installable Python analysis package entry (`granite_analysis/` — HDF5 reader, GW strain extraction, matplotlib helpers).
+- **`runs/` (new):** Added gitignored job scripts and parameter-scan config directory.
+- **`scripts/`:** Added `dev_stability_test.py` and `sim_tracker.py` as named entries; updated per-script descriptions.
+- **`src/`:** Added `initial_data/` as a named subdirectory (BL conformal factor solver, Bowen-York Newton-Raphson).
+- **`tests/`:** Updated entry label from `92 integrated GoogleTest suite` to `92-test GoogleTest suite`.
+- **`viz/` (new):** Added post-processing and visualisation scripts directory with `README.md` documenting planned `plot_constraints.py` and `plot_gw.py` helpers.
+- **Removed:** `setup_windows.ps1` entry.
+
+---
+
+### Added — Roadmap (`README.md`)
+
+- **`## 🗺️ Roadmap`:** New version-target tracker table spanning `v0.6.5` through `v1.0.0`:
+
+  | Version | Target | Status | Key Deliverables |
+  |---|---|:---:|---|
+  | **v0.6.5** | Q1 2026 | ✅ **Released** | BBH stable to t=500M, 4-level AMR, 92 tests, Python dashboard |
+  | **v0.7.0** | Q2 2026 | 🔄 In Progress | GPU CUDA kernels, checkpoint-restart, full dynamic AMR regrid, M1 wired into RK3 |
+  | **v0.8.0** | Q3 2026 | 📋 Planned | Tabulated nuclear EOS + reaction network |
+  | **v0.9.0** | Q4 2026 | 📋 Planned | Full SXS catalog validation (~60 BBH configs), multi-group M1 |
+  | **v1.0.0** | Q1 2027 | 🎯 Target | B5\_star production run + publication, full community release, native all-OS support |
+
+- **B5_star scaling path noted:** Desktop (128³) → GPU (vast.ai H100) → cluster (256³–512³) → flagship (12 AMR levels, ~2 TB RAM, ~5×10⁶ CPU-hours).
+
+---
+
+### Added — Known Limitations Register (`README.md`)
+
+- **`## ⚠️ Known Limitations (v0.6.5)`:** New section establishing a formal, versioned limitations matrix with columns for Impact, Status, and Planned Fix:
+
+  | Limitation | Impact | Status | Planned Fix |
+  |---|---|:---:|---|
+  | `loadCheckpoint()` stub only | Long runs cannot resume | 🔄 Active | v0.7 |
+  | M1 radiation built but not wired into RK3 | Radiation inactive in production | 🔄 Active | v0.7 |
+  | Dynamic AMR regridding partial | Block count fixed at init | 🔄 Active | v0.7 |
+  | Phase labels are time-based, not separation-based | Approximate classification | 📋 Known | v0.7 |
+  | `alpha_center` reads AMR level 0, not finest | Misleading lapse diagnostic | 📋 Known | v0.7 |
+  | GTX 1050 Ti not viable for FP64 GPU compute | GPU path requires H100-class | 📋 Known | Post GPU porting |
+  | macOS / Windows native unsupported | Limits accessibility | 📋 Planned | v0.8+ |
+  | Tangential BY momenta required for inspiral | Zero momenta → head-on only | 📝 Documented | User parameter |
+
+---
+
+### Changed — Community Section (`README.md`)
+
+- **Removed:** The lead `> ### 📝 A Note from the Developer` blockquote (spanning the entire pre-title header).
+- **Added — `## 💙 To the Community — A Personal Word`:** Replaced the removed blockquote with an expanded, prose-led community section positioned after the Versioning Policy. Includes:
+  - An opening quote and direct-address narrative from the lead developer.
+  - **`### 🌍 How You Can Contribute — On Your Own Terms`:** A seven-row contribution pathway table mapping contributor types (cluster runners, NR reviewers, PR authors, issue filers, theory validators) to concrete engine impact.
+  - **`### 🏛️ To Research Groups & Institutions`:** A focused call-to-action for joint validation campaigns, Tier-0/1 allocation access, postdoc involvement, and LIGO/Virgo/LISA waveform collaboration.
+  - **`### 🙏 A Genuine Thank You`:** A closing acknowledgement block.
+  - **Community engagement badges** (right-aligned): GitHub Issues count, GitHub Discussions count, PRs Welcome shields.
+
+---
+
+### Changed — Institutional Partnership Section (`README.md`)
+
+- **Partnership table:** Condensed column text for tighter formatting (e.g., "Tier-1 allocation time for strong/weak scaling benchmarks" → "Tier-1 allocation for strong/weak scaling benchmarks").
+- **HPC Quick-Start sub-header:** Removed `(Supercomputer Administrators)` parenthetical from the section title. Removed the `# Full manual override — total administrator control:` inline comment from the code block.
+- **Closing CTA:** Condensed the closing call-to-action paragraph text; removed the "contact the maintainer directly via the repository" clause.
+
+---
+
+### Added — GitHub Wiki Documentation Index (`README.md`)
+
+- **`## 📖 Deep-Dive Documentation — GRANITE Wiki`:** New section providing a 15-row navigational table linking to dedicated Wiki pages covering Architecture Overview, Parameter Reference, Simulation Health & Debugging, Known Fixed Bugs, Physics Formulations, Initial Data, AMR Design, GW Extraction, Benchmarks & Validation, HPC Deployment, Developer Guide, Scientific Context, Roadmap, FAQ, and Documentation Index.
+
+---
+
+### Added — Documentation Reference Table (`README.md`)
+
+- **`## 📚 Documentation`:** New section listing all primary `docs/` files in a two-column table (Document | Description):
+  - `DEVELOPER_GUIDE.md`, `BENCHMARKS.md`, `SCIENCE.md`, `COMPARISON.md`, `FAQ.md`, `v0.6.5_master_dictionary.md`, `diagnostic_handbook.md`, `INSTALL.md`.
+
+---
+
+### Added — Citation & Contributors (`README.md`)
+
+- **`## 📎 Citing GRANITE`:** New section providing a standard BibTeX `@software` record for academic citation:
+  ```bibtex
+  @software{granite2026,
+    author    = {LiranOG},
+    title     = {{GRANITE}: General-Relativistic Adaptive N-body Integrated
+                 Tool for Extreme Astrophysics},
+    year      = {2026},
+    version   = {v0.6.5},
+    url       = {https://github.com/LiranOG/Granite},
+    note      = {CCZ4 + GRMHD + AMR engine for multi-body black hole merger simulations}
+  }
+
+---
+
+## [v0.6.5.5] — The Documentation Release (2026-04-10)
 
 ### Summary
 
