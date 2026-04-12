@@ -309,7 +309,10 @@ GRANITE/
 │   └── main.cpp             # Engine entry point: YAML load, AMR init, RK3 time loop.
 ├── tests/                   # 92-test GoogleTest suite (physics accuracy + advection stability).
 └── viz/                     # Post-processing and visualisation scripts.
-    └── README.md            # Documents planned plot_constraints.py, plot_gw.py, etc.
+│    ├── README.md              # Documents planned plot_constraints.py, plot_gw.py, etc.
+│    └── vortex_eternity/       # The new WebGL frontend directory
+│       ├── index.html              # The complete standalone VORTEX engine
+│       └── README.md               # VORTEX architecture and v1.0 roadmap
 ```
 
 ---
@@ -514,6 +517,22 @@ python3 scripts/run_granite.py format   # Auto-format all C++ contributions
 | [`docs/v0.6.5_master_dictionary.md`](./docs/v0.6.5_master_dictionary.md) | **Exhaustive Technical Reference** — every CLI flag, YAML parameter, C++ constant, CMake option, and all Stability Patch forensic records. |
 | [`docs/diagnostic_handbook.md`](./docs/diagnostic_handbook.md) | **Diagnostic Handbook** — lapse lifecycle, ‖H‖₂ interpretation, NaN forensics, and the Health Check Checklist. |
 | [`docs/INSTALL.md`](./docs/INSTALL.md) | **Complete Installation Guide** — per-terminal dependency setup, troubleshooting Q&A, and build verification. |
+
+---
+
+## 🌀 VORTEX ETERNITY: The Interactive WebGL Frontend
+
+While **GRANITE** serves as the uncompromising C++ supercomputing backend for solving the full non-linear CCZ4 field equations, data visualization of such immense multi-dimensional tensors has historically been a bottleneck. To bridge this gap, we have developed **VORTEX ETERNITY**, located in the [`viz/vortex_eternity/`](./viz/vortex_eternity/) directory.
+
+VORTEX is an elite, custom-built WebGL 3D rendering and simulation engine designed to run completely natively within the browser, utilizing a strict **Zero-Allocation Architecture** to bypass garbage collection stalls and ensure a flawless 60 FPS experience.
+
+**Current Standalone Capabilities:**
+Presently, VORTEX operates as an independent sandbox, executing highly optimized Post-Newtonian (PN) dynamics. It employs a **4th-Order Hermite Predictor-Corrector** integrator stabilized by Kahan compensated summation and dynamic Aarseth timestepping. This allows researchers to instantly visualize strong-field phenomena—such as 1.5PN Lense-Thirring frame-dragging, 2.5PN radiation reaction (gravitational wave emission), mass-defect mergers, and Tidal Disruption Events (TDE)—with zero installation friction.
+
+**The v1.0 Coupling Vision (HPC Playback Viewer):**
+Our core architectural roadmap for the upcoming v1.0 release fundamentally couples VORTEX to GRANITE. The massive computational workload (AMR grids, apparent horizon finding, and GRMHD) will remain strictly within the C++ backend. Our Python toolchain will distill GRANITE's heavy HDF5 outputs into optimized kinematic and telemetry streams. VORTEX will ingest these streams to act as a **High-Fidelity 3D Dashboard**, rendering the exact spacetime trajectories, horizon topologies, and extracted Weyl scalar ($\Psi_4$) gravitational waves produced by the supercomputer, allowing for real-time interactive exploration of numerical relativity data.
+
+> **[🚀 Explore the VORTEX Engine and Documentation Here](./viz/vortex_eternity/)**
 
 ---
 
