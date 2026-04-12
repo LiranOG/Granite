@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🌀 VORTEX ETERNITY
+# VORTEX ETERNITY 🌀
 ### **The Zero-Allocation Numerical Relativity WebGL Frontend**
 
 [![Engine](https://img.shields.io/badge/Engine-Custom_WebGL-blue.svg)]()
