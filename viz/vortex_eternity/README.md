@@ -18,6 +18,19 @@ Operating strictly on a **Zero-Allocation Architecture** (mutating pre-allocated
 
 ---
 
+> [!IMPORTANT]
+>### 🛠️ Status & Developer’s Note
+>
+>***VORTEX ETERNITY*** was born out of a spontaneous and intense 48-hour development sprint. While I have pushed the limits to ensure the engine is physically realistic, numerically stable, and architecturally sound, it is important to note that it is not yet "100% perfect." 
+>
+>In such a rapid development cycle, minor bugs or edge-case anomalies may exist. However, every line of code was written with a commitment to high-fidelity physics and maximum performance. I am currently balancing the simultaneous development of both the **GRANITE** backend and the **VORTEX** frontend, along with several other critical subsystems. 
+>
+>I do not have ten hands, but I am putting every bit of my energy and expertise into this project. As development continues, I will be refining, patching, and evolving VORTEX until it reaches absolute perfection.
+>
+>My commitment to this massive project goes beyond just "doing my best"—it is a mission to create a tool that will fundamentally transform the way we conduct and visualize astrophysical research.
+
+---
+
 ## ⚙️ Core Architecture & Physics Engine
 
 VORTEX is not a simple Newtonian gravity simulator. It is an actively dissipative, post-Newtonian relativistic engine designed to model the extreme dynamics of compact objects (Black Holes, Neutron Stars) in the strong-field regime.
