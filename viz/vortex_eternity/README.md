@@ -107,8 +107,9 @@ Toggle **Sandbox Mode** (`N`) to pause the simulation and enter the Solar Forge.
 4. **Drag for Velocity:** Dragging away from the placement point applies a velocity vector. The engine displays a live **Keplerian Osculating Orbit** prediction (Ellipse, Parabola, or Hyperbola) to help you achieve stable circularization before engaging physics.
 
 ### Visual Modifiers
-* **Gravitational Lensing:** Toggle (`L`). Bends background starfield light around compact objects based on their Schwarzschild compactness ($C = GM/c^2 R \ge 0.25$).
-* **MACRO-COSMOS:** Expands the simulation bounds by $5\times$, optimizing fog, bloom, and grid scales for ultra-wide orbital systems (e.g., the Oort cloud or outer Solar System).
+* **Gravitational Lensing (`L`):** Activates a custom GLSL post-processing shader that simulates optical spacetime curvature in real-time. By calculating precise ray deflection approximations, the engine dynamically warps the background starfield around super-compact bodies ($C = GM/c^2R \ge 0.25$). This meticulously renders relativistic optical effects—including Einstein Rings, the photon sphere, and the geometric shadow of the black hole—all continuously updated relative to the observer's dynamic camera angle.*
+* **MACRO-COSMOS Mode:** Dynamically reconfigures the WebGL camera frustum and post-processing pipeline (volumetric fog, bloom thresholds, and spatial grids) to support a massive $5\times$ expansion of the simulation coordinate bounds. Designed explicitly for resolving ultra-wide astrophysical geometries (e.g., full Solar System integration or Oort cloud scaling). 
+  > **⚠️ Hardware Advisory:** By expanding the playable bounds, this mode implicitly encourages the placement of massive particle swarms and numerous N-Body entities. The $O(N^2)$ complexity of the 4th-Order Hermite integrator, combined with extended WebGL draw calls, exponentially increases the CPU/GPU workload. This mode strictly requires a capable modern machine; excessive body counts on legacy hardware ("Potato" PC's) will result in severe frame-rate degradation, physics stuttering, or total browser crash.
 
 ---
 
