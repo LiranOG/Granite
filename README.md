@@ -11,9 +11,9 @@
 [![License: GPL v3](https://img.shields.io/badge/license-GPL--3.0-green.svg)](LICENSE)
 
 [![C++ Standard](https://img.shields.io/badge/c%2B%2B-17-purple.svg)](https://isocpp.org/)
-[![Python](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://python.org)
-[![OpenMP](https://img.shields.io/badge/OpenMP-4.5%2B-orange.svg)](https://www.openmp.org/)
-[![MPI](https://img.shields.io/badge/MPI-OpenMPI%20%7C%20MS--MPI-0B598F.svg)](https://www.open-mpi.org/)
+[![Python](https://img.shields.io/badge/python-3.8%2B-306998.svg)](https://python.org)
+[![OpenMP](https://img.shields.io/badge/OpenMP-4.5%2B-E97E2E.svg)](https://www.openmp.org/)
+[![MPI](https://img.shields.io/badge/MPI-OpenMPI%20%7C%20MS--MPI-003366.svg)](https://www.open-mpi.org/)
 
 [![Wiki](https://img.shields.io/badge/docs-GRANITE%20Wiki-purple.svg)](https://github.com/LiranOG/Granite/wiki)
 
