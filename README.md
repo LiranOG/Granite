@@ -47,7 +47,7 @@ GRANITE is a high-performance, next-generation numerical relativity and General-
 - [🏛️ Institutional Partnership & Supercomputing Readiness](#️-institutional-partnership--supercomputing-readiness)
 - [🤝 Contributing](#-contributing)
 - [📚 Documentation](#-documentation)
-- [🌀 VORTEX: The Interactive WebGL Frontend](https://github.com/LiranOG/Granite/edit/main/README.md#-vortex-the-interactive-webgl-frontend)
+- [🌀 VORTEX: The Interactive WebGL Frontend](https://github.com/LiranOG/Granite?tab=readme-ov-file#-vortex-the-interactive-webgl-frontend)
 - [📎 Citing GRANITE](#-citing-granite)
 - [📜 License](#-license)
 
