@@ -89,7 +89,7 @@ The engine automatically detects the most gravitationally bound pair and tracks 
 VORTEX is designed for total user interactivity.
 
 ### Camera & Flight Modes
-* **Free Orbit:** Standard OrbitControls mapping (Left Click = Rotate, Right Click = Pan, Scroll = Zoom).
+* **Free Orbit:** Standard OrbitControls mapping.
 * **Track CoM:** Camera smoothly interpolates to track the barycenter of the entire system.
 * **Binary Tracking:** Locks focus strictly on the center of mass of the dominant binary.
 * **WASD Flight Mode (FPS):** Toggle with `E`. Dive into the simulation like a drone.
