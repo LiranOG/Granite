@@ -1,6 +1,6 @@
 <div align="center">
 
-# VORTEX ETERNITY 🌀
+# VORTEX  🌀
 ### **The Zero-Allocation Numerical Relativity WebGL Frontend**
 
 [![Engine](https://img.shields.io/badge/Engine-Custom_WebGL-blue.svg)]()
@@ -12,7 +12,7 @@
 
 ## 📖 Abstract
 
-**VORTEX ETERNITY** is an elite, high-performance N-Body visualization and simulation engine operating entirely within the browser. Designed as the vanguard frontend for the **GRANITE** ecosystem, VORTEX bridges the gap between intense computational astrophysics and frictionless, real-time 3D rendering. 
+**VORTEX** is an elite, high-performance N-Body visualization and simulation engine operating entirely within the browser. Designed as the vanguard frontend for the **GRANITE** ecosystem, VORTEX bridges the gap between intense computational astrophysics and frictionless, real-time 3D rendering. 
 
 Operating strictly on a **Zero-Allocation Architecture** (mutating pre-allocated mathematical vectors in-place), VORTEX completely bypasses JavaScript Garbage Collection stalls, allowing for seamless 60 FPS integration of highly non-linear orbital dynamics, strong-field relativity approximations, and massive particle swarms.
 
@@ -21,7 +21,7 @@ Operating strictly on a **Zero-Allocation Architecture** (mutating pre-allocated
 > [!IMPORTANT]
 >### 🛠️ Status & Developer’s Note
 >
->***VORTEX ETERNITY*** was born out of a spontaneous and intense 48-hour development sprint. While I have pushed the limits to ensure the engine is physically realistic, numerically stable, and architecturally sound, it is important to note that it is not yet "100% perfect." 
+>***VORTEX*** was born out of a spontaneous and intense 48-hour development sprint. While I have pushed the limits to ensure the engine is physically realistic, numerically stable, and architecturally sound, it is important to note that it is not yet "100% perfect." 
 >
 >In such a rapid development cycle, minor bugs or edge-case anomalies may exist. However, every line of code was written with a commitment to high-fidelity physics and maximum performance. I am currently balancing the simultaneous development of both the **GRANITE** backend and the **VORTEX** frontend, along with several other critical subsystems. 
 >
