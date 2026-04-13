@@ -523,7 +523,7 @@ python3 scripts/run_granite.py format   # Auto-format all C++ contributions
 
 ## 🌀 VORTEX: The Interactive WebGL Simulator
 
-While **GRANITE** serves as the uncompromising C++ supercomputing backend for solving the full non-linear CCZ4 field equations, data visualization of such immense multi-dimensional tensors has historically been a bottleneck. To bridge this gap, we have developed **VORTEX ETERNITY**, located in the [`viz/vortex_eternity/`](./viz/vortex_eternity/) directory.
+While **GRANITE** serves as the uncompromising C++ supercomputing backend for solving the full non-linear CCZ4 field equations, data visualization of such immense multi-dimensional tensors has historically been a bottleneck. To bridge this gap, I have developed **VORTEX**, located in the [`viz/vortex_eternity/`](./viz/vortex_eternity/) directory.
 
 VORTEX is an elite, custom-built WebGL 3D rendering and simulation engine designed to run completely natively within the browser, utilizing a strict **Zero-Allocation Architecture** to bypass garbage collection stalls and ensure a flawless 60 FPS experience.
 
