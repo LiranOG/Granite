@@ -47,7 +47,7 @@ GRANITE is a high-performance, next-generation numerical relativity and General-
 - [🏛️ Institutional Partnership & Supercomputing Readiness](#️-institutional-partnership--supercomputing-readiness)
 - [🤝 Contributing](#-contributing)
 - [📚 Documentation](#-documentation)
-- [🌀 VORTEX: The Interactive WebGL Frontend](https://github.com/LiranOG/Granite?tab=readme-ov-file#-vortex-the-interactive-webgl-frontend)
+- [🌀 VORTEX: The Interactive WebGL Simulator](https://github.com/LiranOG/Granite?tab=readme-ov-file#-vortex-the-interactive-webgl-simulator)
 - [📎 Citing GRANITE](#-citing-granite)
 - [📜 License](#-license)
 
@@ -521,7 +521,7 @@ python3 scripts/run_granite.py format   # Auto-format all C++ contributions
 
 ---
 
-## 🌀 VORTEX: The Interactive WebGL Frontend
+## 🌀 VORTEX: The Interactive WebGL Simulator
 
 While **GRANITE** serves as the uncompromising C++ supercomputing backend for solving the full non-linear CCZ4 field equations, data visualization of such immense multi-dimensional tensors has historically been a bottleneck. To bridge this gap, we have developed **VORTEX ETERNITY**, located in the [`viz/vortex_eternity/`](./viz/vortex_eternity/) directory.
 
