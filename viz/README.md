@@ -14,9 +14,9 @@ see [`python/granite_analysis/`](../python/granite_analysis/).
 
 ----
 
-## 🌀 VORTEX ETERNITY: The WebGL Visualization Engine
+## 🌀 VORTEX: The WebGL Visualization Engine
 
-Located in the `vortex_eternity/` directory, **VORTEX ETERNITY** is a highly optimized, zero-allocation N-Body visualization and simulation engine designed to run natively within a standard web browser. 
+Located in the `vortex_eternity/` directory, **VORTEX** is a highly optimized, zero-allocation N-Body visualization and simulation engine designed to run natively within a standard web browser. 
 
 **What, How, and Why:**
 * **Why it was built:** VORTEX was conceived to eliminate the friction typically associated with massive HPC deployments. It provides researchers and developers with an immediate, visually intuitive, yet mathematically rigorous environment to explore strong-field astrophysics (e.g., Tidal Disruption Events, binary inspirals) without requiring compilation or cluster access.
