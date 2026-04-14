@@ -10,6 +10,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [v0.6.6.0] — VORTEX WebGL Sim Integration (2026-04-12)
+
+### Summary
+Successfully introduced and integrated **VORTEX**, a bespoke, high-performance WebGL N-Body visualization engine, into the GRANITE ecosystem (`viz/vortex_eternity/`). This addition marks a foundational architectural shift towards our v1.0 objective: fully decoupling the uncompromising C++ HPC backend from the interactive 3D rendering layer. VORTEX currently is still in development and not 100% finished, It serves as a standalone Post-Newtonian sandbox, setting the stage for its future role as the primary HDF5/JSON Playback Viewer for GRANITE's supercomputing outputs.
+
+### Added
+- **Zero-Allocation Architecture:** Engineered a highly optimized JavaScript inner loop that mutates pre-allocated spatial vectors in-place. This entirely bypasses Garbage Collection stalls, ensuring a flawless 60 FPS rendering pipeline under intense mathematical workloads.
+- **Symplectic Integration:** Implemented a **4th-Order Hermite Predictor-Corrector** scheme, heavily stabilized by Aarseth adaptive timestepping, multi-level bisection recovery (NaN-shielding), and Kahan compensated summation for zero-loss Hamiltonian tracking.
+- **Relativistic Dynamics (PN):** Deployed precise analytical approximations for strong-field astrophysics, including:
+  - **1PN (Kinematics):** Einstein-Infeld-Hoffmann conservative equations.
+  - **1.5PN (Spin-Orbit):** Lense-Thirring frame-dragging, utilizing exact Rodrigues' rotation to prevent magnitude inflation.
+  - **2.5PN (Radiation):** Dissipative terms driving gravitational wave emission and orbital inspiral.
+- **Astrophysical Sandboxing:** Enabled real-time simulations of complex phenomena such as mass-defect mergers ($\Delta M_{rad}$), asymmetric GW recoil kicks, and Tidal Disruption Events (TDEs) calculated strictly via Roche limits.
+- **Custom Shaders:** Added a real-time GLSL ray-deflection post-processing shader to visualize Schwarzschild optical curvature, Einstein rings, and photon spheres.
+- **Telemetry Matrix:** Built a live dashboard tracking geometric lapse ($\alpha_{min}$), extracted GW quadrupole strains ($h_+, h_\times$), and Chirp Mass parameters ($M_c$).
+
+---
+
 ## [v0.6.5.5] — README Documentation Overhaul (2026-04-11)
 
 ### Summary
