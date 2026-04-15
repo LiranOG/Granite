@@ -10,6 +10,196 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [v0.6.7.0] — VORTEX Gold Master Polish & Cinematic Systems (2026-04-15)
+
+### Summary
+
+This release delivers the **Gold Master** cinematic and sensory feature set for the VORTEX engine, completing the transition from a pure physics sandbox into a professional recording and presentation environment. Three major new systems were implemented — Zen Mode for distraction-free capture, a Gravitational Wave Audio Sonification synthesizer, and a Cinematic Autopilot camera director — alongside a suite of UX polish items: an ESC-abort system for body placement, UI overlap resolution, and a master volume control panel. All audio code adheres to the zero-allocation principle via Web Audio API `setTargetAtTime` for smooth, GC-free parameter curves.
+
+---
+
+### Added — Zen Mode (Global Cinematic UI Toggle)
+
+- **`Z` Key Shortcut:** Pressing `Z` (outside WASD mode) toggles Zen Mode globally via `document.body.classList.toggle('zen-active')`.
+- **CSS Fade System:** A two-selector CSS rule set applies `opacity: 0 !important` and `pointer-events: none !important` to all UI elements when `body.zen-active` is present. Elements covered: `#tb`, `#fwm-host`, `#fwm-taskbar`, `#wasd-hud`, `#wasd-speed-hud`, `#ruler-label`, `#ruler-hint`, `#spawning-hint`, `#kh`, `.stats`, `.dg`, `#sc-modal`. All affected elements receive a `transition: opacity 0.5s ease-in-out` rule declared at the CSS root level for a smooth, simultaneous cinematic fade.
+- **Preserved Elements:** The WebGL canvas (`#cv`), vignette (`#vig`), and atmospheric haze overlay (`#atmo-haze`) remain completely visible and interactive in Zen Mode at all times.
+- **`#zen-notify` Toast:** A notification element is dynamically created (once) on first `Z` press and appended to `<body>`. Displays `✦ ZEN MODE — Press Z to exit` on activation and `✦ ZEN MODE OFF` on deactivation. Styled with `color: #ffcc00`, `text-shadow` glow, centered at `top: 60px`, `z-index: 10000`, and `pointer-events: none`. Auto-fades after 3 seconds via `setTimeout` / `classList.remove`. A `clearTimeout` guard prevents stacking if `Z` is pressed rapidly.
+- **Hotkeys Bar (`#kh`) Coverage:** The persistent keyboard shortcut strip at the bottom of the screen was explicitly added to both the CSS transition rule and the `.zen-active` opacity selector. Without this fix, the `#kh` bar remained visible during recordings, breaking the immersive capture experience.
+
+---
+
+### Added — Gravitational Wave Audio Sonification (The "Chirp" Synthesizer)
+
+- **Autoplay-Compliant Lazy Initialization:** `AudioContext`, oscillator, and all gain nodes are created exactly once, on the first user `click` event, using a `{ once: true }` listener. This satisfies the browser autoplay policy without requiring any special user-visible prompt. The engine logs `AUDIO — Gravitational Wave Synth Initialized` to the Event Log on init.
+- **Dual Gain Chain Architecture (Zero-Allocation):**
+  - Signal path: `auOsc` → `auGain` (physics-driven) → `auMaster` (user volume) → `auCtx.destination`
+  - `auGain`: driven each frame by the physics integrator. Represents the instantaneous GW strain amplitude.
+  - `auMaster`: driven by the UI volume slider. Exposed as `window._auMaster` to enable inline `oninput` handlers without closures.
+  - `auCtx.resume()` is called defensively on every first-click to handle suspended contexts.
+- **Physics-Driven Frequency Mapping:** Inside `extractTelemetry()` (called every 15 frames), the dominant binary's GW frequency is mapped to the audible range: `fAudio = clamp(nr.fGW × 10, 30 Hz, 1200 Hz)`. The lower bound (30 Hz) produces a low-frequency inspiral rumble; the upper bound (1200 Hz) captures the final-chirp squeal.
+- **Amplitude (Strain) Mapping:** `gwGain = clamp(|h_plus| × 5e6, 0, 0.5)`. The sensitivity scalar `5e6` is calibrated for typical stellar-mass BH-BH inspiral systems at simulation scale and is documented as a runtime-tunable constant. Gain and frequency are both updated via `AudioParam.setTargetAtTime(value, auCtx.currentTime, 0.08)` — the smooth-time-constant approach guarantees zero memory allocation and no audible click/pop artifacts.
+- **Auto-Mute on No Binary:** When `extractTelemetry()` detects no bound binary pair (`nr.fGW` remains `null`), `auGain.gain.setTargetAtTime(0, now, 0.2)` smoothly silences the synthesizer within 200 ms.
+
+---
+
+### Added — Master Volume Control Panel
+
+- **`🔊` Top-Bar Button (`#vol-btn`):** Injected into `#tb` right section, adjacent to the existing `🔍 HUD` button. Styled with the same monospace-family, `rgba(0,212,255,0.1)` background, and cyan border to match the existing HUD aesthetic. Dynamically changes icon: `🔇` (muted), `🔈` (0–40%), `🔉` (40–75%), `🔊` (75–100%) based on current volume.
+- **`#vol-popup` Floating Panel:** Toggled by the `🔊` button. Positioned `fixed; top:44px; right:180px; z-index:12000` — above all other UI but below pointer lock overlays. Dark glassmorphic background with a cyan `box-shadow` glow.
+  - **`#vol-slider`** — `input[type=range]` 0–100 (default 70). `oninput` calls `auMaster.gain.setTargetAtTime(vol, now, 0.05)` with a 50ms time constant. The `accent-color: #00d4ff` matches the engine's primary color variable.
+  - **`#vol-mute` Button** — Toggles `window._auMuted`. On mute: gain → 0, button text → `▶ UNMUTE`, icon → `🔇`. On unmute: gain → `window._auVolume`, button text → `⏸ MUTE`, icon → `🔊`. Styled with `rgba(255,32,112,0.15)` background and a `#ff2070` border to use the engine's secondary accent color.
+  - **`#vol-val` Percentage Display** — Updated live via the slider's `input` event listener: `this.value + '%'`.
+
+---
+
+### Added — Cinematic Autopilot Camera Mode
+
+- **UI Integration:** A `🎬 Autopilot` `div.cb[data-cm="auto"]` button added to the Camera Modes panel in the left panel. Participates fully in the existing camera mode selection system: receives/loses the `.a` active class, triggers `ctrl.autoRotate = false` and `ctrl.enabled = true` on any mode switch away from Autopilot.
+- **State Variables:** `apTimer` (float, wall-clock seconds remaining) and `apTarget` (Body reference) declared in the engine's main `STATE` block alongside `cinA`. Both reset to `0` / `null` on every `initSim()` call, ensuring clean state on scenario transitions.
+- **Intelligent Target Selection:** On timer expiry or invalid target reference (merged body, rebuilt scenario), the Autopilot filters the active `bodies` array: prefers `type === 'BH'` or `type === 'NS'` or `mass > 10`. Falls back to the full body pool if no interesting bodies exist. Target selected via `Math.floor(Math.random() * pool.length)`.
+- **Hold Duration Jitter:** Each target is held for `12 + Math.random() * 3` seconds (12–15 s). The random jitter prevents mechanical periodicity that would be noticeable during long recordings.
+- **Camera Behavior:** `ctrl.target.lerp(apTarget.position, 0.04)` per frame provides a smooth creeping lock toward the target (lerp factor is deliberately slow for cinematic feel). `ctrl.autoRotate = true` with `ctrl.autoRotateSpeed = 0.5` enables OrbitControls' built-in smooth pan-orbit.
+- **Event Log Feedback:** Each target switch appends `🎬 Autopilot — Locked on <b>[name]</b>` to the Event Log for session replay reference.
+- **Frame Delta Reference:** Timer uses `dt` — the existing `_prevFrameTime` wall-clock delta (already clamped to 50 ms max to prevent spiral-of-death on tab focus loss) — requiring no secondary clock or accumulator.
+
+---
+
+### Added — ESC Abort for Body Placement Operations
+
+- **Universal Cancel Shortcut:** Pressing `Escape` during any active drag operation cancels placement atomically. The `Escape` handler checks both `isSpawning` (drag-to-spawn slingshot) and `sbDragStart` (sandbox body placement) in the same handler block. Both are reset to their idle state (`isSpawning = false`, `sbDragStart = null`) on any single `Escape` press.
+- **Visual Placement Hint (`#spawning-hint`):** A floating HUD element appears at screen-bottom-center during active drag operations. Orange text, `pointer-events: none`, `z-index: 14`. Instructs the user that `Esc` cancels the current placement. Hidden immediately on abort or successful placement.
+- **Visual Helpers Reset:** On abort, `slingLine.visible = false` and `slingDot.visible = false` clear the slingshot preview arrow from the 3D scene.
+- **Event Log Feedback:** Logs `🔴 ABORTED — Placement Canceled` to the Event Log on successful abort, providing an audit trail.
+
+---
+
+### Fixed — UI Overlap Resolution
+
+- **`#spawning-hint` vs. `#wasd-hud` Vertical Collision:** The placement hint and WASD flight speed gauge previously shared the same `bottom` coordinate. Repositioned: `#wasd-speed-hud` → `bottom: 222px`, `#spawning-hint` → `bottom: 240px`. Both elements are now cleanly vertically separated with no overlap at any HUD scale.
+- **Spawn Mode Label vs. ESC Hint:** `z-index` and positional stacking reviewed to ensure the spawning hint appears above the SPAWN MODE badge but below the WASD flight HUD stack.
+
+---
+
+---
+
+## [v0.6.7.0] — VORTEX Sim-OS Audit, Research-Grade Visuals & FWM Hardening (2026-04-14)
+
+### Summary
+
+A major multi-system engineering session delivering three independent areas of improvement: (1) a keyboard shortcut completeness audit and Sim-OS section addition to the shortcuts reference modal; (2) four research-grade visual and analytical systems — CPU-side Relativistic Doppler/Beaming, Einstein Cross lens shader extension, the NR Diagnostics Chart.js floating window, and the Minimap 3.0 multi-spectral tactical analyzer — plus Master Menu professional categorization; and (3) a comprehensive five-pass hardening campaign for the Floating Window Manager addressing sticky drag, cross-display pointer escape, zoom-aware coordinate transforms, resize boundary violations, and HUD-scale-aware window sizing.
+
+---
+
+### Added — Keyboard Shortcut Audit & `Sim-OS & Interface` Section
+
+- **Completeness Audit:** Full cross-reference of all `keydown` handlers against the `#kh` quick-bar and `#sc-modal` keyboard reference modal. Identified two undocumented shortcuts: `[` (Master Menu toggle) and `≡` (top-bar menu button alias).
+- **`SIM-OS & INTERFACE` Shortcut Section:** New section added to `#sc-modal` (inserted before the `sc-close` button) documenting: `[` → Open/Close Sim-OS Menu, `≡` → Same (clickable alias in top bar), `Esc` → Close any open overlay/modal. Section header styled consistently with existing `sc-section` classes.
+- **`#kh` Quick-Bar Post-Fix:** Box-drawing character separators (`┌┈`) were not supported by the engine's monospace fallback font and rendered as garbled glyphs. Replaced with `·` (middle dot) via a JS post-fix pass at DOM ready. `[ Sim-OS` entry appended to the second line of the persistent bar.
+- **`Esc` Modal Close Fix (`mm-keys` handler):** The keyboard shortcut modal was opened via `m.style.display = 'flex'`. Inline `style.display` has higher CSS specificity than class-based rules, so the existing `Esc` keydown handler (which called `m.classList.remove('show')`) had no visible effect. Changed to `m.classList.add('show')`, restoring `Esc`-to-close behavior from all entry points.
+- **`.sc-box` Overflow Guard:** Added `max-height: 85vh; overflow-y: auto` to `.sc-box`. Without this, the new `SIM-OS & INTERFACE` section caused the modal to overflow below the viewport, cutting off the close button on moderate-resolution displays.
+
+---
+
+### Added — Relativistic Visual Physics (CPU-Side Zero-Allocation)
+
+- **Relativistic Doppler Shift (`syncInstances()`):** Per-body line-of-sight velocity component computed as `β = dot(v_body, r̂_camera) / C_SIM` using pre-allocated `_nrRel` scratch vector. R channel multiplied by `1 + β×1.4` (receding → redder) and B channel by `1 - β×1.4` (approaching → bluer). Mutates the existing `iColorData` Float32Array in-place — no new allocations, no `Vector3` construction in the hot loop. Toggled by `tog.doppler` flag via `≡ → Relativistic Optics → Doppler / Beaming`.
+- **Relativistic Beaming:** G channel modulated by `beam = clamp(1 + |β|×2.5, 0.25, 3.5)`, approximating the Lorentz beaming brightening/dimming effect. Shares the same `tog.doppler` toggle as Doppler shift.
+- **Einstein Cross (Lens Shader Extension):** Extended the existing GLSL post-processing lens shader with 4 secondary image samples at ±x / ±y offsets at the Einstein ring radius. Each sample is Gaussian-weighted by `exp(-8 × (dist - eRuv×0.55)²)`. Activates automatically when `lensStr > 0.18` (strong-field threshold). The entire extension is +20 GLSL lines injected into the existing `ShaderPass` material — no new render passes or `WebGLRenderTarget` objects.
+
+---
+
+### Added — `🔭 Relativistic Diagnostics` Floating Window
+
+- **Three Chart.js Panels:**
+  1. **e vs a (Orbital Evolution):** Scatter chart plotting orbital eccentricity against semi-major axis, tracing the GW-driven inspiral track from initial orbit through circularization and final plunge.
+  2. **f_GW Chirp:** Semi-logarithmic Y-axis line chart of gravitational wave frequency over simulation time. Visually captures the characteristic frequency sweep from inspiral through merger.
+  3. **β² = (v/c)²:** Line chart of peak relativistic velocity parameter per physics step. Provides direct visual confirmation of post-Newtonian regime and approach to merger.
+- **MTF Time-Filter Bar:** `● LIVE / 1YR / 10YR / MAX` control buttons in the window header. Live mode pushes data each frame via `pushCharts()`; archival modes call `_diagRender(tf)` to decimate and re-render historical `telemetryLog` data.
+- **`telemetryLog` Extensions:** Each `telemetryLog.push()` record now includes `maxVel`, `betaSq`, and `pnX` fields (previously absent, causing the β² and Chirp charts to render empty). Fields sourced from `sysEnergy()` return value and existing `nr.*` telemetry.
+- **`_clearTelemetry()` Centralized Reset:** A single helper function added that atomically: zeros `telemetryLog.length` (in-place, zero-alloc), resets all three Chart.js dataset arrays via `dataset.data.length = 0` + `chart.update('none')`, and resets the MTF filter buttons back to `LIVE`. Called at three reset points: scenario load (`loadScenario`), snapshot restart (Singularity modal), and Sandbox entry (`enterSandbox`). Previously, chart data from one scenario persisted and contaminated the next scenario's telemetry display.
+
+---
+
+### Added — Minimap 3.0 Tactical Analyzer
+
+- **Sensor Mode Switching:** New mode button row in the Minimap window header: `Bodies` (default) / `〈〉 Isobar` / `🌡 Flux`. Mode state stored in `_mmMode`. `drawMinimap()` dispatches to the appropriate render function based on mode.
+- **Isobar Mode (`_drawMM_isobar`):** Gravitational potential field `Φ = −ΣGMᵢ/rᵢ` sampled on a regular 2D CPU grid. 8 iso-contour levels rendered via marching-squares algorithm. Color-coded from deep blue (low gradient, outer region) through cyan to yellow (steep well near compact objects). Provides a scientific-grade visualization of gravitational influence zones that is not available in any existing body-overlay mode.
+- **Flux Mode (`_drawMM_flux`):** Bolometric radiation flux `F = Σ(Lᵢ / 4πrᵢ²)` computed per pixel, where `Lᵢ` is body luminosity (including accretion disk contribution). Rendered via 5-stop thermal color ramp: Deep Blue → Cyan → White → Orange → Purple. Highlights hotspots and accretion disk proximity zones.
+- **Camera Frustum Overlay:** Translucent yellow cone drawn on the minimap every frame representing the main camera's FOV and pointing direction. Uses `camera.getWorldDirection()` projected onto the minimap XZ plane.
+- **ISCO Proximity Warnings:** Pulsing red reticle (radius animated by `Math.sin(frame * 0.1)`) drawn around each compact object (`BH`, `NS`, `SMBH`) when any other body enters 5× the coordinate ISCO radius (`6GM/c²` in simulation units).
+- **Click-to-Select:** `mousedown` on the minimap canvas ray-tests all body positions and selects the nearest body, simultaneously setting `selectedBody` and switching camera to Follow Mode. Logs `📍 Autopilot follow: [name]`.
+- **Hover Tooltip:** On `mousemove` over the minimap, the nearest body within 12px emits a tooltip showing `Name / Mass [M☉] / Orbital v [c] / Gravitational redshift z / Type`.
+- **Velocity Arrows:** Green directional `→` arrows drawn at each body dot, scaled by `v/C_SIM` magnitude. Uses `ctx.setTransform()` for rotation — no per-arrow `Vector2` allocation.
+- **Logarithmic Projection Toggle (`⊚ LOG`):** Switches the minimap's radial projection formula from linear `R_pixel = R_sim × scale` to `R_pixel = log(1 + R_sim) × scale_log`. Enables simultaneous visualization of tight compact binary systems and distant perturbers in the same frame without zoom switching.
+- **Canvas Size Fix (Load-Time Distortion):** Added `mmCv.style.width = mmCv.width + 'px'` and `mmCv.style.height = mmCv.height + 'px'` immediately after `mmCv.getContext('2d')` at initialization. Without this, the `display: flex` container's default `align-items: stretch` stretched the canvas CSS element to fill the panel width (e.g., 320px), while the internal pixel buffer remained 240×200, causing 33% horizontal distortion on every page load. The distortion self-corrected when S/M/L size was clicked because those handlers explicitly set both CSS and attribute sizes synchronously.
+
+---
+
+### Added — Master Menu (`≡`) Professional Categorization
+
+- **Four Named Sections:**
+  - `🔭 Relativistic Optics` — Lensing toggle (badge: `LENS`), Doppler/Beaming toggle (badge: `DOP`)
+  - `📊 Scientific Analysis` — Mission Control window, `🔭 NR Diagnostics [NEW]` window, Event Log window
+  - `🗺 Tactical Tools` — Minimap window (with sensor-mode badge row), Relativistic Ruler window
+  - `⚙ System` — Export State, Import State, Keyboard Shortcuts
+- Each section renders a styled category-header `div` above its items. Badge `.a` active class tracking correctly wired to `tog.lens`, `tog.doppler`, and minimap visibility state.
+
+---
+
+### Fixed — HUD Scale: FWM Windows and Phase Label Overflow
+
+- **`.fwm-win` Added to HUD Zoom Rule:** The CSS `zoom: var(--ui-scale)` rule previously targeted only legacy static panel selectors (`#tb`, `#pr`, `#pl`, `#pb`, `#el`). After the FWM migration, the authoritative element class is `.fwm-win`. Without adding `.fwm-win` to the zoom rule, all floating windows remained at 1.0× scale while only the top bar and telemetry grew.
+- **Resize Handler Scale Correction:** The resize drag `dx`/`dy` delta computation did not account for the HUD zoom, causing resize handles to move at `1/scale × intended speed` (e.g., 1.6× too fast at max HUD). Fixed by dividing: `dx = (pRX-resX) / currentUIScale`, `dy = (pRY-resY) / currentUIScale`. The pre-existing `origW + dx`, `origH + dy` accumulation logic was preserved unchanged.
+- **`#ph` Phase Label Overflow:** At HUD scale 1.4×–1.6×, the phase label (e.g., `PHASE II — CLOSE ENCOUNTER / TIGHT ORBIT`) in `#ph` overwrote the right-side telemetry readouts in `#tb`. Fixed by adding: `max-width: 28vw; overflow: hidden; text-overflow: ellipsis`. The `vw`-relative constraint is unaffected by the CSS `zoom` on `#tb` since `vw` is always relative to the viewport.
+
+---
+
+### Fixed — FWM Floating Window Manager: Five-Pass Hardening
+
+#### Pass 1 — Initial Position Off-Screen After Page Load
+
+**Root cause:** `adoptPanel()` initial `x` coordinates used hardcoded values like `innerWidth - 338`. At the default `zoom: 1.15`, a 328px CSS window has 377px visual width (`328 × 1.15`). The initial placement: `(innerWidth - 338) + 377 = innerWidth + 39px` — 39 px off-screen from the first render before any user interaction.
+
+**Fix:** All `adoptPanel()` initial `x` values changed to `Math.floor(innerWidth / currentUIScale - cssW - 10)`. The division by `currentUIScale` converts the viewport pixel boundary into CSS-space coordinates that match the element's `left` property.
+
+---
+
+#### Pass 2 — Mouse Escaping Simulation During Window Drag
+
+**Root cause:** The FWM drag handler used `mousemove` + `clientX/Y` coordinates. Without pointer lock, the OS cursor could exit the browser window, pause on the OS taskbar, migrate to a second monitor, or reach the browser's own UI chrome. Dragging a window toward the browser's address bar caused the browser to lose focus and the drag to become stuck.
+
+**Fix:** Added `document.body.requestPointerLock()` on drag `mousedown`. During the drag, consumed `e.movementX / currentUIScale` and `e.movementY / currentUIScale` deltas (raw pointer-lock movement in device pixels, divided by scale for CSS-space positioning). On drag end (`mouseup` or `blur`): `document.exitPointerLock()`. A `_fwmVC` virtual cursor indicator (`●`, 8px, `rgba(0,170,255,0.8)`) is rendered at the initial grab point to maintain spatial orientation while the real cursor is hidden by the OS.
+
+---
+
+#### Pass 3 — Sticky Drag on Alt+Tab / Window Focus Loss
+
+**Root cause:** `mouseup` is not delivered to a page that has lost OS window focus (e.g., Alt+Tab). The `mousemove` listener remained permanently attached, causing windows to continue moving with the cursor indefinitely after the user returned to the browser.
+
+**Fix:** Added `window.addEventListener('blur', onDragEnd)` at drag start alongside the existing `mousemove` and `mouseup` listeners. All three are removed atomically in `onDragEnd()`. `document.exitPointerLock()` is also called in `onDragEnd()` to guarantee pointer lock release on all exit paths.
+
+---
+
+#### Pass 4 — Zoom-Aware Coordinate Transform Correctness
+
+**Root cause (discovered via browser console inspection):** When CSS `zoom` is applied directly to `.fwm-win` itself (not to a parent), the element's `left` property is interpreted in **scaled coordinate space**: `visual_left = css_left × scale`. The clamp formula `maxLeft = vw - cssW × scale` is algebraically incorrect for this case and produces a non-zero off-screen offset at all non-`1.0` zoom levels. The correct formula derives from: `visual_right ≤ vw` → `(css_left + cssW) × scale ≤ vw` → `css_left ≤ vw/scale - cssW`.
+
+**Fix:** Rewrote `_clampFWMWindows()` and `_dragClamp()` to use `parseFloat(el.style.width)` for CSS pixel width and `vw/sc - cssW` for the maximum CSS-space `left`. Added a size-shrink pre-pass before position clamping: `maxCssW = (vw - 10) / sc; if cssW > maxCssW → shrink el.style.width`. This ensures windows automatically reduce in size as HUD scale increases rather than being pushed off-screen. Added corresponding clamp for the top edge: `minCssY = 42 / sc` (accommodates top bar in CSS coordinates).
+
+---
+
+#### Pass 5 — Resize Handle Off-Screen; Drag Triggered by Inner Controls
+
+**Root cause A:** Resize boundary calculation used `el.offsetWidth` and `el.offsetLeft` (visual pixels under CSS zoom). This caused a position jump at drag start (from visual coordinates to CSS coordinates) visible as a 0.8×–1.6× snap, and allowed resizing past the viewport boundary because `max = vw - currentLeft × scale` used the wrong coordinate space.
+
+**Root cause B:** The drag guard `if (e.target.classList.contains('fwm-btns')) return` was insufficient. Clicking the MTF time-filter buttons, Chart.js canvas elements, RangeSlider `<input>` elements, or any `<a>` or `<label>` element inside a window header initiated an unwanted drag.
+
+**Fix A:** Replaced all `el.offsetWidth / offsetLeft / offsetHeight / offsetTop` references in resize and drag handlers with `parseFloat(el.style.width / left / height / top)`. Resize maximum recalculated as `maxCssW = vw/sc - parseFloat(el.style.left)`. `origW/H` tracking updated to store CSS pixels post-resize.
+
+**Fix B:** Extended drag guard: `if (e.target !== hdr && e.target.closest('button, input, select, a, label, [role="button"], [tabindex]')) return;` — covers all semantically interactive elements regardless of class.
+
+---
+
 ## [v0.6.6.0] — VORTEX WebGL Sim Integration (2026-04-12)
 
 ### Summary
