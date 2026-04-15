@@ -4,18 +4,18 @@
 ### **General-Relativistic Adaptive N-body Integrated Tool for Extreme Astrophysics**
 
 [![Build Status](https://github.com/LiranOG/Granite/actions/workflows/ci.yml/badge.svg)](https://github.com/LiranOG/Granite/actions) 
-[![Development Status](https://img.shields.io/badge/Status-Active%20Development-blue.svg)](https://github.com/LiranOG/Granite/pulse)
+[![Development Status](https://img.shields.io/badge/Status-Active%20Development-2d3436.svg)](https://github.com/LiranOG/Granite/pulse)
 
 [![ORCID](https://img.shields.io/badge/ORCID-Profile-A6CE39?logo=orcid&logoColor=white)](https://orcid.org/0009-0008-8035-1308)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19502265.svg)](https://doi.org/10.5281/zenodo.19502265)
 [![License: GPL v3](https://img.shields.io/badge/license-GPL--3.0-green.svg)](LICENSE)
 
-[![C++ Standard](https://img.shields.io/badge/c%2B%2B-17-purple.svg)](https://isocpp.org/)
-[![Python](https://img.shields.io/badge/python-3.8%2B-306998.svg)](https://python.org)
-[![OpenMP](https://img.shields.io/badge/OpenMP-4.5%2B-E97E2E.svg)](https://www.openmp.org/)
-[![MPI](https://img.shields.io/badge/MPI-OpenMPI%20%7C%20MS--MPI-003366.svg)](https://www.open-mpi.org/)
+[![C++ Standard](https://img.shields.io/badge/c%2B%2B-17-007acc.svg)](https://isocpp.org/)
+[![Python](https://img.shields.io/badge/python-3.8%2B-007acc.svg)](https://python.org)
+[![OpenMP](https://img.shields.io/badge/OpenMP-4.5%2B-007acc.svg)](https://www.openmp.org/)
+[![MPI](https://img.shields.io/badge/MPI-OpenMPI%20%7C%20MS--MPI-007acc.svg)](https://www.open-mpi.org/)
 
-[![Wiki](https://img.shields.io/badge/docs-GRANITE%20Wiki-purple.svg)](https://github.com/LiranOG/Granite/wiki)
+[![Wiki](https://img.shields.io/badge/docs-GRANITE%20Wiki-002b36.svg)](https://github.com/LiranOG/Granite/wiki)
 
 ---
 
