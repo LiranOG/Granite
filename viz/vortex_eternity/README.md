@@ -29,8 +29,8 @@
 8. [Tactical Minimap 3.0](#️-tactical-minimap-30)
 9. [Interaction & Controls](#-interaction--controls)
 10. [Keyboard Reference](#️-keyboard-reference)
-11. [Comparison with Related Tools](https://github.com/LiranOG/Granite/edit/main/viz/vortex_eternity/README.md#%EF%B8%8F-keyboard-reference)
-12. [Known Limitations](https://github.com/LiranOG/Granite/edit/main/viz/vortex_eternity/README.md#%EF%B8%8F-known-limitations-v07)
+11. [Comparison with Related Tools](https://github.com/LiranOG/Granite/blob/main/viz/vortex_eternity/README.md#%EF%B8%8F-keyboard-reference)
+12. [Known Limitations](https://github.com/LiranOG/Granite/blob/main/viz/vortex_eternity/README.md#%EF%B8%8F-known-limitations-v07)
 13. [Roadmap to v1.0](#-roadmap-to-v10)
 
 ---
