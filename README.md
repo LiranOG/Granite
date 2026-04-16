@@ -434,8 +434,6 @@ We welcome contributions from the scientific and open-source communities. Please
 python3 scripts/run_granite.py format   # Auto-format all C++ contributions
 ```
 
----
-
 ### 🌍 How You Can Contribute — On Your Own Terms
 
 There is no minimum. There is no gatekeeping. There is no "small enough to not matter."
@@ -451,33 +449,6 @@ There is no minimum. There is no gatekeeping. There is no "small enough to not m
 | **You review the theory** | If you work in NR, GRMHD, or computational astrophysics — your professional eye is the most valuable thing you could offer |
 
 No contribution requires understanding the whole codebase. The modules are deliberately decoupled: an expert in radiation transport can engage with `src/radiation/` without touching the CCZ4 RHS loop.
-
----
-
-### 🙏 A Genuine Thank You
-
-To those who will file a bug report at 11pm because something didn't converge and they couldn't let it go — thank you in advance.
-
-To those who will spend a Saturday writing a test for a corner case nobody asked them to cover — thank you in advance.
-
-To those who will send a message saying "I ran `B2_eq` on our cluster and here's what happened" — thank you in advance.
-
-To those who will read a formula in `ccz4.cpp` and say "wait, shouldn't that sign be negative?" — *especially* thank you in advance.
-
-
-This project exists because the science demands it. It will reach its potential because the community makes it.
-
-**Welcome aboard. Let's simulate the universe — together.**
-
-— **LiranOG**, Founder & Lead Developer | April 10, 2026
-
-<div align="right">
-
-[![GitHub Issues](https://img.shields.io/github/issues/LiranOG/Granite?label=open%20issues&color=blue)](https://github.com/LiranOG/Granite/issues)
-[![GitHub Discussions](https://img.shields.io/github/discussions/LiranOG/Granite?label=discussions&color=purple)](https://github.com/LiranOG/Granite/discussions)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/LiranOG/Granite/blob/main/.github/CONTRIBUTING.md)
-
-</div>
 
 ---
 ## 📚 Documentation
@@ -528,6 +499,33 @@ If you use GRANITE in academic research, teaching, or scientific software, pleas
 ```
 
 A formal paper is in preparation (see `docs/citation.bib`). Please also cite the upstream physics papers that GRANITE implements — full reference list in [`docs/SCIENCE.md`](./docs/SCIENCE.md#references).
+
+---
+
+### 🙏 A Genuine Thank You
+
+To those who will file a bug report at 11pm because something didn't converge and they couldn't let it go — thank you in advance.
+
+To those who will spend a Saturday writing a test for a corner case nobody asked them to cover — thank you in advance.
+
+To those who will send a message saying "I ran `B2_eq` on our cluster and here's what happened" — thank you in advance.
+
+To those who will read a formula in `ccz4.cpp` and say "wait, shouldn't that sign be negative?" — *especially* thank you in advance.
+
+
+This project exists because the science demands it. It will reach its potential because the community makes it.
+
+**Welcome aboard. Let's simulate the universe — together.**
+
+— **LiranOG**, Founder & Lead Developer | April 10, 2026
+
+<div align="right">
+
+[![GitHub Issues](https://img.shields.io/github/issues/LiranOG/Granite?label=open%20issues&color=blue)](https://github.com/LiranOG/Granite/issues)
+[![GitHub Discussions](https://img.shields.io/github/discussions/LiranOG/Granite?label=discussions&color=purple)](https://github.com/LiranOG/Granite/discussions)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/LiranOG/Granite/blob/main/.github/CONTRIBUTING.md)
+
+</div>
 
 ---
 
