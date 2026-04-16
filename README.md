@@ -570,3 +570,9 @@ A formal paper is in preparation (see `docs/citation.bib`). Please also cite the
 ## 📜 License
 
 GRANITE is released under the **GNU General Public License v3.0 or later (GPL-3.0-or-later)**. See the [`LICENSE`](./LICENSE) file for full terms.
+
+<div align="center">
+
+[⬆️BACK TO THE TOP⬆️](https://github.com/LiranOG/Granite/tree/main?tab=readme-ov-file#granite-)
+
+</div>
