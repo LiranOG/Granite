@@ -49,6 +49,7 @@ GRANITE is a high-performance, next-generation numerical relativity and General-
 - [📚 Documentation](#-documentation)
 - [🌀 VORTEX: The Interactive WebGL Simulator](#-vortex-the-interactive-webgl-simulator)
 - [📎 Citing GRANITE](#-citing-granite)
+- [👥 Contributors](#-contributors)
 - [📜 License](#-license)
 
 ---
