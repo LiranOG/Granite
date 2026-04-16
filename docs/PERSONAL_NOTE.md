@@ -10,3 +10,5 @@ GRANITE started as a private obsession: the conviction that the astrophysics com
 But a single developer, no matter how driven, is still just one person. And a scientific instrument — which is what GRANITE is meant to become — is not built by one person. It is built by a community of people who each bring something irreplaceable: a sharper eye for a subtle numerical instability, a deeper familiarity with a particular cluster's topology, a physical intuition that catches what the tests don't, a weekend spent stress-testing a benchmark nobody else thought to run.
 
 **This is that invitation.**
+
+— **LiranOG**, Founder & Lead Developer | April 17, 2026
