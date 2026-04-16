@@ -352,7 +352,7 @@ Scientific integrity demands transparency. These limitations are known, document
 | `alpha_center` reads from AMR level 0, not finest level near puncture | Misleading lapse diagnostic | 📋 Known | v0.7 |
 | GTX 1050 Ti not viable for FP64 GPU compute | GPU path requires H100-class hardware | 📋 Known | Post GPU porting |
 | macOS / Windows native unsupported | Limits accessibility | 📋 Planned | v0.8+ |
-| Tangential BY momenta required for inspiral (p_t ≈ ±0.084 per BH) | Zero momenta → head-on, not inspiral | 📝 Documented | User parameter |
+| Tangential BY momenta required for inspiral p_t ≈ ±0.0954 per BH (quasi-circular, d = 10 M) | Zero momenta → head-on, not inspiral | 📝 Documented | User parameter |
 
 > Full debug context: [`docs/diagnostic_handbook.md`](./docs/diagnostic_handbook.md)
 
@@ -440,6 +440,7 @@ No contribution requires understanding the whole codebase. The modules are delib
 | [`docs/v0.6.5_master_dictionary.md`](./docs/v0.6.5_master_dictionary.md) | **Exhaustive Technical Reference** — every CLI flag, YAML parameter, C++ constant, CMake option, and all Stability Patch forensic records. |
 | [`docs/diagnostic_handbook.md`](./docs/diagnostic_handbook.md) | **Diagnostic Handbook** — lapse lifecycle, ‖H‖₂ interpretation, NaN forensics, and the Health Check Checklist. |
 | [`docs/INSTALL.md`](./docs/INSTALL.md) | **Complete Installation Guide** — per-terminal dependency setup, troubleshooting Q&A, and build verification. |
+| [`docs/paper/granite_preprint_v067.tex`](./docs/paper/granite_preprint_v067.tex) | **Technical Paper (Draft)** — Full formalism, CCZ4/GRMHD/VORTEX description, and validated benchmarks. In preparation for *Physical Review D*. ([compiled PDF](./docs/paper/granite_preprint_v067.pdf)) |
 
 ---
 
@@ -510,7 +511,8 @@ If you use GRANITE in academic research, teaching, or scientific software, pleas
 ```
 
 A technical paper describing GRANITE's formalism and validated benchmarks 
-is in preparation for submission to *Physical Review D*. See `docs/citation.bib`.
+is in preparation for submission to *Physical Review D*. 
+See also `docs/citation.bib`.
 
 ---
 
