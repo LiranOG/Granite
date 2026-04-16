@@ -573,6 +573,6 @@ GRANITE is released under the **GNU General Public License v3.0 or later (GPL-3.
 
 <div align="center">
 
-[⬆️BACK TO THE TOP⬆️](https://github.com/LiranOG/Granite/tree/main?tab=readme-ov-file#granite-)
+[⬆️BACK TO THE TOP⬆️](#granite-)
 
 </div>
