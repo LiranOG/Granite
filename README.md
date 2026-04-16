@@ -491,6 +491,7 @@ The Wiki covers, in full technical detail:
 | Version targets, GPU porting plan, Tier-1 blockers for v0.7 | [Roadmap](https://github.com/LiranOG/Granite/wiki/Roadmap) |
 | 15 answered questions on science, engineering, and HPC | [FAQ](https://github.com/LiranOG/Granite/wiki/FAQ) |
 | Complete inventory of every document in the repository | [Documentation Index](https://github.com/LiranOG/Granite/wiki/Documentation-Index-&-Master-Reference) |
+| Explore the interactive WebGL N-body simulator | [VORTEX Engine](https://github.com/LiranOG/Granite/wiki/VORTEX-Simulator) |
 
 If something is unclear — in the code, in the physics, or in the parameters — the answer is almost certainly in one of these pages.
 
