@@ -43,7 +43,6 @@ GRANITE is a high-performance, next-generation numerical relativity and General-
 - [🗺️ Roadmap](#️-roadmap)
 - [⚠️ Known Limitations](#️-known-limitations-v065)
 - [📋 Versioning Policy](#-versioning-policy-pre-100)
-- [💙 To the Community](#-to-the-community--a-personal-word)
 - [🏛️ Institutional Partnership & Supercomputing Readiness](#️-institutional-partnership--supercomputing-readiness)
 - [🤝 Contributing](#-contributing)
 - [📚 Documentation](#-documentation)
@@ -364,22 +363,6 @@ Scientific integrity demands transparency. These limitations are known, document
 > - GitHub Tags (e.g. `v0.6.5`) mark stable integration points but carry minimal release notes — refer to `CHANGELOG.md` for the full picture.
 > - GitHub Releases will be created officially at `v1.0.0` — the first production-ready, fully-coherent version of the engine.
 
-
----
-
-## 💙 To the Community — A Personal Word
-
-> *"The universe doesn't yield its secrets to a single observer.
-> It never has. It never will."*
-
-I want to speak to you directly — not as a project README, but as one person who built something they genuinely believe in, reaching out to the people who might care about it just as much.
-
-GRANITE started as a private obsession: the conviction that the astrophysics community deserved an open-source engine capable of simulating the most extreme multi-body events the universe produces — not one day, not in theory, but *now*, with rigorous physics and reproducible science. Every line of this codebase was written with that conviction. The CCZ4 formulation, the GRMHD Valencia kernel, the AMR subcycling, the constraint monitors — none of it was scaffolded or approximated. It was derived, implemented, debugged, and validated with the same standard I would hold any published code to.
-
-But a single developer, no matter how driven, is still just one person. And a scientific instrument — which is what GRANITE is meant to become — is not built by one person. It is built by a community of people who each bring something irreplaceable: a sharper eye for a subtle numerical instability, a deeper familiarity with a particular cluster's topology, a physical intuition that catches what the tests don't, a weekend spent stress-testing a benchmark nobody else thought to run.
-
-**This is that invitation.**
-
 ---
 
 ### 🌍 How You Can Contribute — On Your Own Terms
@@ -527,9 +510,8 @@ python3 scripts/run_granite.py format   # Auto-format all C++ contributions
 
 While **GRANITE** serves as the uncompromising C++ supercomputing backend for solving the full non-linear CCZ4 field equations, data visualization of such immense multi-dimensional tensors has historically been a bottleneck. To bridge this gap, I have developed **VORTEX**, located in the [`viz/vortex_eternity/`](./viz/vortex_eternity/) directory.
 
-VORTEX is an elite, custom-built WebGL 3D rendering and simulation engine designed to run completely natively within the browser, utilizing a strict **Zero-Allocation Architecture** to bypass garbage collection stalls and ensure a flawless 60 FPS experience.
+VORTEX is an elite, custom-built WebGL 3D rendering and simulation engine designed to run completely natively within the browser, **Current Standalone Capabilities:**
 
-**Current Standalone Capabilities:**
 Presently, VORTEX operates as an independent sandbox, executing highly optimized Post-Newtonian (PN) dynamics. It employs a **4th-Order Hermite Predictor-Corrector** integrator stabilized by Kahan compensated summation and dynamic Aarseth timestepping. This allows researchers to instantly visualize strong-field phenomena—such as 1.5PN Lense-Thirring frame-dragging, 2.5PN radiation reaction (gravitational wave emission), mass-defect mergers, and Tidal Disruption Events (TDE)—with zero installation friction.
 
 **The v1.0 Coupling Vision (HPC Playback Viewer):**
