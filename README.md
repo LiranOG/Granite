@@ -81,7 +81,7 @@ No single existing open-source code simultaneously handles all of these capabili
 | CCZ4 formulation | ✅ | ✅ | ✅ | ❌ | ✅ |
 | Full GRMHD (Valencia) | ✅ | ✅ | 🔶 | ✅ | ✅ |
 | M1 radiation transport | ✅ | ❌ | ❌ | ❌ | 🔵 |
-| Dynamic AMR (subcycling) | ✅ | ✅ | ✅ | ✅ | 🔵 |
+| Dynamic AMR (subcycling) | ✅ | ✅ | ✅ | ✅ | ✅ |
 | N > 2 BH simultaneous merger | ❌ | ❌ | ❌ | ❌ | 🔵 | 
 | Open license | LGPL | ✅ MIT | ✅ MIT | ✅ BSD | ✅ GPL-3.0 |
 
@@ -331,6 +331,7 @@ GRANITE/
 | Version | Target | Status | Key Deliverables |
 |---|---|:---:|---|
 | **v0.6.5** | Q1 2026 | ✅ **Released** | BBH stable to t=500M, 4-level AMR, 92 tests, Python dashboard |
+| **v0.6.7** | Q1 2026 | ✅ **Released** | VORTEX Gold Master, dynamic AMR fully wired, HDF5 checkpoint write |
 | **v0.7.0** | Q2 2026 | 🔄 In Progress | GPU CUDA kernels, `--resume` checkpoint restart CLI, M1 wired into RK3 loop |
 | **v0.8.0** | Q3 2026 | 📋 Planned | Tabulated nuclear EOS + reaction network |
 | **v0.9.0** | Q4 2026 | 📋 Planned | Full SXS catalog validation (~60 BBH configs), multi-group M1 |
@@ -346,7 +347,8 @@ Scientific integrity demands transparency. These limitations are known, document
 
 | Limitation | Impact | Status | Planned Fix |
 |---|---|:---:|---|
-| `writeCheckpoint()` fully implemented; `--resume` CLI flag not yet wired | Long runs cannot be resumed without code modification | 🔄 Active | v0.7 || M1 radiation built but not wired into RK3 loop | Radiation not active in production runs | 🔄 Active | v0.7 |
+| `writeCheckpoint()` fully implemented; `--resume` CLI flag not yet wired | Long runs cannot be resumed without code modification | 🔄 Active | v0.7 |
+| M1 radiation built but not wired into RK3 loop | Radiation not active in production runs | 🔄 Active | v0.7 |
 | `alpha_center` reads from AMR level 0, not finest level near puncture | Misleading lapse diagnostic | 📋 Known | v0.7 |
 | GTX 1050 Ti not viable for FP64 GPU compute | GPU path requires H100-class hardware | 📋 Known | Post GPU porting |
 | macOS / Windows native unsupported | Limits accessibility | 📋 Planned | v0.8+ |
@@ -372,9 +374,9 @@ Scientific integrity demands transparency. These limitations are known, document
 
 ## 🏛️ Institutional Partnership & Supercomputing Readiness
 
-> **The mathematical foundation is rock solid. The engine is ready. Come run it at scale.**
-
-GRANITE's 100% pass rate across 92 test suites is not a claim — it is a verifiable, reproducible, auditable fact any institution can confirm in under an hour on any Linux HPC node.
+GRANITE's 100% pass rate across 92 tests is not a claim - it is a verifiable, 
+reproducible, auditable fact any institution can confirm in under an hour on 
+any Linux HPC node.
 
 | Partner type | What GRANITE brings | What we seek |
 |---|---|---|
@@ -382,6 +384,7 @@ GRANITE's 100% pass rate across 92 test suites is not a claim — it is a verifi
 | **Numerical relativity groups** (AEI, RIT, Cardiff, Caltech) | Open CCZ4 codebase, community-extensible AMR, Python telemetry | Code review, physics validation, joint publications |
 | **Gravitational wave observatories** (LIGO, Virgo, LISA prep) | Template bank generation at institutional scale | Waveform validation against detector strain data |
 | **Computational science departments** | Pedagogically clean C++17 engine, 92-test teaching harness | Graduate students, postdocs, course integration |
+
 
 ### HPC Quick-Start
 
