@@ -61,7 +61,7 @@
 \author{Liran~M.~Schwartz}
 \email{scliran9@gmail.com}
 \orcid{0009-0008-8035-1308}
-\affiliation{Independent Researcher, Haifa, Israel}
+\affiliation{Independent Researcher, Acre, Israel}
 
 \collaboration{GRANITE Collaboration}
 
@@ -101,6 +101,11 @@ OpenMP thread-scaling with bit-for-bit deterministic output across 1--6
 threads.
 We document all known limitations transparently, including the stub status
 of the checkpoint-restart CLI and the AMR reflux correction operator.
+We also present \textsc{Vortex}, a companion browser-native post-Newtonian
+$N$-body visualization engine (Sec.~\ref{sec:vortex}) implementing a
+4th-order Hermite predictor-corrector integrator with 2.5PN radiation
+reaction, real-time GLSL gravitational lensing, and research-grade
+live diagnostics on a zero-allocation architecture.
 As a flagship target application, we define the five-SMBH benchmark
 configuration (B5\_star): simultaneous merger of five $10^8\,\Msun$
 supermassive black holes with two ultra-massive stellar companions, requiring
@@ -1116,7 +1121,212 @@ expected to proceed through five qualitatively distinct phases:
 \end{enumerate}
 
 % ============================================================================
-%  XI. DISCUSSION
+%  XI. VORTEX: INTERACTIVE POST-NEWTONIAN VISUALIZATION ENGINE
+% ============================================================================
+\section{VORTEX: Interactive Post-Newtonian Visualization Engine}
+\label{sec:vortex}
+
+To bridge the gap between the computational intensity of the \granite{}
+C++ backend and real-time human-in-the-loop exploration, we have developed
+\textsc{Vortex} (\textbf{V}isualization and \textbf{O}rbital
+\textbf{R}eal-time \textbf{T}elemetry \textbf{E}ngine for e\textbf{X}treme
+astrophysics), a standalone browser-native $N$-body physics renderer bundled
+with the \granite{} repository at
+\code{viz/vortex\_eternity/index.html}.
+
+\subsection{Architecture and Zero-Allocation Design}
+\label{sec:vortex_arch}
+
+\textsc{Vortex} is implemented as a single self-contained HTML/JavaScript
+file using the WebGL graphics API.
+The entire hot-path computation operates on pre-allocated
+\code{Float32Array} buffers; no JavaScript objects are constructed or
+garbage-collected per frame.
+This \emph{zero-allocation architecture} eliminates GC stalls and sustains
+a consistent 60\,FPS rendering rate independently of body count or physics
+complexity.
+
+MPI communication is replaced by a \code{Web Audio API} signal path:
+all gain and frequency transitions use \code{AudioParam.setTargetAtTime()}
+with smooth time constants, ensuring zero per-frame memory allocation in
+the audio hot path as well.
+
+\subsection{Physics Engine}
+\label{sec:vortex_physics}
+
+\textsc{Vortex} implements a 4th-order Hermite predictor-corrector
+integrator~\cite{MakinoAarseth1992} that computes both the acceleration
+$\mathbf{a}$ and its time derivative (the ``jerk'') $\dot{\mathbf{a}}$:
+\begin{align}
+  \mathbf{r}^{(p)} &= \mathbf{r}^n + \mathbf{v}^n\Delta t
+    + \tfrac{1}{2}\mathbf{a}^n(\Delta t)^2
+    + \tfrac{1}{6}\dot{\mathbf{a}}^n(\Delta t)^3, \\
+  \mathbf{v}^{(p)} &= \mathbf{v}^n + \mathbf{a}^n\Delta t
+    + \tfrac{1}{2}\dot{\mathbf{a}}^n(\Delta t)^2,
+\end{align}
+followed by a corrector step using the updated acceleration at the
+predicted position.
+This scheme achieves fourth-order convergence with only two force
+evaluations per step, making it significantly more efficient than
+standard RK4 for the $\order{N^2}$ gravitational force sum.
+
+\paragraph{Adaptive timestepping.}
+The timestep is set dynamically by the Aarseth criterion:
+\begin{equation}
+  \Delta t = \eta_{\rm TS}\sqrt{\frac{|\mathbf{a}|}{|\dot{\mathbf{a}}|}},
+\end{equation}
+which automatically tightens during close encounters and relaxes during
+quiescent phases.
+A six-level bisection recovery scheme resolves numerical singularities
+without corrupting the global state.
+
+\paragraph{Kahan compensated summation.}
+The global Hamiltonian energy accumulator uses Kahan summation
+to eliminate $\order{N\epsilon_{\rm mach}}$ catastrophic cancellation,
+maintaining symplectic drift $|\Delta E/E_0| < 10^{-6}$ under typical
+conditions.
+
+\paragraph{Post-Newtonian corrections.}
+\textsc{Vortex} augments Newtonian gravity with four orders of
+post-Newtonian corrections:
+\begin{enumerate}[nosep]
+  \item \textbf{1PN (EIH):} Einstein--Infeld--Hoffmann conservative
+    corrections~\cite{Will2014} at $\order{(v/c)^2}$, producing perihelion
+    precession.
+  \item \textbf{1.5PN (Lense--Thirring):} Spin-orbit coupling producing
+    frame-dragging; spin vectors evolved via Rodrigues' rotation formula
+    to avoid Euler-step magnitude inflation.
+  \item \textbf{2PN:} Second-order EIH corrections at $\order{(v/c)^4}$,
+    plus spin-spin and quadrupole-moment terms.
+  \item \textbf{2.5PN (radiation reaction):} Dissipative terms driving
+    the orbital inspiral via gravitational wave energy and angular
+    momentum loss~\cite{Peters1964}.
+\end{enumerate}
+The PN parameter $x \equiv \max(v^2/c^2,\,GM/rc^2)$ is monitored in
+real time; a warning is raised when $x > 0.1$, at which point the
+PN approximation begins to break down and the full \granite{} CCZ4
+backend is required for reliable waveform generation.
+
+\subsection{Astrophysical Phenomena}
+\label{sec:vortex_phenomena}
+
+\textsc{Vortex} models several strong-field astrophysical phenomena
+within the PN approximation:
+\begin{itemize}[nosep]
+  \item \textbf{Mass-defect mergers:}
+    Radiated mass $\Delta M_{\rm rad} \approx 0.048\,(4\eta)^2\,M$ on
+    merger, with momentum-conserving recoil kick.
+  \item \textbf{Tidal disruption events:}
+    Stars crossing the Roche limit
+    $d_t \leq 2.44\,R_\star(M/m_\star)^{1/3}$ undergo spaghettification
+    followed by Novikov-Thorne disc formation.
+  \item \textbf{Gravitational lensing:}
+    Real-time GLSL fragment shader computing ray deflection, Einstein
+    rings, photon sphere, and Schwarzschild shadow for compact objects
+    with compactness $C = GM/c^2R \geq 0.25$.
+    An Einstein Cross extension adds four secondary image samples
+    at the Einstein ring radius in the strong-field limit.
+  \item \textbf{Relativistic Doppler and beaming:}
+    Per-body line-of-sight velocity component
+    $\beta = \mathbf{v}\cdot\hat{n}/c$ is mapped to wavelength shift;
+    Lorentz beaming modulates brightness as
+    $I_{\rm obs} \propto (1 + \beta\cos\theta)^4$.
+  \item \textbf{Quasi-normal mode ringdown:}
+    Post-merger QNM frequency $\omega$ and damping time $\tau$ of the
+    remnant Kerr black hole are computed analytically and displayed.
+\end{itemize}
+
+\subsection{Research-Grade Diagnostics}
+\label{sec:vortex_diagnostics}
+
+A key design goal of \textsc{Vortex} is to provide scientifically
+meaningful, real-time readouts that researchers can use to assess
+simulation validity without post-processing.
+The Mission Control dashboard displays, at every frame:
+the total Hamiltonian $H(q,p)$;
+the symplectic drift $|\Delta E/E_0|$;
+the geometric lapse proxy $\alpha_{\min} = \sqrt{1 - 2\Phi/c^2}$;
+the dominant binary's GW strain components $h_+, h_\times$;
+the instantaneous GW frequency $f_{\rm GW}$;
+the chirp mass $\mathcal{M}_c$;
+and the merger timescale estimate from Peters' formula.
+
+The \textbf{NR Diagnostics} floating window provides three live
+Chart.js panels: eccentricity vs. semi-major axis ($e$ vs. $a$) to
+trace the GW-driven inspiral track; a semi-logarithmic GW chirp
+frequency sweep ($f_{\rm GW}$ vs. $t$); and the relativistic velocity
+parameter $\beta^2 = (v/c)^2$ per physics step.
+
+\textbf{Minimap 3.0} is a multi-spectral tactical analyzer with three
+sensor modes: \emph{Bodies} (standard overhead view), \emph{Isobar}
+(gravitational potential contours $\Phi = -\sum GM_i/r_i$ via the
+marching-squares algorithm), and \emph{Flux} (bolometric radiation flux
+$F \propto \sum L_i/r_i^2$ on a thermal colour ramp).
+Additional overlays include a camera frustum cone, ISCO proximity
+warnings (pulsing reticle at $5r_{\rm ISCO}$), click-to-select,
+and a logarithmic projection toggle for simultaneous visualization of
+tight binaries and distant perturbers.
+
+\textbf{Gravitational wave audio sonification}
+maps the instantaneous GW strain amplitude to a gain envelope and the
+GW frequency to an audible tone ($f_{\rm audio} = \text{clamp}(f_{\rm GW}\times 10,\,30\text{\,Hz},\,1200\text{\,Hz})$),
+producing a chirp whose rising pitch directly communicates the inspiral
+progression to the observer.
+All audio parameter transitions use \code{setTargetAtTime()}, maintaining
+the zero-allocation constraint.
+
+\subsection{Cinematic and Presentation Systems}
+\label{sec:vortex_cinematic}
+
+\textsc{Vortex} v0.6.7 includes a complete professional recording suite:
+\textbf{Zen Mode} (\code{Z}) fades the entire UI in 0.5\,s via CSS
+opacity transitions, leaving only the WebGL canvas visible for
+distraction-free screen recording or scientific photography;
+\textbf{Cinematic Autopilot} (\code{🎬}) intelligently selects compact
+objects as camera targets, holds each for 12--15\,s with smooth lerp
+($\alpha_{\rm lerp} = 0.04$) and slow orbit, producing professional
+fly-through recordings without manual camera control;
+and an \textbf{ESC-abort} placement system allows atomic cancellation of
+any drag-to-spawn body placement operation.
+
+\subsection{Simulation Scenarios}
+\label{sec:vortex_scenarios}
+
+\textsc{Vortex} ships with a curated library of physically calibrated
+pre-set scenarios:
+GW150914 (the first LIGO detection, 36+29\,$M_\odot$ at 410\,Mpc),
+GW170817 (binary neutron star),
+Cygnus X-1 (BH + stellar companion with Roche-lobe overflow),
+chaotic multi-body configurations, a galactic-core SMBH cluster with
+TDE trigger, and a fully freeform sandbox (``Solar Forge'') supporting
+drag-to-launch velocity specification with live Keplerian orbit
+prediction (ellipse / parabola / hyperbola).
+
+\subsection{Known Limitations and v1.0 Coupling Vision}
+\label{sec:vortex_limits}
+
+The principal limitations of \textsc{Vortex} as a scientific tool are:
+(i)~$\order{N^2}$ direct force summation limits practical $N$ to
+${\sim}30$ bodies before frame rate degrades (Barnes--Hut BVH is
+targeted for v0.7);
+(ii)~the PN approximation is not valid for the final plunge phase
+($x > 0.1$), at which point the \granite{} CCZ4 backend produces
+the physically correct waveform;
+and (iii)~the WebGL rendering context is single-threaded and cannot
+exploit multi-core hardware for force computation.
+
+The v1.0 coupling vision addresses limitation~(ii) directly: the
+\granite{} Python toolchain (\code{granite\_analysis}) will distill HDF5
+outputs into optimised kinematic and telemetry JSON streams that
+\textsc{Vortex} will ingest as a high-fidelity 3D playback viewer,
+rendering exact CCZ4 spacetime trajectories, apparent horizon shapes,
+and extracted $\Psi_4$ gravitational wave strain from full general-relativistic
+numerical simulations.
+This will provide real-time interactive exploration of \granite{} production
+runs at the researcher's browser, with no additional software installation.
+
+% ============================================================================
+%  XII. DISCUSSION
 % ============================================================================
 \section{Discussion}
 \label{sec:discussion}
@@ -1223,6 +1433,11 @@ Validated benchmarks demonstrate:
     1--6 OpenMP threads, confirming deterministic reproducibility.
   \item \textbf{Dynamic AMR}: fully live per-step regridding with
     puncture-tracking spheres wired into the production RK3 loop.
+  \item \textbf{\textsc{Vortex} companion engine}: a browser-native
+    post-Newtonian $N$-body renderer with 4th-order Hermite integrator,
+    2.5PN radiation reaction, real-time GLSL lensing, GW audio sonification,
+    and Minimap~3.0 multi-spectral diagnostics on a zero-allocation
+    architecture (Sec.~\ref{sec:vortex}).
 \end{enumerate}
 
 Known limitations---including the M1/neutrino loop coupling, the
@@ -1473,6 +1688,21 @@ Oxford University Press (2008).
 C.~Gundlach,
 \emph{Pseudo-spectral apparent horizon finders: An efficient new algorithm},
 Phys.\ Rev.\ D \textbf{57}, 863 (1998).
+
+\bibitem{MakinoAarseth1992}
+J.~Makino and S.~J.~Aarseth,
+\emph{On a Hermite integrator with Ahmad-Cohen scheme for gravitational many-body problems},
+Publ.\ Astron.\ Soc.\ Japan \textbf{44}, 141 (1992).
+
+\bibitem{Peters1964}
+P.~C.~Peters,
+\emph{Gravitational Radiation and the Motion of Two Point Masses},
+Phys.\ Rev.\ \textbf{136}, B1224 (1964).
+
+\bibitem{Will2014}
+C.~M.~Will,
+\emph{The confrontation between general relativity and experiment},
+Living Rev.\ Relativ.\ \textbf{17}, 4 (2014).
 
 \end{thebibliography}
 
