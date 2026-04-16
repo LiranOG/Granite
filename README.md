@@ -509,7 +509,8 @@ If you use GRANITE in academic research, teaching, or scientific software, pleas
 }
 ```
 
-A formal paper is in preparation (see `docs/citation.bib`). Please also cite the upstream physics papers that GRANITE implements — full reference list in [`docs/SCIENCE.md`](./docs/SCIENCE.md#references).
+A technical paper describing GRANITE's formalism and validated benchmarks 
+is in preparation for submission to *Physical Review D*. See `docs/citation.bib`.
 
 ---
 
