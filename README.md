@@ -365,61 +365,6 @@ Scientific integrity demands transparency. These limitations are known, document
 
 ---
 
-### 🌍 How You Can Contribute — On Your Own Terms
-
-There is no minimum. There is no gatekeeping. There is no "small enough to not matter."
-
-| What you bring | How it helps GRANITE |
-|---|---|
-| **You run it on your cluster** | Real-world scaling data and hardware-specific failure modes a desktop cannot surface |
-| **You read the physics and find something wrong** | A wrong formula caught early is worth a thousand correct ones discovered late |
-| **You submit a PR — any size** | A one-line fix, a new unit test, a missing C2P edge case — all of it moves the needle |
-| **You open an issue** | Describing what broke, what confused you, or what's missing is itself a contribution of enormous value |
-| **You share it with a colleague** | The person most likely to find the deepest bug is the one we haven't met yet |
-| **You validate a benchmark** | Running `B2_eq` and sharing constraint norms takes 20 minutes and generates ground truth we cannot produce alone |
-| **You review the theory** | If you work in NR, GRMHD, or computational astrophysics — your professional eye is the most valuable thing you could offer |
-
-No contribution requires understanding the whole codebase. The modules are deliberately decoupled: an expert in radiation transport can engage with `src/radiation/` without touching the CCZ4 RHS loop.
-
----
-
-### 🏛️ To Research Groups & Institutions
-
-The codebase is **fully open, GPL-3.0-licensed, and architecturally designed for extension**. We are not asking you to replace your existing tools. We are asking whether some of what we have built might be useful to you, and whether some of what you know might make GRANITE better for everyone.
-
-We are actively interested in joint validation campaigns, Tier-0/1 allocation access for B5\_star, graduate student and postdoc involvement, and waveform template collaboration with LIGO/Virgo/LISA groups.
-
-If any of this resonates, open an issue tagged `[partnership]` or contact the maintainer via the repository.
-
----
-
-### 🙏 A Genuine Thank You
-
-To those who will file a bug report at 11pm because something didn't converge and they couldn't let it go — thank you in advance.
-
-To those who will spend a Saturday writing a test for a corner case nobody asked them to cover — thank you in advance.
-
-To those who will send a message saying "I ran `B2_eq` on our cluster and here's what happened" — thank you in advance.
-
-To those who will read a formula in `ccz4.cpp` and say "wait, shouldn't that sign be negative?" — *especially* thank you in advance.
-
-
-This project exists because the science demands it. It will reach its potential because the community makes it.
-
-**Welcome aboard. Let's simulate the universe — together.**
-
-— **LiranOG**, Founder & Lead Developer | April 10, 2026
-
-<div align="right">
-
-[![GitHub Issues](https://img.shields.io/github/issues/LiranOG/Granite?label=open%20issues&color=blue)](https://github.com/LiranOG/Granite/issues)
-[![GitHub Discussions](https://img.shields.io/github/discussions/LiranOG/Granite?label=discussions&color=purple)](https://github.com/LiranOG/Granite/discussions)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/LiranOG/Granite/blob/main/.github/CONTRIBUTING.md)
-
-</div>
-
----
-
 ## 🏛️ Institutional Partnership & Supercomputing Readiness
 
 > **The mathematical foundation is rock solid. The engine is ready. Come run it at scale.**
@@ -491,6 +436,50 @@ python3 scripts/run_granite.py format   # Auto-format all C++ contributions
 
 ---
 
+### 🌍 How You Can Contribute — On Your Own Terms
+
+There is no minimum. There is no gatekeeping. There is no "small enough to not matter."
+
+| What you bring | How it helps GRANITE |
+|---|---|
+| **You run it on your cluster** | Real-world scaling data and hardware-specific failure modes a desktop cannot surface |
+| **You read the physics and find something wrong** | A wrong formula caught early is worth a thousand correct ones discovered late |
+| **You submit a PR — any size** | A one-line fix, a new unit test, a missing C2P edge case — all of it moves the needle |
+| **You open an issue** | Describing what broke, what confused you, or what's missing is itself a contribution of enormous value |
+| **You share it with a colleague** | The person most likely to find the deepest bug is the one we haven't met yet |
+| **You validate a benchmark** | Running `B2_eq` and sharing constraint norms takes 20 minutes and generates ground truth we cannot produce alone |
+| **You review the theory** | If you work in NR, GRMHD, or computational astrophysics — your professional eye is the most valuable thing you could offer |
+
+No contribution requires understanding the whole codebase. The modules are deliberately decoupled: an expert in radiation transport can engage with `src/radiation/` without touching the CCZ4 RHS loop.
+
+---
+
+### 🙏 A Genuine Thank You
+
+To those who will file a bug report at 11pm because something didn't converge and they couldn't let it go — thank you in advance.
+
+To those who will spend a Saturday writing a test for a corner case nobody asked them to cover — thank you in advance.
+
+To those who will send a message saying "I ran `B2_eq` on our cluster and here's what happened" — thank you in advance.
+
+To those who will read a formula in `ccz4.cpp` and say "wait, shouldn't that sign be negative?" — *especially* thank you in advance.
+
+
+This project exists because the science demands it. It will reach its potential because the community makes it.
+
+**Welcome aboard. Let's simulate the universe — together.**
+
+— **LiranOG**, Founder & Lead Developer | April 10, 2026
+
+<div align="right">
+
+[![GitHub Issues](https://img.shields.io/github/issues/LiranOG/Granite?label=open%20issues&color=blue)](https://github.com/LiranOG/Granite/issues)
+[![GitHub Discussions](https://img.shields.io/github/discussions/LiranOG/Granite?label=discussions&color=purple)](https://github.com/LiranOG/Granite/discussions)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/LiranOG/Granite/blob/main/.github/CONTRIBUTING.md)
+
+</div>
+
+---
 ## 📚 Documentation
 
 | Document | Description |
@@ -510,8 +499,9 @@ python3 scripts/run_granite.py format   # Auto-format all C++ contributions
 
 While **GRANITE** serves as the uncompromising C++ supercomputing backend for solving the full non-linear CCZ4 field equations, data visualization of such immense multi-dimensional tensors has historically been a bottleneck. To bridge this gap, I have developed **VORTEX**, located in the [`viz/vortex_eternity/`](./viz/vortex_eternity/) directory.
 
-VORTEX is an elite, custom-built WebGL 3D rendering and simulation engine designed to run completely natively within the browser, **Current Standalone Capabilities:**
+VORTEX is an elite, custom-built WebGL 3D rendering and simulation engine designed to run completely natively within the browser, utilizing a strict **Zero-Allocation Architecture** to bypass garbage collection stalls and ensure a flawless 60 FPS experience.
 
+ **Current Standalone Capabilities:**
 Presently, VORTEX operates as an independent sandbox, executing highly optimized Post-Newtonian (PN) dynamics. It employs a **4th-Order Hermite Predictor-Corrector** integrator stabilized by Kahan compensated summation and dynamic Aarseth timestepping. This allows researchers to instantly visualize strong-field phenomena—such as 1.5PN Lense-Thirring frame-dragging, 2.5PN radiation reaction (gravitational wave emission), mass-defect mergers, and Tidal Disruption Events (TDE)—with zero installation friction.
 
 **The v1.0 Coupling Vision (HPC Playback Viewer):**
