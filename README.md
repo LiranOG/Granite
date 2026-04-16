@@ -517,8 +517,6 @@ This project exists because the science demands it. It will reach its potential 
 
 **Welcome aboard. Let's simulate the universe — together.**
 
-— **LiranOG**, Founder & Lead Developer | April 10, 2026
-
 <div align="right">
 
 [![GitHub Issues](https://img.shields.io/github/issues/LiranOG/Granite?label=open%20issues&color=blue)](https://github.com/LiranOG/Granite/issues)
