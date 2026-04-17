@@ -39,3 +39,8 @@ I promise to remain transparent, dedicated, and brutally honest about our limita
 > ***Let’s simulate the universe — together.***
 
 — **LiranOG**, Founder & Lead Architect | April 17, 2026
+
+***
+
+###  Ready to see the future?
+If you want to understand exactly *how* we are going to achieve this—our plans for the YAML revolution, the VORTEX real-time visualization, and the HPC Cloud Bridge economy—read the **[GRANITE v1.0 Vision & Manifesto](VISION.md)**.
