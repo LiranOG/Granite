@@ -229,6 +229,14 @@ amr:
 
 ---
 
+> [!NOTE]
+> Publication-quality figures for all benchmarks on this page, generated from
+> real devlog data, are available in
+> [`docs/paper/figures/`](./paper/figures/).                                               
+> See `docs/paper/figures/generate_figures.py` to reproduce any figure.
+
+---
+
 ## 6. Resolution Convergence Analysis
 
 ### 6.1 BBH ‖H‖₂ at t = 500M vs. Resolution
@@ -309,5 +317,6 @@ Diagnostic output is automatically saved to `dev_logs/sim_tracker_<timestamp>.lo
 
 ---
 
-*GRANITE v0.6.5 — Benchmark Report — April 10, 2026*
+*GRANITE v0.6.5 (last stable) — Benchmark Report — April 2026*
+
 *All results verified on Intel i5-8400, 16 GB DDR4, Linux/WSL2.*
