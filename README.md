@@ -23,7 +23,8 @@
 
 > **Status: 🟢 v0.6.7 (VORTEX Update)** — CCZ4 + full GRMHD + fully dynamic Berger-Oliger AMR regridding (live subcycling with tracking spheres), moving-puncture gauge, HDF5 checkpoint write, and VORTEX Gold Master renderer. 92 tests / 100% pass rate. `single_puncture` + `B2_eq` validated stable through t = 500 M.
 
-GRANITE is a high-performance, next-generation numerical relativity and General-Relativistic Magnetohydrodynamics (GRMHD) engine. Designed from the ground up to model extreme astrophysical events — such as the inspiral and merger of multiple Supermassive Black Holes (SMBHs) interacting with dense stellar environments and accretion discs — GRANITE brings state-of-the-art multi-scale physics into a cohesive, open-source framework.
+GRANITE is a high-performance, next-generation numerical relativity and General-Relativistic Magnetohydrodynamics (GRMHD) engine.
+Designed from the ground up to model extreme astrophysical events — such as the inspiral and merger of multiple Supermassive Black Holes (SMBHs) interacting with dense stellar environments and accretion discs — GRANITE brings state-of-the-art multi-scale physics into a cohesive, open-source framework.
 
 ---
 
@@ -95,10 +96,10 @@ No single existing open-source code simultaneously handles all of these capabili
 * 🔶 = **Partial / in development** (Currently being actively developed)
 * ❌ = **Not available**
 
----
 
 > [!NOTE]
 > 💡 **Deep-Dive Architectural Analysis & Full Comparison**
+> 
 > The table above provides only a high-level overview. For an exhaustive, source-cited capability breakdown against *Einstein Toolkit, GRChombo, SpECTRE, and AthenaK*, please refer to our **[Detailed Comparison & Architecture Guide](docs/COMPARISON.md)**. 
 ---
 
