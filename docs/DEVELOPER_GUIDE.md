@@ -4,8 +4,9 @@
 
 | Field | Value |
 |---|---|
+| **Current Development Version** | 0.6.7 (main branch) |
 | **Last Stable Version** | 0.6.5 — Stability & Benchmark Release |
-| **Release Date** | April 10, 2026 |
+| **Release Date (Stable)** | April 10, 2026 |
 | **Maintainer** | LiranOG (Founder & Lead Developer) |
 | **License** | GPL-3.0 (see `LICENSE`) |
 | **Repository** | https://github.com/LiranOG/Granite |
