@@ -547,4 +547,5 @@ is worth a thousand correct ones discovered late.
 > Questions about the physics, the code, or how to get started?
 > Open a GitHub Discussion — every question is welcome.
 >
-> **Let's build the ultimate extreme-astrophysics engine — together.**
+
+***Let's build the ultimate extreme-astrophysics engine — together.***
