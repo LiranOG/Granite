@@ -33,7 +33,8 @@ Examples of unacceptable behavior:
 ## Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be reported
-to the GRANITE Steering Committee at `conduct@granite-nr.org`. All complaints will
+by opening a GitHub Issue tagged [conduct], or by contacting the maintainer
+directly via the email listed on the repository profile. All complaints will
 be reviewed and investigated promptly and fairly.
 
 ## Attribution
