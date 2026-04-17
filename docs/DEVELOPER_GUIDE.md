@@ -4,7 +4,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | 0.6.5 — Stability & Benchmark Release |
+| **Last Stable Version** | 0.6.5 — Stability & Benchmark Release |
 | **Release Date** | April 10, 2026 |
 | **Maintainer** | LiranOG (Founder & Lead Developer) |
 | **License** | GPL-3.0 (see `LICENSE`) |
