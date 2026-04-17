@@ -13,6 +13,7 @@
 - [HPC & Performance](#hpc--performance)
 - [Contributing](#contributing)
 - [Comparison with Other Codes](#comparison-with-other-codes)
+- [Ecosystem & Community](#ecosystem--community)
 
 ---
 
@@ -176,5 +177,33 @@ A: GRANITE can extract Ψ₄ gravitational wave data in the same format used by 
 
 ---
 
-*GRANITE v0.6.5 — FAQ — April 10, 2026*
+## Ecosystem & Community
+
+**Q: What is VORTEX and how does it relate to GRANITE?**
+
+A: VORTEX is a standalone browser-native N-body physics engine bundled with
+GRANITE at `viz/vortex_eternity/index.html`. It implements a 4th-order Hermite
+predictor-corrector integrator with 1.5PN Lense-Thirring frame-dragging,
+2.5PN radiation-reaction (gravitational wave inspiral), real-time GLSL
+gravitational lens rendering, and gravitational wave audio sonification —
+all running at 60 FPS in any modern browser with no installation required.
+VORTEX currently operates as an independent post-Newtonian sandbox. The v1.0
+roadmap couples VORTEX to GRANITE's HDF5 output for real-time 3D playback
+of full general-relativistic simulation data.
+
+**Q: Is there a published paper I can cite?**
+
+A: A technical paper describing GRANITE's mathematical formalism, CCZ4/GRMHD/VORTEX
+implementation, and validated benchmarks is in preparation for submission to
+*Physical Review D*. The current draft (1,709 lines of LaTeX with 13 publication-
+quality figures) is available in the repository at
+[`docs/paper/granite_preprint_v067.tex`](./paper/granite_preprint_v067.tex)
+([compiled PDF](./paper/granite_preprint_v067.pdf)).
+For software citation, use the BibTeX entry in [`docs/citation.bib`](./citation.bib)
+or the machine-readable `CITATION.cff` at the repository root.
+
+---
+
+*GRANITE v0.6.7 — FAQ — April 2026*
+
 *This document is maintained continuously. If your question is not answered here, open a GitHub Discussion — your question will be added to the next FAQ update.*
