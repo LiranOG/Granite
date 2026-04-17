@@ -1,6 +1,6 @@
 # GRANITE — Science & Physics Reference
 
-**Version:** v0.6.5 | **April 10, 2026**
+**Version:** v0.6.5 (last stable) | v0.6.7 (current development) | **April 2026**
 
 > This document explains the physical and mathematical foundations of GRANITE: what it simulates, why it matters, and which governing equations it implements. For implementation details, see [`DEVELOPER_GUIDE.md`](./DEVELOPER_GUIDE.md).
 
