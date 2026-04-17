@@ -1,4 +1,4 @@
-# 🔥 Universal Deployment & Performance Optimization
+# Universal Deployment & Performance Optimization
 
 This guide outlines the professional "Maximum Power" protocols for deploying the GRANITE numerical relativity engine. The engine uses massive dense grid computations natively, making compiler optimization thresholds and thread saturation mission-critical.
 
@@ -161,3 +161,6 @@ is misconfigured:
 python scripts/health_check.py
 ```
 
+---
+
+*GRANITE v0.6.5 (last stable) — Deployment & Performance Optimization — April 2026*
