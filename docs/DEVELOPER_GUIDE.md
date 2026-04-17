@@ -86,90 +86,201 @@ NRCF and PRISM provide analytic benchmark numbers (GW energy, peak frequency, sh
 
 ## 2. Repository Structure
 
-```
-Granite/
-├── src/                              # Core physics kernels (C++17)
-│   ├── spacetime/                    # CCZ4 evolution, constraint damping
-│   │   ├── ccz4_rhs.cpp              # Main CCZ4 RHS kernel
-│   │   ├── gauge.cpp                 # 1+log slicing, Gamma-driver shift
-│   │   └── constraints.cpp           # Hamiltonian + momentum constraints
-│   ├── grmhd/                        # Valencia formulation, HRSC solvers
-│   │   ├── reconstruct.cpp           # MP5, PPM, PLM reconstruction
-│   │   ├── riemann.cpp               # HLLE, HLLD Riemann solvers
-│   │   ├── conserved_to_prim.cpp     # C2P root-finding (Newton-Raphson)
-│   │   └── ct.cpp                    # Constrained transport for ∇·B = 0
-│   ├── radiation/                    # Neutrino transport
-│   │   ├── m1_closure.cpp            # M1 moment closure (grey)
-│   │   └── leakage.cpp               # Neutrino leakage scheme
-│   ├── amr/                          # Berger-Oliger AMR
-│   │   ├── grid_hierarchy.cpp        # Level management
-│   │   ├── prolongation.cpp          # Trilinear interpolation
-│   │   ├── restriction.cpp           # Volume-weighted restriction
-│   │   └── subcycling.cpp            # Berger-Oliger recursive subcycling
-│   ├── initial_data/                 # ID generators
-│   │   ├── brill_lindquist.cpp       # BL conformal factor
-│   │   ├── bowen_york.cpp            # BY extrinsic curvature + momenta
-│   │   ├── two_punctures.cpp         # Two-punctures solver (BBH ID)
-│   │   └── tov_solver.cpp            # Tolman-Oppenheimer-Volkoff for NS
-│   └── diagnostics/                  # Observables + GW extraction
-│       ├── psi4_extraction.cpp       # Weyl scalar Ψ₄ via NP formalism
-│       ├── ah_finder.cpp             # Apparent horizon finder
-│       └── constraint_monitor.cpp    # ‖H‖₂, ‖M‖₂ norms
+```text
+GRANITE/
 │
-├── include/granite/                  # Public modular headers (clean interfaces)
-│   ├── grid_block.hpp                # GridBlock data structure
-│   ├── gr_metric3.hpp                # GRMetric3 (CCZ4 ↔ GRMHD interface)
-│   ├── spacetime/                    # Spacetime solver interface
-│   ├── grmhd/                        # GRMHD solver interface
-│   ├── radiation/                    # Radiation module interface
-│   └── amr/                          # AMR engine interface
+├── 📄 README.md                        # Project overview, benchmarks, quick-start, and documentation index.
+├── 📄 CHANGELOG.md                     # Complete engineering audit trail — every fix, milestone, and architectural decision (2,331 lines).
+├── 📄 CITATION.cff                     # Machine-readable citation metadata (CFF v1.2) — ORCID, Zenodo DOI, preferred reference.
+├── 📄 CMakeLists.txt                   # Master CMake build system: MPI, OpenMP, HDF5, CUDA/HIP, Google Test.
+├── 📄 LICENSE                          # GNU General Public License v3.0-or-later.
+├── 📄 pyproject.toml                   # Python package metadata for `granite_analysis` (pip install -e .).
 │
-├── tests/                            # GoogleTest suite (92 tests, 100% pass)
-│   ├── test_ccz4.cpp
-│   ├── test_grmhd.cpp
-│   ├── test_amr.cpp
-│   ├── test_initial_data.cpp
-│   └── test_diagnostics.cpp
+├── 📁 .github/                         # GitHub automation and community governance.
+│   ├── 📁 workflows/
+│   │   ├── ci.yml                      # CI matrix: GCC-12 × Clang-18 × Debug/Release — build, test, coverage.
+│   │   ├── codeql.yml                  # Automated static security analysis via GitHub CodeQL.
+│   │   └── .codecov.yml                # Coverage upload configuration for Codecov.io.
+│   ├── CONTRIBUTING.md                 # Contribution guide: PR workflow, coding standards, test requirements.
+│   ├── CODE_OF_CONDUCT.md              # Community standards and enforcement policy.
+│   └── SECURITY.md                     # Vulnerability disclosure and responsible reporting policy.
 │
-├── benchmarks/                       # YAML flagship scenario configs
-│   ├── B5_star/
-│   │   └── B5_star.yaml              # Canonical 5-SMBH flagship
-│   ├── B2_eq/
-│   │   └── B2_eq.yaml                # Equal-mass BBH benchmark
-│   └── single_puncture/
-│       └── dev_single.yaml           # Single puncture stability test
+├── 📁 benchmarks/                      # Self-contained simulation presets (YAML config + expected output).
+│   ├── 📁 single_puncture/
+│   │   └── params.yaml                 # Standard 3-D moving-puncture Schwarzschild stability benchmark (t=500 M).
+│   ├── 📁 B2_eq/
+│   │   └── params.yaml                 # Equal-mass (M=1.0) binary BH merger — inspiral + ringdown (t=500 M).
+│   ├── 📁 B5_star/
+│   │   └── params.yaml                 # Flagship: 5 SMBHs (10⁸ M☉) + 2 ultra-massive stars — v1.0 production target.
+│   ├── 📁 gauge_wave/
+│   │   └── params.yaml                 # 1-D sinusoidal gauge validation for CCZ4 advection stability.
+│   ├── 📁 scaling_tests/
+│   │   ├── slurm_submit.sh             # SLURM job template for Tier-1 HPC strong/weak scaling.
+│   │   ├── pbs_submit.sh               # PBS/Torque equivalent for legacy cluster schedulers.
+│   │   └── README.md                   # HPC deployment guide and expected throughput targets.
+│   └── validation_tests.yaml           # Master validation suite: expected ‖H‖₂ bounds per benchmark config.
 │
-├── python/
-│   └── granite_analysis/             # Post-processing & visualization
-│       ├── sim_tracker.py            # Real-time simulation monitoring
-│       ├── gw.py                     # GW strain / Ψ₄ post-processing
-│       └── constraint_plot.py        # Constraint norm time series
+├── 📁 containers/                      # Container definitions for reproducible HPC deployments.
+│   ├── Dockerfile                      # Docker multi-stage image (Ubuntu 22.04, HDF5 1.12, OpenMPI 4.1).
+│   └── granite.def                     # Singularity/Apptainer definition for cluster environments.
 │
-├── scripts/                          # CLI orchestration
-│   ├── run_granite.py                # Single entry point for all dev tasks
-│   ├── dev_benchmark.py              # <5-minute developer benchmark
-│   ├── dev_stability_test.py         # Automated pass/fail stability tests
-│   └── health_check.py               # Pre-flight simulation validator
+├── 📁 docs/                            # Permanent technical reference documentation.
+│   │
+│   ├── 📄 DEVELOPER_GUIDE.md           # Complete developer reference: architecture, all 22 CCZ4 variables,
+│   │                                   # physics formulations, data structures, coding standards, HPC guidelines.
+│   ├── 📄 BENCHMARKS.md                # Full benchmark report: raw telemetry tables, constraint norm time
+│   │                                   # series, resolution convergence, and hardware profiles.
+│   ├── 📄 COMPARISON.md                # Source-cited, per-feature comparison vs. Einstein Toolkit, GRChombo,
+│   │                                   # SpECTRE, and AthenaK.
+│   ├── 📄 SCIENCE.md                   # Physics motivation, governing equations, B5_star scenario description,
+│   │                                   # GRANITE's place in the NR landscape, and multi-messenger context.
+│   ├── 📄 VISION.md                    # Long-term roadmap: YAML revolution, VORTEX live telemetry, v1.0 goals.
+│   ├── 📄 PERSONAL_NOTE.md             # A direct address to the community on the philosophy behind GRANITE.
+│   ├── 📄 COMMUNITY_SECTION.md         # Contributing guidelines and community engagement details.
+│   ├── 📄 FAQ.md                       # Frequently asked questions — science, engineering, and HPC (15 answered).
+│   ├── 📄 INSTALL.md                   # A-to-Z installation guide per OS and terminal environment.
+│   ├── 📄 INSTALLATION.md              # Extended installation reference with dependency troubleshooting.
+│   ├── 📄 WINDOWS_README.md            # Windows-specific setup guide (native PowerShell, Conda, WSL2).
+│   ├── 📄 DEPLOYMENT_AND_PERFORMANCE.md# HPC deployment guide: NUMA binding, MPI ranks, Lustre I/O tuning.
+│   ├── 📄 diagnostic_handbook.md       # Simulation health reference: lapse lifecycle, ‖H‖₂ interpretation,
+│   │                                   # NaN forensics, and the pre-flight Health Check Checklist.
+│   ├── 📄 v0.6.5_master_dictionary.md  # Exhaustive technical reference: every CLI flag, YAML parameter,
+│   │                                   # C++ constant, CMake option, and Stability Patch forensic records.
+│   ├── 📄 citation.bib                 # BibTeX entry for citing GRANITE in LaTeX documents.
+│   ├── 📄 conf.py                      # Sphinx documentation configuration (Breathe + autodoc).
+│   ├── 📄 index.rst                    # Sphinx master documentation index.
+│   │
+│   ├── 📁 paper/                       # Technical preprint — in preparation for Physical Review D.
+│   │   ├── granite_preprint_v067.tex   # Full LaTeX source (1,709 lines): CCZ4/GRMHD/VORTEX formalism,
+│   │   │                               # validated benchmarks, known limitations, B5_star scenario.
+│   │   ├── granite_preprint_v067.pdf   # Compiled PDF — current draft, freely distributable.
+│   │   └── 📁 figures/                 # All 13 publication-quality figures (300 dpi PDF, real devlog data).
+│   │       ├── fig1_single_puncture.pdf      # SP ‖H‖₂ + lapse, 3 resolutions, ×84.8 reduction annotation.
+│   │       ├── fig2_binary_bbh.pdf           # BBH ‖H‖₂ + lapse, real data points + monotonic decay.
+│   │       ├── fig3_constraint_comparison.pdf# Normalised constraint reduction: SP vs BBH comparison.
+│   │       ├── fig4_scaling.pdf              # OpenMP speedup + parallel efficiency (1–6 threads).
+│   │       ├── fig5_amr_schematic.pdf        # Nested AMR hierarchy schematic with tracking spheres.
+│   │       ├── fig6_amr_evolution.pdf        # Live AMR block count evolution (real devlog data).
+│   │       ├── fig7_architecture.pdf         # Software architecture: RK3→modules→AMR→infrastructure.
+│   │       ├── fig8_bbh_diagnostics.pdf      # BBH convergence summary bar chart.
+│   │       ├── fig9_bbh_comprehensive.pdf    # BBH 4-panel: ‖H‖₂, lapse, AMR blocks, throughput.
+│   │       ├── fig10_trumpet_closeup.pdf     # Single-puncture trumpet transition zoom (t ≤ 20 M).
+│   │       ├── fig11_sp_comprehensive.pdf    # SP 4-panel: ‖H‖₂, lapse, AMR blocks, throughput.
+│   │       ├── fig12_throughput.pdf          # M/s throughput evolution across all 5 benchmark runs.
+│   │       ├── fig13_walltime.pdf            # Wall-time vs simulation time (all benchmarks).
+│   │       └── generate_figures.py           # Reproducible figure generation script from raw devlog data.
+│   │
+│   ├── 📁 theory/
+│   │   └── ccz4.rst                    # CCZ4 physics derivations and notation reference (Sphinx source).
+│   └── 📁 user_guide/
+│       └── installation.rst            # End-user installation tutorial (Sphinx source).
 │
-├── containers/
-│   ├── Dockerfile                    # Docker recipe
-│   └── granite.def                   # Singularity/Apptainer recipe
+├── 📁 include/granite/                 # Public C++ interface headers — indexed by subsystem.
+│   ├── 📁 core/
+│   │   ├── grid.hpp                    # GridBlock: field-major 3-D data structure, ghost zones, MPI buffers.
+│   │   └── types.hpp                   # Type aliases (Real, DIM), physical constants, variable enumerations.
+│   ├── 📁 spacetime/
+│   │   └── ccz4.hpp                    # CCZ4Evolution: RHS, constraint monitoring, KO dissipation, gauge driver.
+│   ├── 📁 amr/
+│   │   └── amr.hpp                     # AMRHierarchy: Berger-Oliger subcycling, tracking spheres, regridding.
+│   ├── 📁 grmhd/
+│   │   ├── grmhd.hpp                   # GRMHDEvolution: Valencia flux loop, HLLE/HLLD, PLM/MP5/PPM, con2prim.
+│   │   └── tabulated_eos.hpp           # EquationOfState base + IdealGasEOS + TabulatedNuclearEOS interface.
+│   ├── 📁 radiation/
+│   │   └── m1.hpp                      # M1Transport: grey moment closure, Minerbo Eddington factor, IMEX source.
+│   ├── 📁 neutrino/
+│   │   └── neutrino.hpp                # NeutrinoLeakage: hybrid leakage + M1 for νe, ν̄e, νx transport.
+│   ├── 📁 horizon/
+│   │   └── horizon_finder.hpp          # ApparentHorizonFinder: flow-method expansion zero-finding (Gundlach 1998).
+│   ├── 📁 initial_data/
+│   │   └── initial_data.hpp            # Brill-Lindquist, Bowen-York, Two-Punctures, TOV polytrope, gauge wave.
+│   ├── 📁 io/
+│   │   └── hdf5_io.hpp                 # HDF5Writer/Reader: parallel MPI-IO, writeCheckpoint(), readCheckpoint().
+│   └── 📁 postprocess/
+│       └── postprocess.hpp             # Psi4Extractor: NP Ψ₄ on extraction spheres, GW strain, recoil kick.
 │
-├── docs/
-│   ├── DEVELOPER_GUIDE.md            # This document
-│   ├── INSTALL.md                    # Full installation guide
-│   ├── diagnostic_handbook.md        # NaN / constraint debugging flowchart
-│   └── theory/                       # Physics derivations & references
+├── 📁 src/                             # C++17 physics kernels and engine entry point (~8,918 lines total).
+│   ├── main.cpp                        # Engine entry point: YAML load, AMR init, SSP-RK3 time loop (1,231 ln).
+│   │                                   # NaN forensics, Sommerfeld BCs, puncture tracking, diagnostics output.
+│   ├── 📁 core/
+│   │   └── grid.cpp                    # GridBlock implementation: packBoundary/unpackBoundary MPI buffers (115 ln).
+│   ├── 📁 spacetime/
+│   │   └── ccz4.cpp                    # CCZ4 RHS: full conformal Ricci tensor, physical Laplacian of lapse,   (1,158 ln)
+│   │                                   # χ-blended upwind advection, KO dissipation, constraint monitoring.
+│   ├── 📁 amr/
+│   │   └── amr.cpp                     # AMR hierarchy: dynamic Berger-Oliger subcycling, iterative union-merge,  (722 ln)
+│   │                                   # gradient tagger, puncture tracking spheres, live per-step regridding.
+│   ├── 📁 grmhd/
+│   │   ├── grmhd.cpp                   # Valencia GRMHD: PLM/MP5/PPM reconstruction, HLLE Riemann solver,        (1,014 ln)
+│   │   │                               # Palenzuela con2prim NR, geometric source terms, atmosphere floors.
+│   │   ├── hlld.cpp                    # Full 7-wave HLLD Riemann solver + upwind constrained transport CT.       (476 ln)
+│   │   └── tabulated_eos.cpp           # Nuclear EOS: trilinear interpolation, NR temperature inversion,          (707 ln)
+│   │                                   # β-equilibrium Ye solver, ideal gas + polytropic fallbacks.
+│   ├── 📁 radiation/
+│   │   └── m1.cpp                      # Grey M1 radiation: Minerbo closure, IMEX source integration,             (416 ln)
+│   │                                   # GR lapse/shift corrections, Eddington tensor. [RK3 coupling: v0.7]
+│   ├── 📁 neutrino/
+│   │   └── neutrino.cpp                # Hybrid leakage-M1: URCA, pair annihilation, optical depth integration,   (411 ln)
+│   │                                   # dYe/dt β-process rates. [RK3 coupling: v0.7]
+│   ├── 📁 horizon/
+│   │   └── horizon_finder.cpp          # Apparent horizon finder: null expansion θ⁺, flow iteration,              (565 ln)
+│   │                                   # multi-BH detection, common horizon, recoil estimation.
+│   ├── 📁 initial_data/
+│   │   └── initial_data.cpp            # BL conformal factor, BY NR solver, Two-Punctures spectral,               (957 ln)
+│   │                                   # TOV ODE integrator, gauge wave, polytrope star builder.
+│   ├── 📁 io/
+│   │   └── hdf5_io.cpp                 # Parallel HDF5 I/O: grid snapshots, full checkpoint write/read,           (497 ln)
+│   │                                   # time-series diagnostics, simulation metadata serialisation.
+│   └── 📁 postprocess/
+│       └── postprocess.cpp             # Ψ₄ GW extraction: NP tetrad, spin-weighted harmonics (ℓ≤4),              (649 ln)
+│                                       # fixed-frequency strain integration, radiated energy/momentum.
 │
-├── .github/
-│   ├── workflows/                    # CI/CD pipelines
-│   ├── PULL_REQUEST_TEMPLATE.md
-│   └── ISSUE_TEMPLATE/
+├── 📁 tests/                           # 92-test GoogleTest suite — 100% pass rate on GCC-12 and Clang-18.
+│   ├── CMakeLists.txt                  # CTest integration for all 10 test files.
+│   ├── 📁 core/
+│   │   ├── test_types.cpp              # TypesTest (7): symIdx, variable counts, physical constants, units.
+│   │   └── test_grid.cpp               # GridBlockTest (13) + BufferTest (5) + FlatLayoutTest (4) — 22 total.
+│   ├── 📁 spacetime/
+│   │   ├── test_ccz4_flat.cpp          # CCZ4FlatTest (10): RHS=0 on flat, KO dissipation, upwind blending.
+│   │   └── test_gauge_wave.cpp         # GaugeWaveTest (4): initialization, RHS bounds, matter-source neutrality.
+│   ├── 📁 grmhd/
+│   │   ├── test_ppm.cpp                # PPMTest (5): parabolic recovery, discontinuity sharpness, monotonicity.
+│   │   ├── test_hlld_ct.cpp            # HLLDTest (4) + CTTest (3): MHD shock fluxes, ∇·B preservation.
+│   │   ├── test_grmhd_gr.cpp           # GRMHDGRTest (5): HLLE in curved metric, MP5 reconstruction.
+│   │   └── test_tabulated_eos.cpp      # IdealGasLimitTest (5) + ThermodynamicsTest (5) +
+│   │                                   # InterpolationTest (5) + BetaEquilibriumTest (5) — 20 total.
+│   └── 📁 initial_data/
+│       ├── test_brill_lindquist.cpp    # BrillLindquistTest (5): single/binary/5-BH conformal factor.
+│       └── test_polytrope.cpp          # PolytropeTest (7): Lane-Emden, TOV solver, density/pressure monotonicity.
 │
-├── params.yaml                       # Active simulation parameters
-├── CHANGELOG.md                      # Authoritative history of changes
-├── CMakeLists.txt                    # Modern CMake build system
-└── AUTHORS.md                        # All contributors
+├── 📁 python/                          # Installable Python analysis package (pip install -e .).
+│   └── 📁 granite_analysis/
+│       ├── __init__.py                 # Package exports and version.
+│       ├── reader.py                   # HDF5 grid reader: load snapshots, reconstruct AMR hierarchy (104 ln).
+│       ├── gw.py                       # GW strain extraction: Ψ₄ time integration, fixed-frequency filter (506 ln).
+│       └── plotting.py                 # Matplotlib helpers: constraint plots, lapse evolution, GW waveforms (155 ln).
+│
+├── 📁 scripts/                         # Python build/run wrappers and live diagnostics toolchain.
+│   ├── run_granite.py                  # Unified CLI: build / run / clean / format subcommands (261 ln).
+│   ├── run_granite_hpc.py              # HPC launch wrapper: NUMA overrides, MPI ranks, AMR telemetry export (457 ln).
+│   ├── health_check.py                 # Pre-flight verifier: Release flags, OMP core count, memory, HDF5 (290 ln).
+│   ├── sim_tracker.py                  # Context-aware live dashboard: real-time ‖H‖₂, lapse, phase,        (1,060 ln)
+│   │                                   # throughput, ETA, constraint alerts, NaN forensics, full summary.
+│   ├── dev_benchmark.py                # Forensic diagnostic runner: NaN propagation + constraint tracking (636 ln).
+│   ├── dev_stability_test.py           # Extended stability sweep across configurable t-target values (259 ln).
+│   └── setup_windows.ps1               # One-click Windows dependency installer (vcpkg + HDF5 + MPI).
+│
+├── 📁 runs/                            # ⚠ gitignored — job scripts and parameter-scan configurations.
+│
+├── 📁 viz/                             # Visualization and post-processing.
+│   ├── README.md                       # Documents planned plot_constraints.py, plot_gw.py, plot_amr.py.
+│   └── 📁 vortex_eternity/             # VORTEX: standalone browser-native N-body physics engine.
+│       ├── index.html                  # Complete self-contained VORTEX engine (~428 KB, zero dependencies).
+│       │                               # 4th-order Hermite PC integrator · 2.5PN radiation reaction
+│       │                               # Lense-Thirring frame-dragging · GLSL gravitational lens shader
+│       │                               # GW audio sonification · Minimap 3.0 · Zen Mode · Cinematic Autopilot
+│       │                               # Zero-allocation architecture — sustained 60 FPS in any modern browser.
+│       └── README.md                   # VORTEX architecture, physics engine, and v1.0 coupling roadmap.
 ```
 
 ---
