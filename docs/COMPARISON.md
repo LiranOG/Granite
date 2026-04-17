@@ -34,8 +34,8 @@
 | Constrained transport (∇·B=0) | ✅ | ✅ | ❌ | ✅ | ✅ |
 | Tabulated nuclear EOS | ✅ | ✅ | 🔶 | ✅ | 🔶 (v0.8) |
 | **Radiation** | | | | | |
-| M1 radiation transport | ✅ (GR1D/IllinoisGRMHD) | ❌ | ❌ | ❌ | 🔶 (v0.8) |
-| Neutrino leakage | ✅ | ❌ | ❌ | ❌ | 🔶 (v0.8) |
+| M1 radiation transport | ✅ (GR1D/IllinoisGRMHD) | ❌ | ❌ | ❌ | 🔶 (v0.7) |
+| Neutrino leakage | ✅ | ❌ | ❌ | ❌ | 🔶 (v0.7) |
 | Multi-group radiation | ✅ (partial) | ❌ | ❌ | ❌ | 🔶 (v0.9) |
 | **AMR** | | | | | |
 | Block-structured AMR | ✅ (Carpet) | ✅ | ✅ | ✅ | ✅ |
