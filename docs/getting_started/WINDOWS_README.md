@@ -4,6 +4,12 @@
 > **Engine Version:** GRANITE v0.6.0  
 > **Performance Target:** Maximum Power — AVX2 · `/Ox` · LLVM OpenMP 3.1+ · Physical-Core Thread Saturation
 
+> [!CAUTION]
+>
+> To ensure maximum performance and stability, Native Windows are currently strictly unsupported.  
+> To run GRANITE, **you must use Linux or Windows Subsystem for Linux (WSL2).**   
+> The engine is optimized for environments where dependencies are natively supported, allowing you to bypass installation headaches and focus on the science.
+
 ---
 
 ## Quick-Start (TL;DR)
