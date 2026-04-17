@@ -273,57 +273,22 @@ Logs saved to `dev_logs/dev_benchmark_<timestamp>.log`.
 
 ```text
 GRANITE/
-├── benchmarks/              # Self-contained simulation presets (YAML + expected output).
-│   ├── B2_eq/               # Equal-mass (M=1.0) binary BH merger — inspiral + ringdown.
-│   ├── gauge_wave/          # 1-D sinusoidal gauge validation for CCZ4 advection stability.
-│   ├── scaling_tests/       # SLURM/PBS strong & weak-scaling job templates for HPC.
-│   └── single_puncture/     # Standard 3-D moving-puncture Schwarzschild stability benchmark.
-├── CMakeLists.txt           # Master CMake build: MPI, OpenMP, HDF5, CUDA/HIP, Google Test.
-├── containers/              # Container definitions for reproducible HPC deployments.
-│   ├── Dockerfile           # Docker multi-stage image (Ubuntu 22.04, HDF5, OpenMPI).
-│   └── granite.def          # Singularity/Apptainer definition file for cluster environments.
-├── docs/                    # Permanent technical reference documentation.
-│   ├── DEVELOPER_GUIDE.md           # Complete developer reference: architecture, physics, APIs.
-│   ├── BENCHMARKS.md                # Full benchmark data, raw telemetry, convergence tables.
-│   ├── COMPARISON.md                # Source-cited comparison vs. existing NR codes.
-│   ├── SCIENCE.md                   # Physics motivation, equations, B5_star scenario.
-│   ├── FAQ.md                       # Frequently asked questions — science, engineering, HPC.
-│   ├── diagnostic_handbook.md       # Telemetry guide: lapse, ‖H‖₂, NaN forensics.
-│   ├── v0.6.5_master_dictionary.md  # Exhaustive CLI, parameter, and stability-patch reference.
-│   ├── INSTALL.md                   # A-to-Z installation guide per terminal.
-│   ├── internal/                    # Internal architecture notes (not user-facing).
-│   ├── theory/                      # Physics derivations and CCZ4 notation reference.
-│   └── user_guide/                  # End-user tutorials and worked examples.
-├── include/granite/         # Public C++ interface headers indexed by subsystem.
-│   ├── amr/                 # AMR hierarchy, Berger-Oliger interfaces, tracking spheres.
-│   ├── core/                # Low-level primitives: GridBlock, type aliases, dimension traits.
-│   ├── grmhd/               # GRMHD Valencia-formulation routines and EOS lookup tables.
-│   ├── initial_data/        # Analytic metric setters: Brill-Lindquist, Bowen-York, SKS.
-│   ├── io/                  # MPI-aware HDF5 streamers and exact-state checkpoint managers.
-│   ├── postprocess/         # Ψ₄ GW extraction, horizon finder, recoil estimator headers.
-│   └── spacetime/           # CCZ4 evolution equations, constraint monitor, gauge drivers.
-├── python/                  # Installable Python analysis package (pip install -e .).
-│   └── granite_analysis/    # HDF5 reader, GW strain extraction, matplotlib plot helpers.
-├── runs/                    # ⚠ gitignored. Job scripts and parameter-scan configs.
-├── scripts/                 # Python build/run wrappers and live diagnostics dashboard.
-│   ├── dev_benchmark.py     # Forensic diagnostic runner: NaN propagation + constraint tracking.
-│   ├── dev_stability_test.py # Extended stability sweep across t-target values.
-│   ├── health_check.py      # Pre-flight: verifies Release flags, OMP core count, memory.
-│   ├── run_granite.py       # Unified CLI: build / run / clean / format subcommands.
-│   ├── run_granite_hpc.py   # HPC launch wrapper: NUMA overrides, MPI ranks, AMR telemetry.
-│   └── sim_tracker.py       # Context-aware live dashboard with rich telemetry log mirroring.
-├── src/                     # High-performance C++ physics kernels and engine entry point.
-│   ├── amr/                 # Restriction, 4th-order prolongation, regridding, ghost sync.
-│   ├── initial_data/        # BL conformal factor solver and Bowen-York Newton-Raphson.
-│   ├── spacetime/           # OpenMP-parallelised CCZ4 RHS loops (Ricci, KO dissipation).
-│   └── main.cpp             # Engine entry point: YAML load, AMR init, RK3 time loop.
-├── tests/                   # 92-test GoogleTest suite (physics accuracy + advection stability).
-└── viz/                     # Post-processing and visualisation scripts.
-│    ├── README.md              # Documents planned plot_constraints.py, plot_gw.py, etc.
-│    └── vortex_eternity/       # The new WebGL frontend directory
-│       ├── index.html              # The complete standalone VORTEX engine
-│       └── README.md               # VORTEX architecture and v1.0 roadmap
+├── benchmarks/          # Simulation presets (YAML + expected output).
+├── containers/          # Dockerfile + Singularity/Apptainer for HPC.
+├── docs/                # Technical documentation, preprint, and paper figures.
+│   └── paper/                 # PRD preprint (LaTeX + PDF) + 13 publication figures.
+├── include/granite/     # Public C++ headers indexed by subsystem.
+├── python/              # granite_analysis installable package (pip install -e .).
+├── runs/                # ⚠ gitignored — job scripts and parameter scans.
+├── scripts/             # Build/run wrappers, health check, live diagnostics.
+├── src/                 # C++17 physics kernels (~8,900 lines).
+├── tests/               # 92-test GoogleTest suite (100% pass rate).
+└── viz/                 # Post-processing and visualisation scripts.
+    └── vortex_eternity/       # The new WebGL frontend directory
 ```
+
+> For a complete file-by-file inventory with line counts, module descriptions,
+> and subsystem notes, see [`docs/DEVELOPER_GUIDE.md`](./docs/DEVELOPER_GUIDE.md).
 
 ---
 
