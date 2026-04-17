@@ -7,7 +7,7 @@ For the main project README, go [here](../README.md).
 
 | Topic | File |
 |-------|------|
-| Installation | [getting_started/INSTALL.md](getting_started/Installation.md) |
+| Installation | [getting_started/Installation.md](getting_started/Installation.md) |
 | Running benchmarks | [user_guide/BENCHMARKS.md](user_guide/BENCHMARKS.md) |
 | Understanding output | [user_guide/diagnostic_handbook.md](user_guide/diagnostic_handbook.md) |
 | Developer architecture | [developer_guide/DEVELOPER_GUIDE.md](developer_guide/DEVELOPER_GUIDE.md) |
