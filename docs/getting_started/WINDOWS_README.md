@@ -1,7 +1,6 @@
 # 🪟 GRANITE — Windows 11 Native Deployment Guide
 
 > **Target Environment:** Windows 11 · MSVC 19.x (VS 2022 / VS 2026) · Native PowerShell (No WSL required)  
-> **Engine Version:** GRANITE v0.6.0  
 > **Performance Target:** Maximum Power — AVX2 · `/Ox` · LLVM OpenMP 3.1+ · Physical-Core Thread Saturation
 
 > [!CAUTION]
