@@ -1,20 +1,20 @@
-# GRANITE – Documentation
+# 📖 GRANITE – Documentation
 
 This folder contains all technical documentation.  
 For the main project README, go [here](../README.md).
 
-## Quick navigation
+## 🚀 Quick navigation
 
 | Topic | File |
 |-------|------|
-| Installation | [getting_started/INSTALL.md](getting_started/INSTALL.md) |
+| Installation | [getting_started/INSTALL.md](getting_started/Installation.md) |
 | Running benchmarks | [user_guide/BENCHMARKS.md](user_guide/BENCHMARKS.md) |
 | Understanding output | [user_guide/diagnostic_handbook.md](user_guide/diagnostic_handbook.md) |
 | Developer architecture | [developer_guide/DEVELOPER_GUIDE.md](developer_guide/DEVELOPER_GUIDE.md) |
 | Physics background | [theory/SCIENCE.md](theory/SCIENCE.md) |
 | Project vision | [design/VISION.md](design/VISION.md) |
 
-## Directory structure
+## 📁 Directory structure
 
 ```text
 docs/
@@ -47,8 +47,8 @@ docs/
 │   ├── PERSONAL_NOTE.md          
 │   └── COMMUNITY_SECTION.md
 │
-├── paper/                        
-│   ├── granite_preprint_v067.tex
-│   └── granite_preprint_v067.pdf
+└── paper/                        
+    ├── granite_preprint_v067.tex
+    └── granite_preprint_v067.pdf
       └── figures/
 ```
