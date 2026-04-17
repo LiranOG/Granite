@@ -1,6 +1,6 @@
 # GRANITE Benchmark Report
 
-**Version:** v0.6.5 | **Date:** April 10, 2026 | **Hardware:** Intel i5-8400, 6-core, 16 GB DDR4, Linux/WSL2
+**Version:** v0.6.5 (last stable) | v0.6.7 (current development) | **Date:** April 2026
 
 > All results on this page are from **real production runs** on a single consumer desktop workstation. No HPC allocation, no external infrastructure. Every number is fully reproducible by cloning the repository and running the provided benchmark configs.
 
