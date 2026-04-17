@@ -1,6 +1,8 @@
 Installation Guide
 ==================
 
+ | To ensure maximum performance and stability, running GRANITE currently requires **Linux** or **Windows Subsystem** for Linux **(WSL2)**. |
+
 This guide walks you through every step required to install **GRANITE**
 on your platform — from cloning the repository to running your first benchmark.
 
