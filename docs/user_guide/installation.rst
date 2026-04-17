@@ -1,7 +1,7 @@
 Installation Guide
 ==================
 
-This guide walks you through every step required to install **GRANITE** (v0.5.0)
+This guide walks you through every step required to install **GRANITE**
 on your platform — from cloning the repository to running your first benchmark.
 
 .. contents:: On This Page
