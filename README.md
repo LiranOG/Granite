@@ -530,6 +530,9 @@ To those who will read a formula in `ccz4.cpp` and say "wait, shouldn't that sig
 
 This project exists because the science demands it. It will reach its potential because the community makes it.
 
+I have written a **[Personal Note to the Community](docs/PERSONAL_NOTE.md)** explaining exactly why GRANITE was built and the philosophy behind it. If you share this obsession with the cosmos, I invite you to read it.
+
+
 **Welcome aboard. Let's simulate the universe — together.**
 
 <div align="right">
