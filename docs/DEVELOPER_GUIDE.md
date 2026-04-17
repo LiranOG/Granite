@@ -713,9 +713,12 @@ Ghost zone filling order within the RK3 loop:
 2. Fill from coarser level via prolongation
 3. Apply boundary conditions (outermost ghosts)
 
-### 8.5 Dynamic Regridding (v0.6.5 Status)
+### 8.5 Dynamic Regridding (v0.6.7 Status)
 
-Dynamic regridding (evaluating refinement criteria and restructuring the AMR hierarchy at runtime) is **partially implemented** as of v0.6.5. In current production runs, the AMR block count is fixed at initialization. Full dynamic regridding is a Tier-1 blocker for v0.7.
+Dynamic regridding is **fully implemented** in v0.6.7. Gradient-based and 
+puncture-tracking triggers fire per step via `AMRHierarchy::subcycle()`, 
+with iterative union-merge box aggregation and live regridding integrated 
+into the main RK3 loop.
 
 ---
 
@@ -831,9 +834,11 @@ io:
   output_every: 100        # diagnostic output (constraints, GW) frequency
 ```
 
-### 11.2 Restart (Status in v0.6.5)
+### 11.2 Restart (Status in v0.6.7)
 
-The `loadCheckpoint()` function stub exists in the codebase but is **not yet implemented**. Checkpoint-restart is a Tier-1 blocker for long production runs. Implementation is planned for v0.7.
+`writeCheckpoint()` and `readCheckpoint()` are fully implemented in 
+`src/io/hdf5_io.cpp`. The `--resume` CLI flag to invoke restart from 
+`main.cpp` is pending implementation (v0.7 target).
 
 ---
 
