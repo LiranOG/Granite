@@ -7,7 +7,7 @@
 | **Version** | 0.6.5 — Stability & Benchmark Release |
 | **Release Date** | April 10, 2026 |
 | **Maintainer** | LiranOG (Founder & Lead Developer) |
-| **License** | MIT (see `LICENSE`) |
+| **License** | GPL-3.0 (see `LICENSE`) |
 | **Repository** | https://github.com/LiranOG/Granite |
 | **Language** | C++17 + MPI + OpenMP (CUDA/HIP roadmap in progress) |
 | **Test Suite** | 92 tests, 100% pass rate (GoogleTest) |
