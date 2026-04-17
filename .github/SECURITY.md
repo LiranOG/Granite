@@ -4,11 +4,11 @@
 
 The following versions of GRANITE are currently receiving security updates:
 
-| Version | Supported          |
-| ------- | ------------------ |
-| main    | :white_check_mark: |
-| 1.x     | :white_check_mark: |
-| < 1.0   | :x:                |
+| Version        | Supported          |
+| -------------- | ------------------ |
+| main (v0.6.7)  | :white_check_mark: |
+| v0.6.5 (stable)| :white_check_mark: |
+| < v0.6.5       | :x:                |
 
 ## Reporting a Vulnerability
 
