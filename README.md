@@ -471,6 +471,7 @@ Every architectural decision in the GRANITE engine is traceable to a specific an
 
 The theory preceded the code. The equations were closed before the compiler was invoked. **This is not a simulation framework. It is a theorem that runs.**
 
+
 ### Key Analytical Results That This Engine Validates
 
 | Prediction | Value | Framework | Status |
@@ -485,6 +486,9 @@ The theory preceded the code. The equations were closed before the compiler was 
 
 > *For the full theoretical foundation, the complete derivation archive, and 26 interactive kinematic proof engines:*
 > **[→ GRANITE-Astrophysics-Suite](https://github.com/LiranOG/GRANITE-Astrophysics-Suite)**
+>
+> *For a deeper dive into the engine's architectural design, complete module provenance, and the contributor navigation guide:*
+> **[→ Read the Genesis & Architecture Guide (`docs/GENESIS_AND_ARCHITECTURE.md`)](https://github.com/LiranOG/Granite/blob/main/docs/design/GENESIS_AND_ARCHITECTURE.md)**
 
 ---
 
