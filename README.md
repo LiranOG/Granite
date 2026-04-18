@@ -47,6 +47,7 @@ Designed from the ground up to model extreme astrophysical events — such as th
 - [🏛️ Institutional Partnership & Supercomputing Readiness](#️-institutional-partnership--supercomputing-readiness)
 - [🤝 Contributing](#-contributing)
 - [📚 Documentation](#-documentation)
+- [🗂 The Genesis Archive: Theoretical & Historical Foundation](#-the-genesis-archive-theoretical--historical-foundation)
 - [🌀 VORTEX: The Interactive WebGL Simulator](#-vortex-the-interactive-webgl-simulator)
 - [📎 Citing GRANITE](#-citing-granite)
 - [👥 Contributors](#-contributors)
@@ -438,6 +439,52 @@ The Wiki covers, in full technical detail:
 | Explore the interactive WebGL N-body simulator | [VORTEX Engine](https://github.com/LiranOG/Granite/wiki/VORTEX-Simulator) |
 
 ***If something is unclear — in the code, in the physics, or in the parameters — the answer is almost certainly in one of these pages.***
+
+---
+
+## 🗂 The Genesis Archive: Theoretical & Historical Foundation
+
+The C++ code in this repository is not the beginning of the GRANITE project. It is the *consequence* of it.
+
+Before a single line of C++ was written — before a single `CMakeLists.txt` was authored, before a single Christoffel symbol was computed on a numerical grid — the entire physical scenario was solved analytically. In closed form. On paper. Every module in this engine traces its existence to a specific equation, a specific derivation, and a specific physical necessity documented in the **GRANITE Astrophysics Suite**:
+
+**[→ github.com/LiranOG/GRANITE-Astrophysics-Suite](https://github.com/LiranOG/GRANITE-Astrophysics-Suite)** — The complete theoretical, kinematic, and computational archive.
+
+### What the Suite Contains
+
+The Astrophysics Suite is the **Genesis Archive** — the definitive record of the analytical campaign that preceded, justified, and demanded this engine's construction. It is organized into three chronologically ordered layers:
+
+| Layer | Contents | Role |
+|-------|----------|------|
+| **[01 — Theoretical Limit](https://github.com/LiranOG/GRANITE-Astrophysics-Suite/tree/main/01_Theoretical_Limit)** | 7 peer-review-grade analytical manuscripts: **NRCF**, **PRISM**, **SYNAPSE**, **AUE**, **NEXUS** | Every equation was closed before implementation began. These derivations — the geometric shape factor $s_N$, the coherent $N^2$-scaling GW formula, the running merger-cascade efficiency $\varepsilon_k$, the slim-disk EM correction, the 4-phase tri-species NEXUS cascade — are the *source of truth* for every physics module in this engine. |
+| **[02 — Kinematic Engines](https://github.com/LiranOG/GRANITE-Astrophysics-Suite/tree/main/02_Kinematic_Engines)** | 26 browser-native HTML/JavaScript interactive engines, including **VORTEX ETERNITY** | The laboratory of interactive proof. Every analytical prediction was stress-tested in real-time kinematic simulations before this C++ engine existed to provide formal validation. VORTEX ETERNITY is now the designated WebGL visualization frontend for GRANITE's HDF5 outputs. |
+| **[03 — Genesis Archive](https://github.com/LiranOG/GRANITE-Astrophysics-Suite/tree/main/03_GRANITE_Engine)** | The founding manifesto: *[THE GENESIS OF GRANITE](https://github.com/LiranOG/GRANITE-Astrophysics-Suite/blob/main/03_GRANITE_Engine/THE_GENESIS_OF_GRANITE.md)* | The complete intellectual chronicle of how the frightening questions were asked, how the mathematics was solved on paper, and how the solved mathematics — and nothing else — authorized the construction of this engine. |
+
+### The Math-First Dogma
+
+Every architectural decision in the GRANITE engine is traceable to a specific analytical result:
+
+- **CCZ4 over BSSN** → because SYNAPSE's cascade timescale of $O(10^4\,M)$ demands active constraint damping
+- **Valencia GRMHD** → because the AUE proved stellar disruption requires exact conservation on curved spacetime
+- **M1 rad transport** → because the AUE quantified a $10^6\times$ error in the naive EM burst estimate
+- **15+ AMR levels** → because the B5_STAR scenario spans $10^8$ in dynamic range
+
+The theory preceded the code. The equations were closed before the compiler was invoked. **This is not a simulation framework. It is a theorem that runs.**
+
+### Key Analytical Results That This Engine Validates
+
+| Prediction | Value | Framework | Status |
+|-----------|-------|-----------|--------|
+| Pentagon shape factor | $s_5 = 1.3764$ | NRCF | ✅ Incorporated |
+| Coherent GW energy | $E_{\text{GW}} \approx 8.93\times10^{61}$ erg | PRISM | 🎯 Target |
+| Cascade GW mass fraction | $f_{\text{GW}} = 14.16\%$ | SYNAPSE | 🎯 Target |
+| Final remnant mass | $M_f = 4.29\times10^8\,M_\odot$ | SYNAPSE | 🎯 Target |
+| Final remnant spin | $a_f^* = 0.857$ | SYNAPSE | 🎯 Target |
+| EM burst (photon-trapped) | $E_{\text{EM}} \approx 2.22\times10^{51}$ erg | SYNAPSE | 🎯 Target |
+| 3-band GW signature | 4.75 / 1727 / 2378 Hz | NEXUS | 🔮 v1.0 Target |
+
+> *For the full theoretical foundation, the complete derivation archive, and 26 interactive kinematic proof engines:*
+> **[→ GRANITE-Astrophysics-Suite](https://github.com/LiranOG/GRANITE-Astrophysics-Suite)**
 
 ---
 
