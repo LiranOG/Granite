@@ -45,7 +45,7 @@ docs/
 ├── design/                       
 │   ├── VISION.md
 │   ├── PERSONAL_NOTE.md          
-│   └── COMMUNITY_SECTION.md
+│   └── GENESIS_AND_ARCHITECTURE.md       
 │
 └── paper/                        
     ├── granite_preprint_v067.tex
