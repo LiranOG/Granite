@@ -1,7 +1,7 @@
 # 📖 GRANITE – Documentation
 
 This folder contains all technical documentation.  
-For the main project README, go [here](../README.md).
+For the main project README, Go [HERE](../README.md).
 
 ## 🚀 Quick navigation
 
@@ -12,7 +12,7 @@ For the main project README, go [here](../README.md).
 | Understanding output | [user_guide/diagnostic_handbook.md](user_guide/diagnostic_handbook.md) |
 | Developer architecture | [developer_guide/DEVELOPER_GUIDE.md](developer_guide/DEVELOPER_GUIDE.md) |
 | Physics background | [theory/SCIENCE.md](theory/SCIENCE.md) |
-| Project vision | [design/VISION.md](design/VISION.md) |
+| My Personal Note for the community | [design/PERSONAL_NOTE.md](design/PERSONAL_NOTE.md) |
 
 ## 📁 Directory structure
 
