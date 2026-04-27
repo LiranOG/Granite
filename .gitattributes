@@ -3,10 +3,10 @@
 *.hpp linguist-language=C++
 *.h linguist-language=C++
 
-# Exclude orchestration scripts, heavy UI files, and peripheral tooling
-scripts/** linguist-vendored
-viz/** linguist-vendored
-*.ipynb linguist-vendored
+# Exclude from stats but KEEP visible in PRs and Commit Diffs
+scripts/** linguist-detectable=false
+viz/** linguist-detectable=false
+*.ipynb linguist-detectable=false
 
 # Explicitly mark documentation directories and files
 docs/** linguist-documentation
