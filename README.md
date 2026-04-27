@@ -477,7 +477,7 @@ preceded the code are archived separately for transparency at
 
 **Physics Engine:** 4th-Order Hermite Predictor-Corrector integrator with Kahan compensated summation and dynamic Aarseth timestepping. Implements 1.5PN Lense-Thirring frame-dragging, 2.5PN radiation-reaction (GW inspiral), mass-defect mergers, and Tidal Disruption Events — all running in real time in the browser.
 
-**Research-Grade Diagnostics (Gold Master):**
+**Research-Grade Diagnostics:**
 - `🔭 NR Diagnostics` — live Chart.js panels for orbital eccentricity vs. semi-major axis, GW chirp frequency sweep (f_GW), and relativistic velocity parameter (β²)
 - Minimap 3.0 with gravitational isobar contours (marching-squares), radiation flux thermal overlay, ISCO proximity warnings, and logarithmic projection
 - CPU-side Relativistic Doppler/Beaming and Einstein Cross gravitational lens GLSL shader extension
