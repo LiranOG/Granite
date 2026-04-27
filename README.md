@@ -540,7 +540,7 @@ I have written a **[Personal Note to the Community](docs/PERSONAL_NOTE.md)** exp
 
 ## 👥 Contributors
 
-GRANITE is currently a **solo project** by [Liran M. Schwartz](https://orcid.org/0009-0008-8035-1308) (Independent Researcher, Haifa, Israel).
+GRANITE is currently a **solo project** by [Liran M. Schwartz](https://orcid.org/0009-0008-8035-1308).
 
 If you use, test, review, or contribute to GRANITE in any way — you are part of the story.
 See [Open for Collaboration](#-open-for-collaboration) or open a [GitHub Discussion](https://github.com/LiranOG/Granite/discussions) to get involved.
