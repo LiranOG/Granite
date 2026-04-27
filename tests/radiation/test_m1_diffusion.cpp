@@ -8,7 +8,7 @@
  * Test suite: M1SmokeTest
  *
  * @details
- * These tests systematically verify the core mathematical integrity of the M1 
+ * These tests systematically verify the core mathematical integrity of the M1
  * radiation solver, focusing on the closure relations and structural safety.
  *
  * Test matrix:
@@ -17,12 +17,12 @@
  *   - T3: Diffusion Limit (ξ → 0 forces optically thick f_Edd → 1/3)
  *   - T4: Physical Boundedness (f_Edd strictly contained in [1/3, 1] for all ξ)
  */
-#include <gtest/gtest.h>
-#include "granite/radiation/m1.hpp"
 #include "granite/core/grid.hpp"
 #include "granite/core/types.hpp"
+#include "granite/radiation/m1.hpp"
 
 #include <cmath>
+#include <gtest/gtest.h>
 
 using namespace granite;
 using namespace granite::radiation;
@@ -31,13 +31,11 @@ class M1SmokeTest : public ::testing::Test {
 protected:
     void SetUp() override {
         ncells_ = {8, 8, 8};
-        lo_     = {-1.0, -1.0, -1.0};
-        hi_     = {+1.0, +1.0, +1.0};
+        lo_ = {-1.0, -1.0, -1.0};
+        hi_ = {+1.0, +1.0, +1.0};
         nghost_ = 2;
-        grid_   = std::make_unique<GridBlock>(
-            0, 0, ncells_, lo_, hi_, nghost_, NUM_RADIATION_VARS);
-        rhs_    = std::make_unique<GridBlock>(
-            1, 0, ncells_, lo_, hi_, nghost_, NUM_RADIATION_VARS);
+        grid_ = std::make_unique<GridBlock>(0, 0, ncells_, lo_, hi_, nghost_, NUM_RADIATION_VARS);
+        rhs_ = std::make_unique<GridBlock>(1, 0, ncells_, lo_, hi_, nghost_, NUM_RADIATION_VARS);
 
         // Uniform, isotropic radiation field (optically thick limit)
         M1Params params;
@@ -58,11 +56,11 @@ protected:
         }
     }
 
-    std::array<int,  3> ncells_;
+    std::array<int, 3> ncells_;
     std::array<Real, 3> lo_, hi_;
     int nghost_;
     std::unique_ptr<GridBlock> grid_, rhs_;
-    std::unique_ptr<M1Transport>  m1_;
+    std::unique_ptr<M1Transport> m1_;
 };
 
 // ===========================================================================
@@ -112,9 +110,7 @@ TEST_F(M1SmokeTest, EddingtonBounded) {
         Real xi = static_cast<Real>(n) / 100.0;
         m1_->eddingtonTensor(1.0, xi, 0.0, 0.0, Pij);
         Real Pxx = Pij[0];
-        EXPECT_GE(Pxx, 1.0 / 3.0 - 1.0e-12)
-            << "P_xx below 1/3 at xi=" << xi << ": " << Pxx;
-        EXPECT_LE(Pxx, 1.0 + 1.0e-12)
-            << "P_xx above 1.0 at xi=" << xi << ": " << Pxx;
+        EXPECT_GE(Pxx, 1.0 / 3.0 - 1.0e-12) << "P_xx below 1/3 at xi=" << xi << ": " << Pxx;
+        EXPECT_LE(Pxx, 1.0 + 1.0e-12) << "P_xx above 1.0 at xi=" << xi << ": " << Pxx;
     }
 }

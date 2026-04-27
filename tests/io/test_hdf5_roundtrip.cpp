@@ -9,23 +9,26 @@
  *
  * @details
  * These tests rigorously verify the robustness of the HDF5 serialization mechanisms:
- *   - (a) Constant Field Preservation: GridBlock data serialized to HDF5 and deserialized back must be bitwise equal (to machine precision).
- *   - (b) Complex Field Preservation: Linear ramp fields ensure spatial indexing (i,j,k) is not permuted upon read.
- *   - (c) File Handling Integrity: The HDF5 file must be fully flushed, readable, and cleanly closed after the writer process exits (no handle leaks).
+ *   - (a) Constant Field Preservation: GridBlock data serialized to HDF5 and deserialized back must
+ * be bitwise equal (to machine precision).
+ *   - (b) Complex Field Preservation: Linear ramp fields ensure spatial indexing (i,j,k) is not
+ * permuted upon read.
+ *   - (c) File Handling Integrity: The HDF5 file must be fully flushed, readable, and cleanly
+ * closed after the writer process exits (no handle leaks).
  *
  * > [!NOTE]
- * > Tests are gracefully skipped (via `GTEST_SKIP`) if HDF5 support was not compiled in 
+ * > Tests are gracefully skipped (via `GTEST_SKIP`) if HDF5 support was not compiled in
  * > (i.e., `GRANITE_USE_HDF5` is not defined), maintaining strict build portability.
  */
-#include <gtest/gtest.h>
-#include "granite/io/hdf5_io.hpp"
 #include "granite/core/grid.hpp"
 #include "granite/core/types.hpp"
+#include "granite/io/hdf5_io.hpp"
 
 #include <cmath>
-#include <vector>
+#include <cstdlib> // std::rand, RAND_MAX
 #include <filesystem>
-#include <cstdlib>   // std::rand, RAND_MAX
+#include <gtest/gtest.h>
+#include <vector>
 
 using namespace granite;
 using namespace granite::io;
@@ -49,13 +52,13 @@ protected:
     }
 
     void TearDown() override {
-        fs::remove(tmp_path_);   // Always clean up
+        fs::remove(tmp_path_); // Always clean up
     }
 
-    std::array<int,  3> ncells_  = {8, 8, 8};
-    std::array<Real, 3> lo_      = {-1.0, -1.0, -1.0};
-    std::array<Real, 3> hi_      = {+1.0, +1.0, +1.0};
-    int nghost_   = 2;
+    std::array<int, 3> ncells_ = {8, 8, 8};
+    std::array<Real, 3> lo_ = {-1.0, -1.0, -1.0};
+    std::array<Real, 3> hi_ = {+1.0, +1.0, +1.0};
+    int nghost_ = 2;
     int num_vars_ = 6;
     std::vector<std::string> var_names_ = {"V1", "V2", "V3", "V4", "V5", "V6"};
 
@@ -98,14 +101,14 @@ TEST_F(HDF5RoundtripTest, ConstantFieldPreservedExactly) {
             for (int i = 0; i < src.totalCells(0); ++i) {
                 if (data_idx < dst_data.size()) {
                     Real err = std::abs(dst_data[data_idx] - C);
-                    if (err > max_err) max_err = err;
+                    if (err > max_err)
+                        max_err = err;
                 }
                 data_idx++;
             }
 
-    EXPECT_LT(max_err, 1.0e-14)
-        << "HDF5 round-trip modified constant field C=" << C
-        << ". Max error: " << max_err;
+    EXPECT_LT(max_err, 1.0e-14) << "HDF5 round-trip modified constant field C=" << C
+                                << ". Max error: " << max_err;
 }
 
 // ===========================================================================
@@ -121,7 +124,7 @@ TEST_F(HDF5RoundtripTest, LinearRampFieldPreservedExactly) {
         for (int k = 0; k < src.totalCells(2); ++k)
             for (int j = 0; j < src.totalCells(1); ++j)
                 for (int i = 0; i < src.totalCells(0); ++i)
-                    src.data(v, i, j, k) = static_cast<Real>(v + i + j*10 + k*100);
+                    src.data(v, i, j, k) = static_cast<Real>(v + i + j * 10 + k * 100);
 
     IOParams io_params;
     HDF5Writer writer(io_params);
@@ -142,21 +145,23 @@ TEST_F(HDF5RoundtripTest, LinearRampFieldPreservedExactly) {
         for (int j = 0; j < src.totalCells(1) && !mismatch; ++j)
             for (int i = 0; i < src.totalCells(0) && !mismatch; ++i) {
                 if (data_idx < dst_data.size()) {
-                    Real ex = static_cast<Real>(v + i + j*10 + k*100);
+                    Real ex = static_cast<Real>(v + i + j * 10 + k * 100);
                     Real rd = dst_data[data_idx];
                     if (std::abs(rd - ex) > 1.0e-14) {
                         mismatch = true;
-                        mi = i; mj = j; mk = k;
-                        got = rd; expected = ex;
+                        mi = i;
+                        mj = j;
+                        mk = k;
+                        got = rd;
+                        expected = ex;
                     }
                 }
                 data_idx++;
             }
 
-    EXPECT_FALSE(mismatch)
-        << "HDF5 round-trip mismatch at "
-        << "(" << mi << "," << mj << "," << mk << "): "
-        << "expected " << expected << " got " << got;
+    EXPECT_FALSE(mismatch) << "HDF5 round-trip mismatch at "
+                           << "(" << mi << "," << mj << "," << mk << "): "
+                           << "expected " << expected << " got " << got;
 }
 
 // ===========================================================================
@@ -176,8 +181,7 @@ TEST_F(HDF5RoundtripTest, FileExistsAndNonEmptyAfterWrite) {
     HDF5Writer writer(io_params);
     writer.writeBlock(src, var_names_, tmp_path_.string());
 
-    EXPECT_TRUE(fs::exists(tmp_path_))
-        << "HDF5 file does not exist after writer.close().";
+    EXPECT_TRUE(fs::exists(tmp_path_)) << "HDF5 file does not exist after writer.close().";
     EXPECT_GT(fs::file_size(tmp_path_), static_cast<uintmax_t>(0))
         << "HDF5 file is empty after writer.close() — data was not flushed.";
 }

@@ -19,14 +19,14 @@
  * Full grid convergence testing (prolongation accuracy, reflux boundary correction)
  * is scheduled for a future dedicated test suite.
  */
-#include <gtest/gtest.h>
 #include "granite/amr/amr.hpp"
 #include "granite/core/grid.hpp"
 #include "granite/core/types.hpp"
 
 #include <cmath>
-#include <vector>
+#include <gtest/gtest.h>
 #include <numeric>
+#include <vector>
 
 using namespace granite;
 using namespace granite::amr;
@@ -53,7 +53,8 @@ static Real maxError(const GridBlock& block, Real expected) {
             for (int j = is; j < block.iend(1); ++j)
                 for (int i = is; i < block.iend(0); ++i) {
                     Real e = std::abs(block.data(v, i, j, k) - expected);
-                    if (e > err) err = e;
+                    if (e > err)
+                        err = e;
                 }
     return err;
 }
@@ -64,7 +65,7 @@ static Real maxError(const GridBlock& block, Real expected) {
 class AMRSmokeTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        params_.max_levels    = 3;
+        params_.max_levels = 3;
         params_.refinement_ratio = 2;
         params_.regrid_interval = 4;
 
@@ -82,9 +83,8 @@ protected:
 // T1: Construction — AMRHierarchy initialises without throwing.
 // ---------------------------------------------------------------------------
 TEST_F(AMRSmokeTest, ConstructionSucceeds) {
-    EXPECT_NO_THROW({
-        AMRHierarchy hier(params_, sim_params_);
-    }) << "AMRHierarchy constructor threw an exception on well-formed params.";
+    EXPECT_NO_THROW({ AMRHierarchy hier(params_, sim_params_); })
+        << "AMRHierarchy constructor threw an exception on well-formed params.";
 }
 
 // ---------------------------------------------------------------------------
@@ -110,24 +110,21 @@ TEST_F(AMRSmokeTest, ProlongationPreservesConstantField) {
     AMRHierarchy hier(params_, sim_params_);
     hier.initialize([](const GridBlock&, int, int, int) { return true; }); // Tag all cells
 
-    ASSERT_GE(hier.numLevels(), 2)
-        << "initialize() failed to create level 1.";
+    ASSERT_GE(hier.numLevels(), 2) << "initialize() failed to create level 1.";
 
     GridBlock& coarse = *hier.getLevel(0)[0];
-    GridBlock& fine   = *hier.getLevel(1)[0];
+    GridBlock& fine = *hier.getLevel(1)[0];
 
     const Real C = 42.0;
     fillConstant(coarse, C);
-    fillConstant(fine,   0.0);   // Zero out fine before prolongation
+    fillConstant(fine, 0.0); // Zero out fine before prolongation
 
     EXPECT_NO_THROW(hier.prolongate(coarse, fine))
         << "prolongate() threw on constant-field coarse grid.";
 
     Real err = maxError(fine, C);
-    EXPECT_LT(err, 1.0e-12)
-        << "Prolongation of constant field C=" << C
-        << " produced error " << err
-        << ". Trilinear prolongation must be exact for constant fields.";
+    EXPECT_LT(err, 1.0e-12) << "Prolongation of constant field C=" << C << " produced error " << err
+                            << ". Trilinear prolongation must be exact for constant fields.";
 }
 
 // ---------------------------------------------------------------------------
@@ -144,20 +141,18 @@ TEST_F(AMRSmokeTest, RestrictionPreservesConstantField) {
     ASSERT_GE(hier.numLevels(), 2);
 
     GridBlock& coarse = *hier.getLevel(0)[0];
-    GridBlock& fine   = *hier.getLevel(1)[0];
+    GridBlock& fine = *hier.getLevel(1)[0];
 
     const Real C = 3.14159;
-    fillConstant(fine,   C);
+    fillConstant(fine, C);
     fillConstant(coarse, 0.0);
 
     EXPECT_NO_THROW(hier.restrict_data(fine, coarse))
         << "restrict_data() threw on constant-field fine grid.";
 
     Real err = maxError(coarse, C);
-    EXPECT_LT(err, 1.0e-12)
-        << "Restriction of constant field C=" << C
-        << " produced error " << err
-        << ". Volume-averaged restriction must be exact for constant fields.";
+    EXPECT_LT(err, 1.0e-12) << "Restriction of constant field C=" << C << " produced error " << err
+                            << ". Volume-averaged restriction must be exact for constant fields.";
 }
 
 // ---------------------------------------------------------------------------
