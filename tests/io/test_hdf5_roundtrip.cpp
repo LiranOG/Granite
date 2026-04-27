@@ -139,17 +139,20 @@ TEST_F(HDF5RoundtripTest, LinearRampFieldPreservedExactly) {
                                    std::to_string(src.getId()) + "/" + var_names_[0];
     ASSERT_NO_THROW(reader.readDataset(tmp_path_.string(), expected_dataset, dst_data, shape));
 
-    // Verify every cell for var 0
+    // Verify every cell for var 0.
+    // writeBlock serialises ONLY interior cells [istart, iend) in each dimension.
+    // The flat buffer in the file is ordered k-outer, j-middle, i-inner (all interior).
+    // We must iterate in the same order to align data_idx with the file contents.
     bool mismatch = false;
     int mi = -1, mj = -1, mk = -1;
-    Real got = 0.0, expected = 0.0;
+    Real got = 0.0, expected_val = 0.0;
     size_t data_idx = 0;
-    int v = 0;
-    for (int k = 0; k < src.totalCells(2) && !mismatch; ++k)
-        for (int j = 0; j < src.totalCells(1) && !mismatch; ++j)
-            for (int i = 0; i < src.totalCells(0) && !mismatch; ++i) {
+    const int is = src.istart();
+    for (int k = is; k < src.iend(2) && !mismatch; ++k)
+        for (int j = is; j < src.iend(1) && !mismatch; ++j)
+            for (int i = is; i < src.iend(0) && !mismatch; ++i) {
                 if (data_idx < dst_data.size()) {
-                    Real ex = static_cast<Real>(v + i + j * 10 + k * 100);
+                    Real ex = src.data(0, i, j, k); // ground truth from the block
                     Real rd = dst_data[data_idx];
                     if (std::abs(rd - ex) > 1.0e-14) {
                         mismatch = true;
@@ -157,7 +160,7 @@ TEST_F(HDF5RoundtripTest, LinearRampFieldPreservedExactly) {
                         mj = j;
                         mk = k;
                         got = rd;
-                        expected = ex;
+                        expected_val = ex;
                     }
                 }
                 data_idx++;
@@ -165,7 +168,7 @@ TEST_F(HDF5RoundtripTest, LinearRampFieldPreservedExactly) {
 
     EXPECT_FALSE(mismatch) << "HDF5 round-trip mismatch at "
                            << "(" << mi << "," << mj << "," << mk << "): "
-                           << "expected " << expected << " got " << got;
+                           << "expected " << expected_val << " got " << got;
 }
 
 // ===========================================================================
