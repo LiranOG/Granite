@@ -325,12 +325,12 @@ void NeutrinoTransport::computeRHS(const GridBlock& spacetime,
                     };
                     if (dir == 0)
                         return (-f(2, 0, 0) + 8 * f(1, 0, 0) - 8 * f(-1, 0, 0) + f(-2, 0, 0)) /
-                               (12.0 * h);
+                            (12.0 * h);
                     if (dir == 1)
                         return (-f(0, 2, 0) + 8 * f(0, 1, 0) - 8 * f(0, -1, 0) + f(0, -2, 0)) /
-                               (12.0 * h);
+                            (12.0 * h);
                     return (-f(0, 0, 2) + 8 * f(0, 0, 1) - 8 * f(0, 0, -1) + f(0, 0, -2)) /
-                           (12.0 * h);
+                        (12.0 * h);
                 };
 
                 const Real lapse = spacetime.data(18, i, j, k); // iLAPSE

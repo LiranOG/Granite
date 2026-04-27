@@ -33,5 +33,5 @@ BinPackArguments: false
 AlignTrailingComments: true
 AlignConsecutiveAssignments: false
 AlignConsecutiveDeclarations: false
-AlignOperands: true
+AlignOperands: false
 ...

@@ -89,10 +89,12 @@ Real interpolate(const GridBlock& g, int var, Real px, Real py, Real pz) {
     (void)cj;
     (void)ck;
 
-    return (1 - tz) * ((1 - ty) * ((1 - tx) * d(i0, j0, k0) + tx * d(i1, j0, k0)) +
-                       ty * ((1 - tx) * d(i0, j1, k0) + tx * d(i1, j1, k0))) +
-           tz * ((1 - ty) * ((1 - tx) * d(i0, j0, k1) + tx * d(i1, j0, k1)) +
-                 ty * ((1 - tx) * d(i0, j1, k1) + tx * d(i1, j1, k1)));
+    return (1 - tz) *
+        ((1 - ty) * ((1 - tx) * d(i0, j0, k0) + tx * d(i1, j0, k0)) +
+         ty * ((1 - tx) * d(i0, j1, k0) + tx * d(i1, j1, k0))) +
+        tz *
+        ((1 - ty) * ((1 - tx) * d(i0, j0, k1) + tx * d(i1, j0, k1)) +
+         ty * ((1 - tx) * d(i0, j1, k1) + tx * d(i1, j1, k1)));
 }
 
 /**
@@ -146,7 +148,7 @@ Real computeExpansion(const GridBlock& g,
 
     // Determinant of conformal metric (should be ~1 for CCZ4)
     const Real det = gxx * (gyy * gzz - gyz * gyz) - gxy * (gxy * gzz - gyz * gxz) +
-                     gxz * (gxy * gyz - gyy * gxz);
+        gxz * (gxy * gyz - gyy * gxz);
     if (std::abs(det) < 1.0e-14)
         return 0.0;
 
@@ -200,7 +202,7 @@ Real computeExpansion(const GridBlock& g,
 
     // K_ij s^i s^j
     const Real Kss = Kxx * ux * ux + Kyy * uy * uy + Kzz * uz * uz +
-                     2.0 * (Kxy * ux * uy + Kxz * ux * uz + Kyz * uy * uz);
+        2.0 * (Kxy * ux * uy + Kxz * ux * uz + Kyz * uy * uz);
 
     // Divergence of unit normal: D_i s^i  ≈ (1/hxx) ∂_i s^i  (Cartesian approx)
     // Use finite differences on the grid for ∂_i s^i.
@@ -225,8 +227,7 @@ Real computeExpansion(const GridBlock& g,
         const Real gzz_l = interpolate(g, iGZZ, ppx, ppy, ppz);
 
         const Real det_l = gxx_l * (gyy_l * gzz_l - gyz_l * gyz_l) -
-                           gxy_l * (gxy_l * gzz_l - gyz_l * gxz_l) +
-                           gxz_l * (gxy_l * gyz_l - gyy_l * gxz_l);
+            gxy_l * (gxy_l * gzz_l - gyz_l * gxz_l) + gxz_l * (gxy_l * gyz_l - gyy_l * gxz_l);
         if (std::abs(det_l) < 1.0e-14)
             return 0.0;
 
@@ -274,8 +275,8 @@ Real computeExpansion(const GridBlock& g,
     };
 
     const Real div_s = (scomp(0, eps) - scomp(0, -eps)) / (2.0 * eps) +
-                       (scomp(1, eps) - scomp(1, -eps)) / (2.0 * eps) +
-                       (scomp(2, eps) - scomp(2, -eps)) / (2.0 * eps);
+        (scomp(1, eps) - scomp(1, -eps)) / (2.0 * eps) +
+        (scomp(2, eps) - scomp(2, -eps)) / (2.0 * eps);
 
     // Null expansion: θ⁺ = D_i s^i + K - K_ij s^i s^j
     return div_s + K - Kss;
@@ -482,7 +483,7 @@ std::vector<HorizonData> ApparentHorizonFinder::findAllHorizons(const GridBlock&
         bool dup = false;
         for (auto& u : unique_candidates) {
             const Real d2 = (c[0] - u[0]) * (c[0] - u[0]) + (c[1] - u[1]) * (c[1] - u[1]) +
-                            (c[2] - u[2]) * (c[2] - u[2]);
+                (c[2] - u[2]) * (c[2] - u[2]);
             if (d2 < min_sep * min_sep) {
                 dup = true;
                 break;

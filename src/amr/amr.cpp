@@ -550,13 +550,13 @@ void AMRHierarchy::prolongate(const GridBlock& coarse, GridBlock& fine) const {
                     Real w111 = ax * ay * az;
 
                     Real val = w000 * coarse.data(var, ci, cj, ck) +
-                               w100 * coarse.data(var, ci1, cj, ck) +
-                               w010 * coarse.data(var, ci, cj1, ck) +
-                               w001 * coarse.data(var, ci, cj, ck1) +
-                               w110 * coarse.data(var, ci1, cj1, ck) +
-                               w101 * coarse.data(var, ci1, cj, ck1) +
-                               w011 * coarse.data(var, ci, cj1, ck1) +
-                               w111 * coarse.data(var, ci1, cj1, ck1);
+                        w100 * coarse.data(var, ci1, cj, ck) +
+                        w010 * coarse.data(var, ci, cj1, ck) +
+                        w001 * coarse.data(var, ci, cj, ck1) +
+                        w110 * coarse.data(var, ci1, cj1, ck) +
+                        w101 * coarse.data(var, ci1, cj, ck1) +
+                        w011 * coarse.data(var, ci, cj1, ck1) +
+                        w111 * coarse.data(var, ci1, cj1, ck1);
 
                     fine.data(var, i, j, k) = val;
                 }
@@ -664,7 +664,7 @@ TaggingFunction gradientChiTagger(Real threshold) {
             im[d] -= 1;
             Real dchi = (block.data(chi_idx, ip[0], ip[1], ip[2]) -
                          block.data(chi_idx, im[0], im[1], im[2])) /
-                        (2.0 * block.dx(d));
+                (2.0 * block.dx(d));
             grad2 += dchi * dchi;
         }
 
@@ -691,7 +691,7 @@ TaggingFunction gradientRhoTagger(Real threshold) {
             im[d] -= 1;
             Real drho = (block.data(rho_idx, ip[0], ip[1], ip[2]) -
                          block.data(rho_idx, im[0], im[1], im[2])) /
-                        (2.0 * block.dx(d));
+                (2.0 * block.dx(d));
             grad2 += drho * drho;
         }
 
@@ -712,7 +712,7 @@ TaggingFunction gradientLapseTagger(Real threshold) {
             im[d] -= 1;
             Real dalpha = (block.data(alpha_idx, ip[0], ip[1], ip[2]) -
                            block.data(alpha_idx, im[0], im[1], im[2])) /
-                          (2.0 * block.dx(d));
+                (2.0 * block.dx(d));
             grad2 += dalpha * dalpha;
         }
 

@@ -230,10 +230,9 @@ void M1Transport::computeRHS(const GridBlock& spacetime,
                 // ∂_t E_r  = -α D_i F^i + β^i ∂_i E_r - E_r ∂_i β^i  + (F·∇ ln α)
                 const Real divF = dFrx_dx + dFry_dy + dFrz_dz;
                 const Real betaGradEr = betax * dEr_dx + betay * dEr_dy + betaz * dEr_dz;
-                const Real FgradLnAlpha =
-                    (alpha > 1.0e-12)
-                        ? (Frx * dAlpha_dx + Fry * dAlpha_dy + Frz * dAlpha_dz) / alpha
-                        : 0.0;
+                const Real FgradLnAlpha = (alpha > 1.0e-12)
+                    ? (Frx * dAlpha_dx + Fry * dAlpha_dy + Frz * dAlpha_dz) / alpha
+                    : 0.0;
 
                 rhs.data(iER, i, j, k) = -alpha * divF + betaGradEr + alpha * FgradLnAlpha;
 

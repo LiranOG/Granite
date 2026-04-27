@@ -85,10 +85,12 @@ Real interp(const GridBlock& g, int var, Real px, Real py, Real pz) {
         return g.data(var, std::min(ii, nx), std::min(jj, ny), std::min(kk, nz));
     };
 
-    return (1 - tz) * ((1 - ty) * ((1 - tx) * d(i0, j0, k0) + tx * d(i1, j0, k0)) +
-                       ty * ((1 - tx) * d(i0, j1, k0) + tx * d(i1, j1, k0))) +
-           tz * ((1 - ty) * ((1 - tx) * d(i0, j0, k1) + tx * d(i1, j0, k1)) +
-                 ty * ((1 - tx) * d(i0, j1, k1) + tx * d(i1, j1, k1)));
+    return (1 - tz) *
+        ((1 - ty) * ((1 - tx) * d(i0, j0, k0) + tx * d(i1, j0, k0)) +
+         ty * ((1 - tx) * d(i0, j1, k0) + tx * d(i1, j1, k0))) +
+        tz *
+        ((1 - ty) * ((1 - tx) * d(i0, j0, k1) + tx * d(i1, j0, k1)) +
+         ty * ((1 - tx) * d(i0, j1, k1) + tx * d(i1, j1, k1)));
 }
 
 /**
@@ -226,8 +228,8 @@ computePsi4AtPoint(const GridBlock& g, Real px, Real py, Real pz, Real nx, Real 
 
     // Contract: B_{ij} m̄^i m̄^j
     std::complex<Real> Psi4 = Bxx * mx_bar * mx_bar + Byy * my_bar * my_bar +
-                              Bzz * mz_bar * mz_bar + 2.0 * Bxy * mx_bar * my_bar +
-                              2.0 * Bxz * mx_bar * mz_bar + 2.0 * Byz * my_bar * mz_bar;
+        Bzz * mz_bar * mz_bar + 2.0 * Bxy * mx_bar * my_bar + 2.0 * Bxz * mx_bar * mz_bar +
+        2.0 * Byz * my_bar * mz_bar;
 
     return -Psi4;
 }
@@ -271,11 +273,11 @@ void Psi4Extractor::extract(const GridBlock& spacetime, Real time) {
 
                 // Check point is within the grid domain
                 bool in_domain = px >= spacetime.lowerCorner()[0] + spacetime.dx(0) &&
-                                 px <= spacetime.upperCorner()[0] - spacetime.dx(0) &&
-                                 py >= spacetime.lowerCorner()[1] + spacetime.dx(1) &&
-                                 py <= spacetime.upperCorner()[1] - spacetime.dx(1) &&
-                                 pz >= spacetime.lowerCorner()[2] + spacetime.dx(2) &&
-                                 pz <= spacetime.upperCorner()[2] - spacetime.dx(2);
+                    px <= spacetime.upperCorner()[0] - spacetime.dx(0) &&
+                    py >= spacetime.lowerCorner()[1] + spacetime.dx(1) &&
+                    py <= spacetime.upperCorner()[1] - spacetime.dx(1) &&
+                    pz >= spacetime.lowerCorner()[2] + spacetime.dx(2) &&
+                    pz <= spacetime.upperCorner()[2] - spacetime.dx(2);
 
                 if (!in_domain)
                     continue;
@@ -547,8 +549,8 @@ Real EMDiagnostics::computeAccretionRate(const GridBlock& spacetime,
 
             // Check in domain
             bool ok = px > hydro_prim.lowerCorner()[0] && px < hydro_prim.upperCorner()[0] &&
-                      py > hydro_prim.lowerCorner()[1] && py < hydro_prim.upperCorner()[1] &&
-                      pz > hydro_prim.lowerCorner()[2] && pz < hydro_prim.upperCorner()[2];
+                py > hydro_prim.lowerCorner()[1] && py < hydro_prim.upperCorner()[1] &&
+                pz > hydro_prim.lowerCorner()[2] && pz < hydro_prim.upperCorner()[2];
             if (!ok)
                 continue;
 
@@ -591,7 +593,7 @@ Real EMDiagnostics::eddingtonLuminosity(Real mass_msun) {
     constexpr Real sigma_T = 6.6524e-25; // Thomson cross section [cm²]
     const Real M_cgs = mass_msun * constants::MSUN_CGS;
     return 4.0 * constants::PI * constants::G_CGS * M_cgs * constants::M_PROTON * constants::C_CGS /
-           sigma_T;
+        sigma_T;
 }
 
 // ===========================================================================

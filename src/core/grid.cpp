@@ -129,7 +129,7 @@ void GridBlock::unpackBoundary(int face, const std::vector<Real>& buffer) {
 
     // Validate buffer size to catch mismatches early
     std::size_t expected = static_cast<std::size_t>(num_vars_) * static_cast<std::size_t>(ie - is) *
-                           static_cast<std::size_t>(je - js) * static_cast<std::size_t>(ke - ks);
+        static_cast<std::size_t>(je - js) * static_cast<std::size_t>(ke - ks);
     if (buffer.size() != expected) {
         // This is a programming error: sizes must match
         throw std::runtime_error("GridBlock::unpackBoundary: buffer size mismatch. "

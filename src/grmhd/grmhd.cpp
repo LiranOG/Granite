@@ -103,7 +103,7 @@ Metric3 readMetric(const GridBlock& spacetime, int i, int j, int k) {
     m.gzz = gzz;
 
     const Real det = gxx * (gyy * gzz - gyz * gyz) - gxy * (gxy * gzz - gyz * gxz) +
-                     gxz * (gxy * gyz - gyy * gxz);
+        gxz * (gxy * gyz - gyy * gxz);
     const Real d = std::max(std::abs(det), 1.0e-30);
     m.sqrtg = std::sqrt(d);
     const Real idet = 1.0 / d;
@@ -623,13 +623,12 @@ int GRMHDEvolution::conservedToPrimitive(const GridBlock& spacetime_grid,
                 }
 
                 // S² = S_i S^i = S_i γ^{ij} S_j
-                const Real Smag2 =
-                    met.igxx * Sx * Sx + met.igyy * Sy * Sy + met.igzz * Sz * Sz +
+                const Real Smag2 = met.igxx * Sx * Sx + met.igyy * Sy * Sy + met.igzz * Sz * Sz +
                     2.0 * (met.igxy * Sx * Sy + met.igxz * Sx * Sz + met.igyz * Sy * Sz);
 
                 // B² = B^i B_i
                 const Real B2 = met.gxx * Bx * Bx + met.gyy * By * By + met.gzz * Bz * Bz +
-                                2.0 * (met.gxy * Bx * By + met.gxz * Bx * Bz + met.gyz * By * Bz);
+                    2.0 * (met.gxy * Bx * By + met.gxz * Bx * Bz + met.gyz * By * Bz);
 
                 // B·S = B^i S_i
                 const Real BS = Bx * Sx + By * Sy + Bz * Sz;
@@ -653,7 +652,7 @@ int GRMHDEvolution::conservedToPrimitive(const GridBlock& spacetime_grid,
                     // v² from the conserved constraint (Noble et al. 2006 eq. 31):
                     //   v² = [S²(Z+B²) + (B·S)²(B²+2Z)] / [Z²(Z+B²)²]
                     const Real v2 = (Smag2 * (Z + B2) + BS * BS * (B2 + 2.0 * Z)) /
-                                    (Z * Z * (Z + B2) * (Z + B2) + 1.0e-30);
+                        (Z * Z * (Z + B2) * (Z + B2) + 1.0e-30);
                     const Real v2c = std::clamp(v2, 0.0, 1.0 - 1.0e-12);
                     const Real W2 = 1.0 / (1.0 - v2c);
                     const Real W = std::sqrt(W2);
@@ -721,7 +720,7 @@ int GRMHDEvolution::conservedToPrimitive(const GridBlock& spacetime_grid,
                     const Real Zp2 = Zp * Zp;
                     const Real ZpB2 = Zp + B2;
                     const Real v2p = (Smag2 * (Zp + B2) + BS * BS * (B2 + 2.0 * Zp)) /
-                                     (Zp * Zp * (Zp + B2) * (Zp + B2) + 1.0e-30);
+                        (Zp * Zp * (Zp + B2) * (Zp + B2) + 1.0e-30);
                     const Real v2cp = std::clamp(v2p, 0.0, 1.0 - 1.0e-12);
                     const Real W2p = 1.0 / (1.0 - v2cp);
                     const Real rhop = D / std::sqrt(W2p);
@@ -1004,13 +1003,13 @@ void GRMHDEvolution::computeRHS(const GridBlock& spacetime_grid,
                 // Central gradient of lapse — per-dimension spacing
                 const Real dAlpha_x = (spacetime_grid.data(iLAPSE, i + 1, j, k) -
                                        spacetime_grid.data(iLAPSE, i - 1, j, k)) /
-                                      (2.0 * spacetime_grid.dx(0));
+                    (2.0 * spacetime_grid.dx(0));
                 const Real dAlpha_y = (spacetime_grid.data(iLAPSE, i, j + 1, k) -
                                        spacetime_grid.data(iLAPSE, i, j - 1, k)) /
-                                      (2.0 * spacetime_grid.dx(1));
+                    (2.0 * spacetime_grid.dx(1));
                 const Real dAlpha_z = (spacetime_grid.data(iLAPSE, i, j, k + 1) -
                                        spacetime_grid.data(iLAPSE, i, j, k - 1)) /
-                                      (2.0 * spacetime_grid.dx(2));
+                    (2.0 * spacetime_grid.dx(2));
 
                 // Source for τ: α √γ (S^i ∂_i α - α p K)
                 const Real Si_gradAlpha =
@@ -1094,9 +1093,9 @@ void GRMHDEvolution::computeMatterSources(const GridBlock& spacetime_grid,
                 for (int a = 0; a < 3; ++a) {
                     for (int b_idx = a; b_idx < 3; ++b_idx) {
                         const Real delta_ab = (a == b_idx) ? 1.0 : 0.0;
-                        Sij[flat][symIdx(a, b_idx)] =
-                            (rhoHW2 + b2) * vel[a] * vel[b_idx] + (press + 0.5 * b2) * delta_ab -
-                            bco[a] * bco[b_idx] - Bco[a] * Bco[b_idx] / W2;
+                        Sij[flat][symIdx(a, b_idx)] = (rhoHW2 + b2) * vel[a] * vel[b_idx] +
+                            (press + 0.5 * b2) * delta_ab - bco[a] * bco[b_idx] -
+                            Bco[a] * Bco[b_idx] / W2;
                         if (a == b_idx)
                             S_trace_val += Sij[flat][symIdx(a, b_idx)];
                     }

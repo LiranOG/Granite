@@ -329,10 +329,10 @@ void GRMHDEvolution::computeHLLDFlux(const std::array<Real, NUM_HYDRO_VARS>& uL,
 
     Real Bt1_dstar = (sqrtRhoL_star * Bt1R_star + sqrtRhoR_star * Bt1L_star +
                       sqrtRhoL_star * sqrtRhoR_star * (vt1R_star - vt1L_star) * signBn) *
-                     inv_sqrtSum;
+        inv_sqrtSum;
     Real Bt2_dstar = (sqrtRhoL_star * Bt2R_star + sqrtRhoR_star * Bt2L_star +
                       sqrtRhoL_star * sqrtRhoR_star * (vt2R_star - vt2L_star) * signBn) *
-                     inv_sqrtSum;
+        inv_sqrtSum;
 
     Real Bv_dstar = Bn * SM + Bt1_dstar * vt1_dstar + Bt2_dstar * vt2_dstar;
     Real tauL_dstar = tauL_star - sqrtRhoL_star * signBn * (BvL_star - Bv_dstar);
@@ -568,14 +568,17 @@ void GRMHDEvolution::computeCTUpdate(const GridBlock& spacetime_grid,
             for (int i = is; i < ie0; ++i) {
                 const size_t flat = idx(i, j, k);
 
-                dBx[flat] = dt * ((emfY(i, j, k + 1) - emfY(i, j, k)) * inv_dz -
-                                  (emfZ(i, j + 1, k) - emfZ(i, j, k)) * inv_dy);
+                dBx[flat] = dt *
+                    ((emfY(i, j, k + 1) - emfY(i, j, k)) * inv_dz -
+                     (emfZ(i, j + 1, k) - emfZ(i, j, k)) * inv_dy);
 
-                dBy[flat] = dt * ((emfZ(i + 1, j, k) - emfZ(i, j, k)) * inv_dx -
-                                  (emfX(i, j, k + 1) - emfX(i, j, k)) * inv_dz);
+                dBy[flat] = dt *
+                    ((emfZ(i + 1, j, k) - emfZ(i, j, k)) * inv_dx -
+                     (emfX(i, j, k + 1) - emfX(i, j, k)) * inv_dz);
 
-                dBz[flat] = dt * ((emfX(i, j + 1, k) - emfX(i, j, k)) * inv_dy -
-                                  (emfY(i + 1, j, k) - emfY(i, j, k)) * inv_dx);
+                dBz[flat] = dt *
+                    ((emfX(i, j + 1, k) - emfX(i, j, k)) * inv_dy -
+                     (emfY(i + 1, j, k) - emfY(i, j, k)) * inv_dx);
             }
 
     // Phase 2: apply all increments simultaneously.

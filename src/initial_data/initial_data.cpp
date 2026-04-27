@@ -49,7 +49,7 @@ static PetscErrorCode FormFunction(SNES snes, Vec x, Vec f, void* ctx) {
 
                 Real u_c = xx[flat];
                 Real u_avg = xx[flat + 1] + xx[flat - 1] + xx[flat + nx] + xx[flat - nx] +
-                             xx[flat + nx * ny] + xx[flat - nx * ny];
+                    xx[flat + nx * ny] + xx[flat - nx * ny];
                 Real D2u = (u_avg - 6.0 * u_c) / dx2;
                 Real psi = psi_BL[flat] + u_c;
                 Real source = 0.125 * Atilde2[flat] / std::pow(psi, 7.0);
@@ -273,7 +273,7 @@ void BowenYorkPuncture::solve(GridBlock& grid) const {
 
                     // True Gauss-Seidel uses the latest updated values in 'u' directly
                     Real u_avg = u[flat + 1] + u[flat - 1] + u[flat + nx] + u[flat - nx] +
-                                 u[flat + nx * ny] + u[flat - nx * ny];
+                        u[flat + nx * ny] + u[flat - nx * ny];
 
                     Real psi7_inv = 1.0 / std::pow(psi_BL[flat] + u[flat], 7.0);
                     Real rhs = -0.125 * Atilde2[flat] * psi7_inv;
@@ -341,7 +341,7 @@ void BowenYorkPuncture::setBowenYorkExtrinsicCurvature(GridBlock& grid) const {
                         for (int b = a; b < 3; ++b) {
                             Real delta_ab = (a == b) ? 1.0 : 0.0;
                             Real val = 1.5 * inv_r2 *
-                                       (P[a] * n[b] + P[b] * n[a] - (delta_ab - n[a] * n[b]) * Pn);
+                                (P[a] * n[b] + P[b] * n[a] - (delta_ab - n[a] * n[b]) * Pn);
                             Atilde[symIdx(a, b)] += val;
                         }
                     }
@@ -368,7 +368,7 @@ void BowenYorkPuncture::setBowenYorkExtrinsicCurvature(GridBlock& grid) const {
                             for (int kk = 0; kk < 3; ++kk) {
                                 for (int ll = 0; ll < 3; ++ll) {
                                     spin_term += levi(kk, ll, ii) * S[ll] * n[jj] * n[kk] +
-                                                 levi(kk, ll, jj) * S[ll] * n[ii] * n[kk];
+                                        levi(kk, ll, jj) * S[ll] * n[ii] * n[kk];
                                 }
                             }
                             Atilde[symIdx(ii, jj)] += 3.0 * inv_r3 * 0.5 * spin_term;
@@ -467,8 +467,8 @@ void SuperposedKerrSchild::apply(GridBlock& grid) const {
                 }
 
                 Real detg = g[0][0] * (g[1][1] * g[2][2] - g[1][2] * g[2][1]) -
-                            g[0][1] * (g[1][0] * g[2][2] - g[1][2] * g[2][0]) +
-                            g[0][2] * (g[1][0] * g[2][1] - g[1][1] * g[2][0]);
+                    g[0][1] * (g[1][0] * g[2][2] - g[1][2] * g[2][0]) +
+                    g[0][2] * (g[1][0] * g[2][1] - g[1][1] * g[2][0]);
 
                 Real chi = std::pow(detg, -1.0 / 3.0);
                 Real alpha = 1.0 / std::sqrt(1.0 + 2.0 * H_total);
@@ -852,12 +852,12 @@ void TwoPuncturesBBH::generate(GridBlock& grid) const {
                     Real r_m = std::sqrt(rx_m * rx_m + ry_m * ry_m + rz_m * rz_m + 1.0e-20);
 
                     Real psi_BL = 1.0 + params_.par_m_plus[0] / (2.0 * r_p) +
-                                  params_.par_m_minus[0] / (2.0 * r_m);
+                        params_.par_m_minus[0] / (2.0 * r_m);
 
                     Real u_c = u[flat];
                     Real u_sum = u[(i + 1) + nx * (j + ny * k)] + u[(i - 1) + nx * (j + ny * k)] +
-                                 u[i + nx * ((j + 1) + ny * k)] + u[i + nx * ((j - 1) + ny * k)] +
-                                 u[i + nx * (j + ny * (k + 1))] + u[i + nx * (j + ny * (k - 1))];
+                        u[i + nx * ((j + 1) + ny * k)] + u[i + nx * ((j - 1) + ny * k)] +
+                        u[i + nx * (j + ny * (k + 1))] + u[i + nx * (j + ny * (k - 1))];
 
                     Real psi = psi_BL + u_c;
                     Real source = 0.125 * A2[flat] * std::pow(psi, -7.0);
@@ -905,7 +905,7 @@ void TwoPuncturesBBH::generate(GridBlock& grid) const {
                 Real r_p = std::sqrt(rx_p * rx_p + ry_p * ry_p + rz_p * rz_p + 1.0e-20);
                 Real r_m = std::sqrt(rx_m * rx_m + ry_m * ry_m + rz_m * rz_m + 1.0e-20);
                 Real psi_BL = 1.0 + params_.par_m_plus[0] / (2.0 * r_p) +
-                              params_.par_m_minus[0] / (2.0 * r_m);
+                    params_.par_m_minus[0] / (2.0 * r_m);
 
                 Real psi = psi_BL + u[flat];
                 Real chi = std::pow(psi, -4.0);

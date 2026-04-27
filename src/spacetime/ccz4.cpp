@@ -93,8 +93,9 @@ Real CCZ4Evolution::d1(const GridBlock& grid, int var, int dir, int i, int j, in
     int ip2, jp2, kp2;
     shift(+2, ip2, jp2, kp2);
 
-    return inv12h * (-grid.data(var, ip2, jp2, kp2) + 8.0 * grid.data(var, ip1, jp1, kp1) -
-                     8.0 * grid.data(var, im1, jm1, km1) + grid.data(var, im2, jm2, km2));
+    return inv12h *
+        (-grid.data(var, ip2, jp2, kp2) + 8.0 * grid.data(var, ip1, jp1, kp1) -
+         8.0 * grid.data(var, im1, jm1, km1) + grid.data(var, im2, jm2, km2));
 }
 
 // 4th-order upwinded (one-sided) first derivative.
@@ -130,9 +131,9 @@ Real CCZ4Evolution::d1up(
         int im4, jm4, km4;
         shift(-4, im4, jm4, km4);
         return inv12h *
-               (25.0 * grid.data(var, i, j, k) - 48.0 * grid.data(var, im1, jm1, km1) +
-                36.0 * grid.data(var, im2, jm2, km2) - 16.0 * grid.data(var, im3, jm3, km3) +
-                3.0 * grid.data(var, im4, jm4, km4));
+            (25.0 * grid.data(var, i, j, k) - 48.0 * grid.data(var, im1, jm1, km1) +
+             36.0 * grid.data(var, im2, jm2, km2) - 16.0 * grid.data(var, im3, jm3, km3) +
+             3.0 * grid.data(var, im4, jm4, km4));
     } else {
         // Forward stencil: stencil points i ... i+4
         int ip1, jp1, kp1;
@@ -144,9 +145,9 @@ Real CCZ4Evolution::d1up(
         int ip4, jp4, kp4;
         shift(+4, ip4, jp4, kp4);
         return inv12h *
-               (-25.0 * grid.data(var, i, j, k) + 48.0 * grid.data(var, ip1, jp1, kp1) -
-                36.0 * grid.data(var, ip2, jp2, kp2) + 16.0 * grid.data(var, ip3, jp3, kp3) -
-                3.0 * grid.data(var, ip4, jp4, kp4));
+            (-25.0 * grid.data(var, i, j, k) + 48.0 * grid.data(var, ip1, jp1, kp1) -
+             36.0 * grid.data(var, ip2, jp2, kp2) + 16.0 * grid.data(var, ip3, jp3, kp3) -
+             3.0 * grid.data(var, ip4, jp4, kp4));
     }
 }
 
@@ -177,9 +178,10 @@ Real CCZ4Evolution::d2(
         int ip2, jp2, kp2;
         shift(+2, ip2, jp2, kp2);
 
-        return inv12h2 * (-grid.data(var, ip2, jp2, kp2) + 16.0 * grid.data(var, ip1, jp1, kp1) -
-                          30.0 * grid.data(var, i, j, k) + 16.0 * grid.data(var, im1, jm1, km1) -
-                          grid.data(var, im2, jm2, km2));
+        return inv12h2 *
+            (-grid.data(var, ip2, jp2, kp2) + 16.0 * grid.data(var, ip1, jp1, kp1) -
+             30.0 * grid.data(var, i, j, k) + 16.0 * grid.data(var, im1, jm1, km1) -
+             grid.data(var, im2, jm2, km2));
     } else {
         // Mixed partial: apply d1 in dir2 to the d1 stencil in dir1
         // For 4th order, use the compact cross-derivative stencil
@@ -214,8 +216,9 @@ Real CCZ4Evolution::d2(
         int imm_i, imm_j, imm_k;
         shift2(-1, -1, imm_i, imm_j, imm_k);
 
-        return inv4hh * (grid.data(var, ipp_i, ipp_j, ipp_k) - grid.data(var, ipm_i, ipm_j, ipm_k) -
-                         grid.data(var, imp_i, imp_j, imp_k) + grid.data(var, imm_i, imm_j, imm_k));
+        return inv4hh *
+            (grid.data(var, ipp_i, ipp_j, ipp_k) - grid.data(var, ipm_i, ipm_j, ipm_k) -
+             grid.data(var, imp_i, imp_j, imp_k) + grid.data(var, imm_i, imm_j, imm_k));
     }
 }
 
@@ -313,8 +316,8 @@ void CCZ4Evolution::computeRHS(const GridBlock& grid,
                 // 2. Compute inverse conformal metric γ̃^{ij}
                 // ──────────────────────────────────────────
                 Real det_gt = gt[XX] * (gt[YY] * gt[ZZ] - gt[YZ] * gt[YZ]) -
-                              gt[XY] * (gt[XY] * gt[ZZ] - gt[YZ] * gt[XZ]) +
-                              gt[XZ] * (gt[XY] * gt[YZ] - gt[YY] * gt[XZ]);
+                    gt[XY] * (gt[XY] * gt[ZZ] - gt[YZ] * gt[XZ]) +
+                    gt[XZ] * (gt[XY] * gt[YZ] - gt[YY] * gt[XZ]);
 
                 Real inv_det = 1.0 / (det_gt + 1.0e-30);
 
@@ -498,8 +501,9 @@ void CCZ4Evolution::computeRHS(const GridBlock& grid,
                                         Gam_jkm += gt[gtComp(idx, n)] * chris[n][gtComp(jj, m)];
                                         Gam_ikm += gt[gtComp(idx, n)] * chris[n][gtComp(ii, m)];
                                     }
-                                    R_ij += gtu_lm * (chris[idx][gtComp(l, ii)] * Gam_jkm +
-                                                      chris[idx][gtComp(l, jj)] * Gam_ikm);
+                                    R_ij += gtu_lm *
+                                        (chris[idx][gtComp(l, ii)] * Gam_jkm +
+                                         chris[idx][gtComp(l, jj)] * Gam_ikm);
 
                                     // Term 5: -\Gamma^k_{lm} \Gamma_{kij}
                                     Real Gam_kij = 0.0;
@@ -533,7 +537,7 @@ void CCZ4Evolution::computeRHS(const GridBlock& grid,
                         Real term1 = (0.5 / (chi + 1e-30)) * (D_i_D_j_chi + gt[ij] * D_k_D_k_chi);
                         // Baumgarte-Shapiro eq. 3.68: coefficient is -3, NOT +2
                         Real term2 = (0.25 / ((chi * chi) + 1e-30)) *
-                                     (d_chi[ii] * d_chi[jj] - 3.0 * gt[ij] * d_chi_sq);
+                            (d_chi[ii] * d_chi[jj] - 3.0 * gt[ij] * d_chi_sq);
                         Rchi[ij] = term1 - term2;
                     }
                 }
@@ -562,11 +566,10 @@ void CCZ4Evolution::computeRHS(const GridBlock& grid,
 
                 auto advec = [&](int var) -> Real {
                     Real adv_up = beta[0] * d1up(grid, var, 0, beta[0], i, j, k) +
-                                  beta[1] * d1up(grid, var, 1, beta[1], i, j, k) +
-                                  beta[2] * d1up(grid, var, 2, beta[2], i, j, k);
+                        beta[1] * d1up(grid, var, 1, beta[1], i, j, k) +
+                        beta[2] * d1up(grid, var, 2, beta[2], i, j, k);
                     Real adv_cen = beta[0] * d1(grid, var, 0, i, j, k) +
-                                   beta[1] * d1(grid, var, 1, i, j, k) +
-                                   beta[2] * d1(grid, var, 2, i, j, k);
+                        beta[1] * d1(grid, var, 1, i, j, k) + beta[2] * d1(grid, var, 2, i, j, k);
                     return blend_w * adv_up + (1.0 - blend_w) * adv_cen;
                 };
 
@@ -596,7 +599,7 @@ void CCZ4Evolution::computeRHS(const GridBlock& grid,
                         // Deformation terms (centered — not advection)
                         for (int idx = 0; idx < 3; ++idx) {
                             Lie_gt += gt[symIdx(ii, idx)] * d_beta[idx][jj] +
-                                      gt[symIdx(jj, idx)] * d_beta[idx][ii];
+                                gt[symIdx(jj, idx)] * d_beta[idx][ii];
                         }
                         rhs_gt[ij] =
                             -2.0 * alpha * At[ij] + Lie_gt - (2.0 / 3.0) * gt[ij] * div_beta;
@@ -609,7 +612,7 @@ void CCZ4Evolution::computeRHS(const GridBlock& grid,
                         for (int kk = 0; kk < 3; ++kk) {
                             for (int ll = 0; ll < 3; ++ll) {
                                 AtAt += gtu[symIdx(ii, kk)] * gtu[symIdx(jj, ll)] *
-                                        At[symIdx(ii, jj)] * At[symIdx(kk, ll)];
+                                    At[symIdx(ii, jj)] * At[symIdx(kk, ll)];
                             }
                         }
                     }
@@ -645,8 +648,8 @@ void CCZ4Evolution::computeRHS(const GridBlock& grid,
                 Real physical_lap_alpha = chi * laplacian_alpha - 0.5 * chi_grad_alpha;
 
                 Real rhs_K = -physical_lap_alpha + alpha * (AtAt + K * K / 3.0) +
-                             4.0 * constants::PI * alpha * (rho_matter[flat] + S_trace[flat]) +
-                             kappa1 * (1.0 - kappa2) * alpha * Theta + advec(iK);
+                    4.0 * constants::PI * alpha * (rho_matter[flat] + S_trace[flat]) +
+                    kappa1 * (1.0 - kappa2) * alpha * Theta + advec(iK);
 
                 Real R_scalar = 0.0;
                 for (int ii = 0; ii < 3; ++ii) {
@@ -657,9 +660,9 @@ void CCZ4Evolution::computeRHS(const GridBlock& grid,
                 }
 
                 Real rhs_Theta = 0.5 * alpha *
-                                     (R_scalar - AtAt + 2.0 * K * K / 3.0 -
-                                      16.0 * constants::PI * rho_matter[flat]) -
-                                 alpha * kappa1 * (2.0 + kappa2) * Theta + advec(iTHETA);
+                        (R_scalar - AtAt + 2.0 * K * K / 3.0 -
+                         16.0 * constants::PI * rho_matter[flat]) -
+                    alpha * kappa1 * (2.0 + kappa2) * Theta + advec(iTHETA);
 
                 // ──────────────────────────────────────────
                 // 13. RHS: ∂_t Ã_{ij}
@@ -703,7 +706,7 @@ void CCZ4Evolution::computeRHS(const GridBlock& grid,
                         // Deformation terms (centered — not advection)
                         for (int idx = 0; idx < 3; ++idx) {
                             Lie_At += At[symIdx(ii, idx)] * d_beta[idx][jj] +
-                                      At[symIdx(jj, idx)] * d_beta[idx][ii];
+                                At[symIdx(jj, idx)] * d_beta[idx][ii];
                         }
                         Lie_At -= (2.0 / 3.0) * At[ij] * div_beta;
 
@@ -974,8 +977,8 @@ void CCZ4Evolution::computeConstraints(const GridBlock& grid,
                               grid.data(iAZZ, i, j, k)};
 
                 Real det_gt = gt[XX] * (gt[YY] * gt[ZZ] - gt[YZ] * gt[YZ]) -
-                              gt[XY] * (gt[XY] * gt[ZZ] - gt[YZ] * gt[XZ]) +
-                              gt[XZ] * (gt[XY] * gt[YZ] - gt[YY] * gt[XZ]);
+                    gt[XY] * (gt[XY] * gt[ZZ] - gt[YZ] * gt[XZ]) +
+                    gt[XZ] * (gt[XY] * gt[YZ] - gt[YY] * gt[XZ]);
                 Real inv_det = 1.0 / (det_gt + 1.0e-30);
 
                 Real gtu[6] = {(gt[YY] * gt[ZZ] - gt[YZ] * gt[YZ]) * inv_det,
@@ -1000,7 +1003,7 @@ void CCZ4Evolution::computeConstraints(const GridBlock& grid,
                         for (int kk = 0; kk < 3; ++kk) {
                             for (int ll = 0; ll < 3; ++ll) {
                                 AtAt += gtu[symIdx(ii, kk)] * gtu[symIdx(jj, ll)] *
-                                        At[symIdx(ii, jj)] * At[symIdx(kk, ll)];
+                                    At[symIdx(ii, jj)] * At[symIdx(kk, ll)];
                             }
                         }
                     }
@@ -1035,8 +1038,8 @@ void CCZ4Evolution::computeConstraints(const GridBlock& grid,
                             Real sum = 0.0;
                             for (int m = 0; m < 3; ++m) {
                                 sum += 0.5 * gtu[symIdx(kk, m)] *
-                                       (d_gt[symIdx(m, ii)][jj] + d_gt[symIdx(m, jj)][ii] -
-                                        d_gt[symIdx(ii, jj)][m]);
+                                    (d_gt[symIdx(m, ii)][jj] + d_gt[symIdx(m, jj)][ii] -
+                                     d_gt[symIdx(ii, jj)][m]);
                             }
                             chris[kk][symIdx(ii, jj)] = sum;
                         }
@@ -1063,8 +1066,9 @@ void CCZ4Evolution::computeConstraints(const GridBlock& grid,
                                 R_ij += -0.5 * gtu[symIdx(l, m)] * dd_gt[ij][l][m];
                         }
                         for (int kk = 0; kk < 3; ++kk) {
-                            R_ij += 0.5 * (gt[symIdx(kk, ii)] * d_Ghat[kk][jj] +
-                                           gt[symIdx(kk, jj)] * d_Ghat[kk][ii]);
+                            R_ij += 0.5 *
+                                (gt[symIdx(kk, ii)] * d_Ghat[kk][jj] +
+                                 gt[symIdx(kk, jj)] * d_Ghat[kk][ii]);
                             Real G_ijk = 0.0;
                             for (int m = 0; m < 3; ++m)
                                 G_ijk += gt[symIdx(kk, m)] * chris[m][ij];
@@ -1080,8 +1084,9 @@ void CCZ4Evolution::computeConstraints(const GridBlock& grid,
                                         Gam_ikm += gt[symIdx(kk, n)] * chris[n][symIdx(ii, m)];
                                         Gam_kij += gt[symIdx(kk, n)] * chris[n][symIdx(ii, jj)];
                                     }
-                                    R_ij += gtu_lm * (chris[kk][symIdx(l, ii)] * Gam_jkm +
-                                                      chris[kk][symIdx(l, jj)] * Gam_ikm);
+                                    R_ij += gtu_lm *
+                                        (chris[kk][symIdx(l, ii)] * Gam_jkm +
+                                         chris[kk][symIdx(l, jj)] * Gam_ikm);
                                     R_ij -= gtu_lm * chris[kk][symIdx(l, m)] * Gam_kij;
                                 }
                             }
@@ -1104,8 +1109,8 @@ void CCZ4Evolution::computeConstraints(const GridBlock& grid,
                         }
                         // Baumgarte-Shapiro eq. 3.68: coefficient is -3, NOT +2
                         Rchi[ij] = (0.5 / (chi + 1e-30)) * (D_i_D_j_chi + gt[ij] * D_k_D_k_chi) -
-                                   (0.25 / ((chi * chi) + 1e-30)) *
-                                       (d_chi[ii] * d_chi[jj] - 3.0 * gt[ij] * d_chi_sq);
+                            (0.25 / ((chi * chi) + 1e-30)) *
+                                (d_chi[ii] * d_chi[jj] - 3.0 * gt[ij] * d_chi_sq);
                     }
                 }
 
@@ -1138,11 +1143,11 @@ void CCZ4Evolution::computeConstraints(const GridBlock& grid,
                             Real D_j_A_ki = d_At[symIdx(kk, ii)][jj];
                             for (int m = 0; m < 3; ++m) {
                                 D_j_A_ki -= chris[m][symIdx(jj, kk)] * At[symIdx(m, ii)] +
-                                            chris[m][symIdx(jj, ii)] * At[symIdx(kk, m)];
+                                    chris[m][symIdx(jj, ii)] * At[symIdx(kk, m)];
                             }
                             Mi += gtu_jk * D_j_A_ki;
                             Mi -= (3.0 / (2.0 * chi + 1e-30)) * At[symIdx(ii, jj)] * gtu_jk *
-                                  d_chi[kk];
+                                d_chi[kk];
                         }
                     }
                     Mi -= (2.0 / 3.0) * d_K[ii];

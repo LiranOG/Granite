@@ -325,8 +325,7 @@ public:
                                 for (int j = is; j < ie1; ++j)
                                     for (int i = is; i < ie0; ++i)
                                         d.data(v, i, j, k) = a1 * s1.data(v, i, j, k) +
-                                                             a2 * s2.data(v, i, j, k) +
-                                                             a3 * dt * r.data(v, i, j, k);
+                                            a2 * s2.data(v, i, j, k) + a3 * dt * r.data(v, i, j, k);
                         }
                     };
                     doCombine(dst_st, s1_st, s2_st, rst);
@@ -626,8 +625,7 @@ public:
                             Real& gyz = g.data(iGYZ, ii, jj, kk);
                             Real& gzz = g.data(iGZZ, ii, jj, kk);
                             Real det = gxx * (gyy * gzz - gyz * gyz) -
-                                       gxy * (gxy * gzz - gyz * gxz) +
-                                       gxz * (gxy * gyz - gyy * gxz);
+                                gxy * (gxy * gzz - gyz * gxz) + gxz * (gxy * gyz - gyy * gxz);
                             if (std::isfinite(det) && det > 1.0e-10) {
                                 Real scale = std::cbrt(1.0 / det);
                                 gxx *= scale;
@@ -659,7 +657,7 @@ public:
                             Real& ayz = g.data(static_cast<int>(SpacetimeVar::A_YZ), ii, jj, kk);
                             Real& azz = g.data(static_cast<int>(SpacetimeVar::A_ZZ), ii, jj, kk);
                             const Real trA = ixx * axx + iyy * ayy + izz * azz +
-                                             2.0 * (ixy * axy + ixz * axz + iyz * ayz);
+                                2.0 * (ixy * axy + ixz * axz + iyz * ayz);
                             const Real t3 = trA / 3.0;
                             axx -= t3 * gxx;
                             axy -= t3 * gxy;
@@ -867,7 +865,7 @@ int main(int argc, char* argv[]) {
                                             active_bundles.end(),
                                             [&](const BlockBundle& bundle) {
                                                 return active_ids.find(bundle.id) ==
-                                                       active_ids.end();
+                                                    active_ids.end();
                                             }),
                              active_bundles.end());
 
@@ -1056,8 +1054,8 @@ int main(int argc, char* argv[]) {
                 for (int j = 0; j < st.totalCells(1); ++j)
                     for (int i = 0; i < st.totalCells(0); ++i) {
                         Real x = st.x(0, i);
-                        Real lapse = 1.0 + gauge_wave_amplitude *
-                                               std::sin(2.0 * M_PI * x / gauge_wave_wavelength);
+                        Real lapse = 1.0 +
+                            gauge_wave_amplitude * std::sin(2.0 * M_PI * x / gauge_wave_wavelength);
                         st.data(static_cast<int>(SpacetimeVar::LAPSE), i, j, k) = lapse;
                     }
             setAtmosphere(*(bundle.hydro));

@@ -241,8 +241,9 @@ Real TabulatedEOS::invertTemperature(Real rho, Real eps_target, Real Ye) const {
     // -------------------------------------------------------------------------
     // Initial guess: linear interpolation in log T
     // -------------------------------------------------------------------------
-    Real log_T = std::log10(T_lo) + (std::log10(T_hi) - std::log10(T_lo)) * (eps_target - eps_lo) /
-                                        (eps_hi - eps_lo + EPS_FLOOR);
+    Real log_T = std::log10(T_lo) +
+        (std::log10(T_hi) - std::log10(T_lo)) * (eps_target - eps_lo) /
+            (eps_hi - eps_lo + EPS_FLOOR);
     Real T = std::pow(10.0, std::clamp(log_T, std::log10(T_lo), std::log10(T_hi)));
 
     // Bisection bracket (always valid since eps is monotone in T)
@@ -272,7 +273,7 @@ Real TabulatedEOS::invertTemperature(Real rho, Real eps_target, Real Ye) const {
         const Real T_plus = std::min(T + dT, T_hi);
         const Real T_minus = std::max(T - dT, T_lo);
         const Real deps_dT = (epsFromRhoTYe(rho, T_plus, Ye) - epsFromRhoTYe(rho, T_minus, Ye)) /
-                             (T_plus - T_minus + EPS_FLOOR);
+            (T_plus - T_minus + EPS_FLOOR);
 
         Real T_new = T;
         if (std::abs(deps_dT) > EPS_FLOOR) {
