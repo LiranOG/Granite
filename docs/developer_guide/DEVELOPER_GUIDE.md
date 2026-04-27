@@ -1353,7 +1353,7 @@ Any scientific result from GRANITE intended for publication **must**:
 4. Include constraint norm time series and AMR level count evolution
 5. Share checkpoint files on Zenodo or equivalent
 
-We actively encourage co-authorship for significant scientific contributions.
+Co-authorship is actively encouraged for significant scientific contributions.
 
 ---
 

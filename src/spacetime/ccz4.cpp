@@ -8,7 +8,7 @@
  *
  * Reference: Alic et al., PRD 85, 064040 (2012)
  *
- * @copyright 2026 GRANITE Collaboration
+ * @copyright 2026 Liran M. Schwartz
  */
 #include "granite/spacetime/ccz4.hpp"
 

@@ -24,7 +24,7 @@
  *   - Noble et al. (2006) ApJ 641, 626   — 2D primitive recovery
  *   - Palenzuela et al. (2015) PRD 92, 044045
  *
- * @copyright 2026 GRANITE Collaboration
+ * @copyright 2026 Liran M. Schwartz
  * @license GPL-3.0-or-later
  */
 #include "granite/grmhd/grmhd.hpp"

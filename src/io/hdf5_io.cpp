@@ -2,7 +2,7 @@
  * @file hdf5_io.cpp
  * @brief HDF5 parallel I/O implementation.
  *
- * @copyright 2026 GRANITE Collaboration
+ * @copyright 2026 Liran M. Schwartz
  */
 #include "granite/io/hdf5_io.hpp"
 

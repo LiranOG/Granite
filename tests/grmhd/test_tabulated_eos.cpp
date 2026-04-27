@@ -27,7 +27,7 @@
  *     delta_mu        = mu_e + mu_p - mu_n = T*(18*Ye - 5)
  *     beta-eq Ye      = 5/18 ~ 0.2778  (independent of rho, T)
  *
- * @copyright 2026 GRANITE Collaboration
+ * @copyright 2026 Liran M. Schwartz
  * @license GPL-3.0-or-later
  */
 #include "granite/core/types.hpp"

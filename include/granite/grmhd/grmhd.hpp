@@ -6,7 +6,7 @@
  * Provides flux computation, primitive recovery, and the full RHS for the
  * conserved GRMHD variables on a curved dynamical spacetime.
  *
- * @copyright 2026 GRANITE Collaboration
+ * @copyright 2026 Liran M. Schwartz
  * @license GPL-3.0-or-later
  */
 #pragma once

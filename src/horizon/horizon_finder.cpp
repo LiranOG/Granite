@@ -13,7 +13,7 @@
  *   - Gundlach (1998) Phys. Rev. D 57, 863
  *   - Thornburg (2004) Living Rev. Relativ. 7, 3
  *
- * @copyright 2026 GRANITE Collaboration
+ * @copyright 2026 Liran M. Schwartz
  * @license GPL-3.0-or-later
  */
 #include "granite/horizon/horizon_finder.hpp"

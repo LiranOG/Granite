@@ -7,7 +7,7 @@
  * ghost zones, and provides indexing, coordinate queries, and finite-
  * difference stencil access.
  *
- * @copyright 2026 GRANITE Collaboration
+ * @copyright 2026 Liran M. Schwartz
  * @license GPL-3.0-or-later
  */
 #pragma once

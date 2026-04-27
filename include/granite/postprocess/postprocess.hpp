@@ -2,7 +2,7 @@
  * @file granite/postprocess/postprocess.hpp
  * @brief Post-processing suite — GW extraction, EM diagnostics, recoil.
  *
- * @copyright 2026 GRANITE Collaboration
+ * @copyright 2026 Liran M. Schwartz
  * @license GPL-3.0-or-later
  */
 #pragma once

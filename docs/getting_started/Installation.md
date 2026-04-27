@@ -222,7 +222,7 @@ python3 scripts/run_granite.py run --benchmark single_puncture
 🍏 macOS Installation
 > Welcome, Mac users!
 > 
-> Since macOS is a Unix-based operating system, we have a solid foundation to work with. However, because GRANITE is fundamentally optimized for Linux architectures, setting it up on macOS requires a few extra steps to bridge the gap (such as configuring specific dependencies or using containerization).
+> Since macOS is a Unix-based operating system, there is a solid foundation to work with. However, because GRANITE is fundamentally optimized for Linux architectures, setting it up on macOS requires a few extra steps to bridge the gap (such as configuring specific dependencies or using containerization).
 > 
 > Don't worry—this section will guide you through the necessary tweaks to get the engine successfully compiled and running on your machine.
 

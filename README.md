@@ -116,7 +116,7 @@ No single existing open-source code simultaneously handles all of these capabili
 > [!NOTE]
 > 💡 **Deep-Dive Architectural Analysis & Full Comparison**
 > 
-> The table above provides only a high-level overview. For an exhaustive, source-cited capability breakdown against *Einstein Toolkit, GRChombo, SpECTRE, and AthenaK*, please refer to our **[Detailed Comparison & Architecture Guide](docs/COMPARISON.md)**. 
+> The table above provides only a high-level overview. For an exhaustive, source-cited capability breakdown against *Einstein Toolkit, GRChombo, SpECTRE, and AthenaK*, please refer to the **[Detailed Comparison & Architecture Guide](docs/COMPARISON.md)**. 
 ---
 
 ## 📊 Benchmark Results
@@ -373,7 +373,7 @@ If you're interested — open a GitHub Discussion or email `scliran9@gmail.com`.
 
 ## 🤝 Contributing
 
-We welcome contributions from the scientific and open-source communities. Please read [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md) and adhere to [`.github/CODE_OF_CONDUCT.md`](.github/CODE_OF_CONDUCT.md).
+Contributions from the scientific and open-source communities are welcome. Please read [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md) and adhere to [`.github/CODE_OF_CONDUCT.md`](.github/CODE_OF_CONDUCT.md).
 
 ```bash
 python3 scripts/run_granite.py format   # Auto-format all C++ contributions
@@ -389,8 +389,8 @@ There is no minimum. There is no gatekeeping. There is no "small enough to not m
 | **You read the physics and find something wrong** | A wrong formula caught early is worth a thousand correct ones discovered late |
 | **You submit a PR — any size** | A one-line fix, a new unit test, a missing C2P edge case — all of it moves the needle |
 | **You open an issue** | Describing what broke, what confused you, or what's missing is itself a contribution of enormous value |
-| **You share it with a colleague** | The person most likely to find the deepest bug is the one we haven't met yet |
-| **You validate a benchmark** | Running `B2_eq` and sharing constraint norms takes 20 minutes and generates ground truth we cannot produce alone |
+| **You share it with a colleague** | The person most likely to find the deepest bug is the one I haven't met yet |
+| **You validate a benchmark** | Running `B2_eq` and sharing constraint norms takes 20 minutes and generates ground truth I cannot produce alone |
 | **You review the theory** | If you work in NR, GRMHD, or computational astrophysics — your professional eye is the most valuable thing you could offer |
 
 No contribution requires understanding the whole codebase. The modules are deliberately decoupled: an expert in radiation transport can engage with `src/radiation/` without touching the CCZ4 RHS loop.

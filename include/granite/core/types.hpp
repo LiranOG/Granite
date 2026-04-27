@@ -5,7 +5,7 @@
  * This header defines the core numeric types, physical constants, index
  * conventions, and compile-time configuration used throughout the codebase.
  *
- * @copyright 2026 GRANITE Collaboration
+ * @copyright 2026 Liran M. Schwartz
  * @license GPL-3.0-or-later
  */
 #pragma once

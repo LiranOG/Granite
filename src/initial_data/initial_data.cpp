@@ -2,7 +2,7 @@
  * @file initial_data.cpp
  * @brief Initial data construction — Brill-Lindquist, TOV/polytrope.
  *
- * @copyright 2026 GRANITE Collaboration
+ * @copyright 2026 Liran M. Schwartz
  */
 #include "granite/initial_data/initial_data.hpp"
 

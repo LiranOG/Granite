@@ -145,7 +145,7 @@ A: The most common cause is running from a Windows-mounted filesystem (`/mnt/c/`
 
 **Q: I found a bug. How do I report it?**
 
-A: Open a GitHub Issue using the bug report template. Include: (1) your OS and compiler version, (2) the exact command that produced the error, (3) the full error output, (4) the relevant section of your `params.yaml`, and (5) the output of `python3 scripts/health_check.py`. The more context you provide, the faster we can diagnose it.
+A: Open a GitHub Issue using the bug report template. Include: (1) your OS and compiler version, (2) the exact command that produced the error, (3) the full error output, (4) the relevant section of your `params.yaml`, and (5) the output of `python3 scripts/health_check.py`. The more context you provide, the faster the issue can be diagnosed.
 
 **Q: I want to add a new physics module. Where do I start?**
 

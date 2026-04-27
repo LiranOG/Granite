@@ -28,7 +28,7 @@
  *   - Rosswog & Liebendörfer (2003) MNRAS 342, 673
  *   - Perego et al. (2016) ApJS 223, 22
  *
- * @copyright 2026 GRANITE Collaboration
+ * @copyright 2026 Liran M. Schwartz
  * @license GPL-3.0-or-later
  */
 #include "granite/neutrino/neutrino.hpp"

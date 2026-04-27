@@ -25,7 +25,7 @@
  *   - Sądowski et al. (2013) MNRAS 429, 3533
  *   - Foucart et al. (2015) PRD 91, 124021
  *
- * @copyright 2026 GRANITE Collaboration
+ * @copyright 2026 Liran M. Schwartz
  * @license GPL-3.0-or-later
  */
 #include "granite/radiation/m1.hpp"

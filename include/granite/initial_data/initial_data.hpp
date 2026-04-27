@@ -2,7 +2,7 @@
  * @file granite/initial_data/initial_data.hpp
  * @brief Initial data construction — multi-BH punctures and stellar matter.
  *
- * @copyright 2026 GRANITE Collaboration
+ * @copyright 2026 Liran M. Schwartz
  * @license GPL-3.0-or-later
  */
 #pragma once

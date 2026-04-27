@@ -24,7 +24,7 @@ The C++ testing infrastructure now looks and reads like production-grade physics
 - **Visual Anchoring:** Segmented the code using visually striking `// === TEST CASE: [Name] ===` block headers, ensuring that failure logs map instantly to human-readable physics concepts (e.g., *Free-Streaming Limit*, *Execution Safety*).
 
 ## 4. Directory Signposting (`README.md` Audit)
-We established a strict rule: **Every directory must look intentional.**
+A strict rule was established: **Every directory must look intentional.**
 - **Created 6 New READMEs:** `benchmarks`, `src`, `tests`, `scripts`, `python`, and `containers` now possess a root `README.md`.
 - **Standardized Structure:** Every directory README features:
   1. A professional emoji header (e.g., `# 🧠 GRANITE – Core Source (src/)`).

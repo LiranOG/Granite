@@ -29,7 +29,7 @@
  *   Hempel & Schaffner-Bielich (2010) NPA 837, 210
  *   Steiner, Hempel, Fischer (2013) ApJ 774, 17 (SFHo/SFHx)
  *
- * @copyright 2026 GRANITE Collaboration
+ * @copyright 2026 Liran M. Schwartz
  * @license GPL-3.0-or-later
  */
 #pragma once

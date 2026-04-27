@@ -2,7 +2,7 @@
  * @file granite/io/hdf5_io.hpp
  * @brief HDF5 I/O module — parallel read/write, checkpoint/restart.
  *
- * @copyright 2026 GRANITE Collaboration
+ * @copyright 2026 Liran M. Schwartz
  * @license GPL-3.0-or-later
  */
 #pragma once

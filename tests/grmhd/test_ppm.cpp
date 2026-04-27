@@ -12,7 +12,7 @@
  *   4. Bounded RHS for Sod shock-tube initial conditions
  *   5. Convergence order verification (smooth sinusoidal profile)
  *
- * @copyright 2026 GRANITE Collaboration
+ * @copyright 2026 Liran M. Schwartz
  * @license GPL-3.0-or-later
  */
 #include "granite/core/grid.hpp"

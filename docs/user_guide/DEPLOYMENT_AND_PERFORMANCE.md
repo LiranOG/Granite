@@ -6,10 +6,10 @@ This guide outlines the professional "Maximum Power" protocols for deploying the
 
 ## 1. The "Maximum Power" Build Protocol
 
-We enforce stringent Release flags on all compilers. If you build using the standard CLI instructions, `CMakeLists.txt` automatically triggers the following flags:
+GRANITE enforces stringent Release flags on all compilers. If you build using the standard CLI instructions, `CMakeLists.txt` automatically triggers the following flags:
 
 ### 🪟 Windows Native (MSVC / cl.exe)
-If compiling via Visual Studio Build Tools, we force:
+If compiling via Visual Studio Build Tools, the build system forces:
 - `/O2`: Aggressive overarching optimization.
 - `/Ob2`: Maximum function inlining (drastically improves CCZ4 inner loop speed).
 - `/arch:AVX2`: Forces the compiler to emit Advanced Vector Extensions instructions natively supported by modern CPUs.
@@ -18,7 +18,7 @@ If compiling via Visual Studio Build Tools, we force:
 **Native MSVC Checkpoint:** Ensure you are running CMake from a "Developer Command Prompt for VS 2022" or passing the correct architecture flag to `vcvars64.bat`. 
 
 ### 🐧 Linux / macOS (GCC / Apple Clang)
-If compiling via WSL2, Ubuntu, Fedora, or Homebrew, we force:
+If compiling via WSL2, Ubuntu, Fedora, or Homebrew, the build system forces:
 - `-O3`: Aggressive loop vectorization and optimization.
 - `-march=native`: Extremely powerful flag that tunes GCC directly to the physical silicon architecture running the build (e.g. AVX-512). *Warning: The resulting binary cannot be shared directly with an older machine!*
 - `-ffast-math`: Disables strict NaN propagation and algebraic safety to maximize FMA (Fused Multiply Accumulate) pipelines.

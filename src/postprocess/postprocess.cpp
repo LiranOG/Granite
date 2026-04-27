@@ -16,7 +16,7 @@
  *   - Campanelli et al. (2005) PRL 96, 111101
  *   - Nerozzi et al. (2005) PRD 72, 024014
  *
- * @copyright 2026 GRANITE Collaboration
+ * @copyright 2026 Liran M. Schwartz
  * @license GPL-3.0-or-later
  */
 #include "granite/postprocess/postprocess.hpp"

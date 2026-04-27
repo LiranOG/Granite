@@ -30,11 +30,11 @@ I am not asking you to rewrite the core solvers (unless that is your passion!). 
 * A postdoc designing a YAML scenario that pushes the engine to its absolute breaking point.
 * A developer optimizing a single loop in the Riemann solver.
 
-Every run you execute, every bug you report, every scenario you dream up is a brick in the foundation of this project. Even the smallest act of engagement helps us reach scientific frontiers we previously thought impossible.
+Every run you execute, every bug you report, every scenario you dream up is a brick in the foundation of this project. Even the smallest act of engagement helps reach scientific frontiers previously thought impossible.
 
 GRANITE is released to the world completely open-source, under the GPL 3.0 license, forever. It belongs to anyone who wishes to use it. 
 
-I promise to remain transparent, dedicated, and brutally honest about our limitations and our triumphs. I invite you to bring your curiosity, your expertise, and your imagination.
+I promise to remain transparent, dedicated, and brutally honest about the project's limitations and triumphs. I invite you to bring your curiosity, your expertise, and your imagination.
 
 > ***Let’s simulate the universe — together.***
 
@@ -43,4 +43,4 @@ I promise to remain transparent, dedicated, and brutally honest about our limita
 ***
 
 ###  Ready to see the future?
-If you want to understand exactly *how* we are going to achieve this—our plans for the YAML revolution, the VORTEX real-time visualization, and the HPC Cloud Bridge economy—read the **[GRANITE v1.0 Vision & Manifesto](VISION.md)**.
+If you want to understand exactly *how* I plan to achieve this—the plans for the YAML revolution, the VORTEX real-time visualization, and the HPC Cloud Bridge economy—read the **[GRANITE v1.0 Vision & Manifesto](VISION.md)**.

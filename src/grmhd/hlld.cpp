@@ -18,7 +18,7 @@
  *   - Miyoshi & Kusano (2005) JCP 208, 315-344
  *   - Mignone (2007) JCP 225, 1427-1441
  *
- * @copyright 2026 GRANITE Collaboration
+ * @copyright 2026 Liran M. Schwartz
  * @license GPL-3.0-or-later
  */
 #include "granite/core/types.hpp"

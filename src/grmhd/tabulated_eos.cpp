@@ -27,7 +27,7 @@
  *   delta_mu = mu_e(rho,T,Ye) + mu_p(rho,T,Ye) - mu_n(rho,T,Ye)
  * Uses bisection on the monotone interval [Ye_min, 0.5].
  *
- * @copyright 2026 GRANITE Collaboration
+ * @copyright 2026 Liran M. Schwartz
  * @license GPL-3.0-or-later
  */
 #include "granite/grmhd/tabulated_eos.hpp"

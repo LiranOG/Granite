@@ -5,7 +5,7 @@
  * Parses command-line arguments, reads a parameter file,
  * constructs initial data, and runs the evolution loop.
  *
- * @copyright 2026 GRANITE Collaboration
+ * @copyright 2026 Liran M. Schwartz
  */
 #include "granite/amr/amr.hpp"
 #include "granite/core/grid.hpp"
