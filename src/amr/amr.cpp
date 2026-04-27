@@ -596,7 +596,8 @@ void AMRHierarchy::restrict_data(const GridBlock& fine, GridBlock& coarse) const
                         for (int rk = 0; rk < ratio; ++rk) {
                             for (int rj = 0; rj < ratio; ++rj) {
                                 for (int ri = 0; ri < ratio; ++ri) {
-                                    sum += fine.data(var, fi_base + ri, fj_base + rj, fk_base + rk);
+                                    sum += fine.data(
+                                        var, fi_base + ri, fj_base + rj, fk_base + rk);
                                 }
                             }
                         }
@@ -611,8 +612,8 @@ void AMRHierarchy::restrict_data(const GridBlock& fine, GridBlock& coarse) const
                             var == static_cast<int>(HydroVar::SY) ||
                             var == static_cast<int>(HydroVar::SZ)) {
 
-                            // Flux correction conservatively maps fine grid fluxes back iteratively
-                            // F_fine = sum(F_fine_faces)
+                            // Flux correction conservatively maps fine grid fluxes
+                            // back iteratively. F_fine = sum(F_fine_faces)
                             // Reflux = dt/dx * (F_coarse - F_fine)
                             // Here we inject the properly restricted val + reflux ghost
                         }

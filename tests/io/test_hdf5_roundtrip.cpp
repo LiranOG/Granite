@@ -2,15 +2,16 @@
  * @file test_hdf5_roundtrip.cpp
  * @author Liran M. Schwartz
  * @version v0.6.7
- * @brief High-fidelity smoke tests for HDF5 I/O subsystem (write + read round-trip data integrity).
+ * @brief High-fidelity smoke tests for HDF5 I/O subsystem
+ *        (write + read round-trip data integrity).
  *
  * P1-01 remediation: Adds the first unit coverage for src/io/hdf5_io.cpp
  * (497 lines, previously zero test coverage).
  *
  * @details
  * These tests rigorously verify the robustness of the HDF5 serialization mechanisms:
- *   - (a) Constant Field Preservation: GridBlock data serialized to HDF5 and deserialized back must
- * be bitwise equal (to machine precision).
+ *   - (a) Constant Field Preservation: GridBlock data serialized to HDF5 and
+ * deserialized back must be bitwise equal (to machine precision).
  *   - (b) Complex Field Preservation: Linear ramp fields ensure spatial indexing (i,j,k) is not
  * permuted upon read.
  *   - (c) File Handling Integrity: The HDF5 file must be fully flushed, readable, and cleanly

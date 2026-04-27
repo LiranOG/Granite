@@ -592,8 +592,8 @@ Real EMDiagnostics::eddingtonLuminosity(Real mass_msun) {
     // σ_T ≈ 6.652×10⁻²⁵ cm², m_p = 1.673×10⁻²⁴ g
     constexpr Real sigma_T = 6.6524e-25; // Thomson cross section [cm²]
     const Real M_cgs = mass_msun * constants::MSUN_CGS;
-    return 4.0 * constants::PI * constants::G_CGS * M_cgs * constants::M_PROTON * constants::C_CGS /
-        sigma_T;
+    return 4.0 * constants::PI * constants::G_CGS * M_cgs *
+        constants::M_PROTON * constants::C_CGS / sigma_T;
 }
 
 // ===========================================================================

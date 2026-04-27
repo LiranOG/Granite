@@ -125,8 +125,9 @@ TEST_F(AMRSmokeTest, ProlongationPreservesConstantField) {
         << "prolongate() threw on constant-field coarse grid.";
 
     Real err = maxError(fine, C);
-    EXPECT_LT(err, 1.0e-12) << "Prolongation of constant field C=" << C << " produced error " << err
-                            << ". Trilinear prolongation must be exact for constant fields.";
+    EXPECT_LT(err, 1.0e-12)
+        << "Prolongation of constant field C=" << C << " produced error " << err
+        << ". Trilinear prolongation must be exact for constant fields.";
 }
 
 // ---------------------------------------------------------------------------

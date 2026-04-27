@@ -226,7 +226,8 @@ void BowenYorkPuncture::solve(GridBlock& grid) const {
     SNESCreate(PETSC_COMM_WORLD, &snes);
     SNESSetFunction(snes, r, FormFunction, &ctx);
 
-    MatCreateMPIAIJ(PETSC_COMM_WORLD, N, N, PETSC_DETERMINE, PETSC_DETERMINE, 7, NULL, 7, NULL, &J);
+    MatCreateMPIAIJ(PETSC_COMM_WORLD, N, N, PETSC_DETERMINE, PETSC_DETERMINE,
+                    7, NULL, 7, NULL, &J);
     SNESSetJacobian(snes, J, J, SNESComputeJacobianDefault, &ctx);
 
     KSP ksp;
@@ -873,7 +874,7 @@ void TwoPuncturesBBH::generate(GridBlock& grid) const {
 
 #pragma omp parallel for
         for (int i = 0; i < nx * ny * nz; ++i) {
-            u[i] = u_new[i]; // Asymptotic u->0 is enforced via inactive ghost cells staying exactly
+            u[i] = u_new[i]; // Asymptotic u->0 is enforced via inactive ghost cells
                              // 0.0
         }
 
