@@ -93,6 +93,7 @@ TEST_F(AMRSmokeTest, ConstructionSucceeds) {
 // ---------------------------------------------------------------------------
 TEST_F(AMRSmokeTest, InitialLevelCountIsOne) {
     AMRHierarchy hier(params_, sim_params_);
+    hier.addTrackingSphere({0.0, 0.0, 0.0}, 1.0, 2);
     hier.initialize([](const GridBlock&, int, int, int) { return false; });
     EXPECT_EQ(hier.numLevels(), 1)
         << "Expected 1 base level after construction; got " << hier.numLevels();
@@ -108,6 +109,7 @@ TEST_F(AMRSmokeTest, InitialLevelCountIsOne) {
 // ---------------------------------------------------------------------------
 TEST_F(AMRSmokeTest, ProlongationPreservesConstantField) {
     AMRHierarchy hier(params_, sim_params_);
+    hier.addTrackingSphere({0.0, 0.0, 0.0}, 1.0, 2);
     hier.initialize([](const GridBlock&, int, int, int) { return true; }); // Tag all cells
 
     ASSERT_GE(hier.numLevels(), 2) << "initialize() failed to create level 1.";
@@ -136,6 +138,7 @@ TEST_F(AMRSmokeTest, ProlongationPreservesConstantField) {
 // ---------------------------------------------------------------------------
 TEST_F(AMRSmokeTest, RestrictionPreservesConstantField) {
     AMRHierarchy hier(params_, sim_params_);
+    hier.addTrackingSphere({0.0, 0.0, 0.0}, 1.0, 2);
     hier.initialize([](const GridBlock&, int, int, int) { return true; });
 
     ASSERT_GE(hier.numLevels(), 2);
@@ -161,6 +164,7 @@ TEST_F(AMRSmokeTest, RestrictionPreservesConstantField) {
 // ---------------------------------------------------------------------------
 TEST_F(AMRSmokeTest, RegridWithNoTaggedCellsIsStable) {
     AMRHierarchy hier(params_, sim_params_);
+    hier.addTrackingSphere({0.0, 0.0, 0.0}, 1.0, 2);
     hier.initialize([](const GridBlock&, int, int, int) { return false; });
 
     // Fill base level with zero (no refinement criterion will trigger)

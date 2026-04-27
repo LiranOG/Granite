@@ -5,13 +5,13 @@
  * Covers construction, data access, coordinate mapping, and the
  * new Phase 5 APIs: buffer packing/unpacking and neighbor metadata.
  */
-#include <gtest/gtest.h>
 #include "granite/core/grid.hpp"
 #include "granite/core/types.hpp"
 
 #include <algorithm>
-#include <numeric>
 #include <cmath>
+#include <gtest/gtest.h>
+#include <numeric>
 
 using namespace granite;
 
@@ -20,7 +20,7 @@ protected:
     void SetUp() override {
         ncells = {16, 16, 16};
         lo = {-1.0, -1.0, -1.0};
-        hi = { 1.0,  1.0,  1.0};
+        hi = {1.0, 1.0, 1.0};
         nghost = 4;
         nvars = 5;
         grid = std::make_unique<GridBlock>(0, 0, ncells, lo, hi, nghost, nvars);
@@ -137,11 +137,11 @@ class GridBlockBufferTest : public ::testing::Test {
 protected:
     void SetUp() override {
         // Asymmetric cell counts to verify non-square slabs correctly
-        ncells_  = {8, 12, 6};
-        lo_      = {0.0, 0.0, 0.0};
-        hi_      = {1.0, 1.0, 1.0};
-        nghost_  = 2;
-        nvars_   = 3;
+        ncells_ = {8, 12, 6};
+        lo_ = {0.0, 0.0, 0.0};
+        hi_ = {1.0, 1.0, 1.0};
+        nghost_ = 2;
+        nvars_ = 3;
         grid_ = std::make_unique<GridBlock>(0, 0, ncells_, lo_, hi_, nghost_, nvars_);
 
         // Fill interior with a known pattern: data(v, i, j, k) = v*1000 + i*100 + j*10 + k
@@ -149,7 +149,8 @@ protected:
             for (int k = 0; k < grid_->totalCells(2); ++k)
                 for (int j = 0; j < grid_->totalCells(1); ++j)
                     for (int i = 0; i < grid_->totalCells(0); ++i)
-                        grid_->data(v, i, j, k) = static_cast<Real>(v * 1000 + i * 100 + j * 10 + k);
+                        grid_->data(v, i, j, k) =
+                            static_cast<Real>(v * 1000 + i * 100 + j * 10 + k);
         }
     }
 
@@ -164,12 +165,12 @@ TEST_F(GridBlockBufferTest, PackBufferSizeXLow) {
     std::vector<Real> buf;
     grid_->packBoundary(0, buf);
 
-    int expected_nx  = nghost_;
-    int expected_ny  = grid_->totalCells(1);
-    int expected_nz  = grid_->totalCells(2);
-    std::size_t expected = static_cast<std::size_t>(nvars_ * expected_nx * expected_ny * expected_nz);
-    EXPECT_EQ(buf.size(), expected)
-        << "packBoundary(face=0) produced wrong buffer size.";
+    int expected_nx = nghost_;
+    int expected_ny = grid_->totalCells(1);
+    int expected_nz = grid_->totalCells(2);
+    std::size_t expected =
+        static_cast<std::size_t>(nvars_ * expected_nx * expected_ny * expected_nz);
+    EXPECT_EQ(buf.size(), expected) << "packBoundary(face=0) produced wrong buffer size.";
 }
 
 TEST_F(GridBlockBufferTest, PackBufferSizeZHigh) {
@@ -177,12 +178,12 @@ TEST_F(GridBlockBufferTest, PackBufferSizeZHigh) {
     std::vector<Real> buf;
     grid_->packBoundary(5, buf);
 
-    int expected_nx  = grid_->totalCells(0);
-    int expected_ny  = grid_->totalCells(1);
-    int expected_nz  = nghost_;
-    std::size_t expected = static_cast<std::size_t>(nvars_ * expected_nx * expected_ny * expected_nz);
-    EXPECT_EQ(buf.size(), expected)
-        << "packBoundary(face=5) produced wrong buffer size.";
+    int expected_nx = grid_->totalCells(0);
+    int expected_ny = grid_->totalCells(1);
+    int expected_nz = nghost_;
+    std::size_t expected =
+        static_cast<std::size_t>(nvars_ * expected_nx * expected_ny * expected_nz);
+    EXPECT_EQ(buf.size(), expected) << "packBoundary(face=5) produced wrong buffer size.";
 }
 
 TEST_F(GridBlockBufferTest, PackAndUnpackRoundtrip) {
@@ -202,12 +203,11 @@ TEST_F(GridBlockBufferTest, PackAndUnpackRoundtrip) {
         for (int k = 0; k < grid_->totalCells(2); ++k)
             for (int j = 0; j < grid_->totalCells(1); ++j)
                 for (int ng = 0; ng < nghost_; ++ng) {
-                    Real src_val  = grid_->data(v, is + ng, j, k);
-                    int  dst_i    = grid_->totalCells(0) - nghost_ + ng;
+                    Real src_val = grid_->data(v, is + ng, j, k);
+                    int dst_i = grid_->totalCells(0) - nghost_ + ng;
                     Real dest_val = dest->data(v, dst_i, j, k);
                     EXPECT_DOUBLE_EQ(dest_val, src_val)
-                        << "Mismatch at v=" << v << " ng=" << ng
-                        << " j=" << j << " k=" << k;
+                        << "Mismatch at v=" << v << " ng=" << ng << " j=" << j << " k=" << k;
                 }
     }
 }
@@ -249,9 +249,9 @@ TEST_F(GridBlockBufferTest, OppositeFaceSymmetry) {
 class GridBlockFlatLayoutTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        std::array<int, 3>  nc  = {8, 8, 8};
-        std::array<Real, 3> lo  = {0.0, 0.0, 0.0};
-        std::array<Real, 3> hi  = {1.0, 1.0, 1.0};
+        std::array<int, 3> nc = {8, 8, 8};
+        std::array<Real, 3> lo = {0.0, 0.0, 0.0};
+        std::array<Real, 3> hi = {1.0, 1.0, 1.0};
         grid_ = std::make_unique<GridBlock>(0, 0, nc, lo, hi, 2, 5);
     }
     std::unique_ptr<GridBlock> grid_;
@@ -259,8 +259,7 @@ protected:
 
 /// Verify that rawData(v) is offset from rawData(0) by exactly v×totalSize() words.
 /// This proves the flat layout is a single contiguous allocation.
-TEST_F(GridBlockFlatLayoutTest, FlatBufferContiguity)
-{
+TEST_F(GridBlockFlatLayoutTest, FlatBufferContiguity) {
     std::size_t stride = grid_->totalSize();
 
     Real* p0 = grid_->rawData(0);
@@ -278,15 +277,14 @@ TEST_F(GridBlockFlatLayoutTest, FlatBufferContiguity)
 }
 
 /// Verify that rawData() and data() index the same memory location.
-TEST_F(GridBlockFlatLayoutTest, RawDataEquivalentToAccessor)
-{
+TEST_F(GridBlockFlatLayoutTest, RawDataEquivalentToAccessor) {
     int ng = grid_->istart();
     int nx = grid_->totalCells(0);
     int ny = grid_->totalCells(1);
 
-    grid_->data(2, ng+1, ng+2, ng+3) = 271.828;
+    grid_->data(2, ng + 1, ng + 2, ng + 3) = 271.828;
 
-    int flat_idx = (ng+1) + nx * ((ng+2) + ny * (ng+3));
+    int flat_idx = (ng + 1) + nx * ((ng + 2) + ny * (ng + 3));
     Real val_via_raw = grid_->rawData(2)[flat_idx];
 
     EXPECT_DOUBLE_EQ(val_via_raw, 271.828)
@@ -294,8 +292,7 @@ TEST_F(GridBlockFlatLayoutTest, RawDataEquivalentToAccessor)
 }
 
 /// Verify flatBuffer() returns rawData(0) and writes propagate through data().
-TEST_F(GridBlockFlatLayoutTest, FlatBufferSpansAllVars)
-{
+TEST_F(GridBlockFlatLayoutTest, FlatBufferSpansAllVars) {
     Real* flat = grid_->flatBuffer();
     Real* raw0 = grid_->rawData(0);
 
@@ -303,15 +300,14 @@ TEST_F(GridBlockFlatLayoutTest, FlatBufferSpansAllVars)
         << "flatBuffer() must equal rawData(0) — both point to start of allocation";
 
     std::size_t stride = grid_->totalSize();
-    flat[3 * static_cast<std::ptrdiff_t>(stride)] = 99.9;  // var=3, cell_flat=0
+    flat[3 * static_cast<std::ptrdiff_t>(stride)] = 99.9; // var=3, cell_flat=0
     EXPECT_DOUBLE_EQ(grid_->data(3, 0, 0, 0), 99.9)
         << "flatBuffer() write must be visible through data() accessor";
 }
 
 /// Verify that writing different values to all 5 variables at the same cell
 /// produces no aliasing between variables.
-TEST_F(GridBlockFlatLayoutTest, MultiVarWriteReadBack)
-{
+TEST_F(GridBlockFlatLayoutTest, MultiVarWriteReadBack) {
     int ng = grid_->istart();
     for (int v = 0; v < 5; ++v) {
         grid_->data(v, ng, ng, ng) = static_cast<Real>(v * 100.0 + 7.77);

@@ -90,7 +90,9 @@ TEST_F(HDF5RoundtripTest, ConstantFieldPreservedExactly) {
     HDF5Reader reader;
     std::vector<Real> dst_data;
     std::vector<int> shape;
-    ASSERT_NO_THROW(reader.readDataset(tmp_path_.string(), var_names_[0], dst_data, shape))
+    std::string expected_dataset = "level_" + std::to_string(src.getLevel()) + "/block_" +
+                                   std::to_string(src.getId()) + "/" + var_names_[0];
+    ASSERT_NO_THROW(reader.readDataset(tmp_path_.string(), expected_dataset, dst_data, shape))
         << "HDF5Reader::readDataset threw on a valid file.";
 
     // Compare
@@ -133,7 +135,9 @@ TEST_F(HDF5RoundtripTest, LinearRampFieldPreservedExactly) {
     HDF5Reader reader;
     std::vector<Real> dst_data;
     std::vector<int> shape;
-    ASSERT_NO_THROW(reader.readDataset(tmp_path_.string(), var_names_[0], dst_data, shape));
+    std::string expected_dataset = "level_" + std::to_string(src.getLevel()) + "/block_" +
+                                   std::to_string(src.getId()) + "/" + var_names_[0];
+    ASSERT_NO_THROW(reader.readDataset(tmp_path_.string(), expected_dataset, dst_data, shape));
 
     // Verify every cell for var 0
     bool mismatch = false;

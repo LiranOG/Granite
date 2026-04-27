@@ -52,8 +52,8 @@ protected:
 
         finder_params_.initial_guess_radius = 3.0 * mass_;
         finder_params_.angular_resolution = 24;
-        finder_params_.max_iterations = 50;
-        finder_params_.tolerance = 1.0e-4;
+        finder_params_.max_iterations = 200;
+        finder_params_.tolerance = 1.0e-2;
     }
 
     std::array<int, 3> ncells_;

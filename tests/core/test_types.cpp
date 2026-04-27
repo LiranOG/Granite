@@ -2,9 +2,9 @@
  * @file test_types.cpp
  * @brief Unit tests for core type definitions and index conventions.
  */
-#include <gtest/gtest.h>
 #include "granite/core/types.hpp"
 
+#include <gtest/gtest.h>
 #include <set>
 
 using namespace granite;
@@ -36,7 +36,7 @@ TEST(TypesTest, SymmetricIndexCoversAll) {
 
 TEST(TypesTest, VariableCounts) {
     EXPECT_EQ(NUM_SPACETIME_VARS, 22);
-    EXPECT_EQ(NUM_HYDRO_VARS, 9);  // D, SX, SY, SZ, TAU, BX, BY, BZ, DYE
+    EXPECT_EQ(NUM_HYDRO_VARS, 9); // D, SX, SY, SZ, TAU, BX, BY, BZ, DYE
     EXPECT_EQ(NUM_PRIMITIVE_VARS, 11);
     EXPECT_EQ(NUM_RADIATION_VARS, 4);
 }
