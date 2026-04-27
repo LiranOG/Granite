@@ -54,9 +54,24 @@ void HDF5Writer::writeBlock(const GridBlock& block,
     }
 
     // Write grid metadata as attributes
-    std::string group_name =
-        "level_" + std::to_string(block.getLevel()) + "/block_" + std::to_string(block.getId());
-    hid_t group_id = H5Gcreate2(file_id, group_name.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    std::string level_name = "level_" + std::to_string(block.getLevel());
+    std::string block_name = "block_" + std::to_string(block.getId());
+
+    // HDF5 cannot create nested groups in one call — create parent first.
+    hid_t level_group_id =
+        H5Gcreate2(file_id, level_name.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    if (level_group_id < 0) {
+        // Level group may already exist in an append scenario — try opening it.
+        level_group_id = H5Gopen2(file_id, level_name.c_str(), H5P_DEFAULT);
+    }
+    if (level_group_id < 0) {
+        std::cerr << "ERROR: Failed to create/open HDF5 group: " << level_name << "\n";
+        H5Fclose(file_id);
+        return;
+    }
+
+    hid_t group_id =
+        H5Gcreate2(level_group_id, block_name.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
     // Cell counts (interior)
     {
@@ -129,6 +144,7 @@ void HDF5Writer::writeBlock(const GridBlock& block,
     }
 
     H5Gclose(group_id);
+    H5Gclose(level_group_id);
     H5Fclose(file_id);
 #else
     std::cerr << "WARNING: HDF5 not available. No data written.\n";

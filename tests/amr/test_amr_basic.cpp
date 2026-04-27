@@ -143,6 +143,9 @@ TEST_F(AMRSmokeTest, RestrictionPreservesConstantField) {
 
     ASSERT_GE(hier.numLevels(), 2);
 
+    // Restrict from Level 1 (fine) into Level 0 (coarse).
+    // Level 1 lo=(-0.5,-0.5,-0.5) hi=(0.5,0.5,0.5) covers a subset of Level 0
+    // which is the correct relationship for restriction.
     GridBlock& coarse = *hier.getLevel(0)[0];
     GridBlock& fine = *hier.getLevel(1)[0];
 
@@ -153,7 +156,29 @@ TEST_F(AMRSmokeTest, RestrictionPreservesConstantField) {
     EXPECT_NO_THROW(hier.restrict_data(fine, coarse))
         << "restrict_data() threw on constant-field fine grid.";
 
-    Real err = maxError(coarse, C);
+    // Volume-average of a constant field C is C.
+    // Check interior cells of coarse that are COVERED by the fine block.
+    // The fine block covers [-0.5, 0.5]^3 of the coarse block [-1,1]^3,
+    // i.e. cells whose centres lie within that range.
+    Real err = 0.0;
+    int ng = coarse.getNumGhost();
+    for (int v = 0; v < coarse.getNumVars(); ++v) {
+        for (int k = ng; k < coarse.iend(2); ++k)
+            for (int j = ng; j < coarse.iend(1); ++j)
+                for (int i = ng; i < coarse.iend(0); ++i) {
+                    Real cx = coarse.x(0, i);
+                    Real cy = coarse.x(1, j);
+                    Real cz = coarse.x(2, k);
+                    // Only check cells whose centres are inside the fine block
+                    if (cx >= fine.lowerCorner()[0] && cx <= fine.upperCorner()[0] &&
+                        cy >= fine.lowerCorner()[1] && cy <= fine.upperCorner()[1] &&
+                        cz >= fine.lowerCorner()[2] && cz <= fine.upperCorner()[2]) {
+                        Real e = std::abs(coarse.data(v, i, j, k) - C);
+                        if (e > err)
+                            err = e;
+                    }
+                }
+    }
     EXPECT_LT(err, 1.0e-12) << "Restriction of constant field C=" << C << " produced error " << err
                             << ". Volume-averaged restriction must be exact for constant fields.";
 }
