@@ -92,8 +92,7 @@ TEST_F(HDF5RoundtripTest, ConstantFieldPreservedExactly) {
 
     // Compare
     Real max_err = 0.0;
-    int data_idx = 0;
-    int v = 0; // we only read the first variable
+    size_t data_idx = 0;
     for (int k = 0; k < src.totalCells(2); ++k)
         for (int j = 0; j < src.totalCells(1); ++j)
             for (int i = 0; i < src.totalCells(0); ++i) {
@@ -137,7 +136,7 @@ TEST_F(HDF5RoundtripTest, LinearRampFieldPreservedExactly) {
     bool mismatch = false;
     int mi = -1, mj = -1, mk = -1;
     Real got = 0.0, expected = 0.0;
-    int data_idx = 0;
+    size_t data_idx = 0;
     int v = 0;
     for (int k = 0; k < src.totalCells(2) && !mismatch; ++k)
         for (int j = 0; j < src.totalCells(1) && !mismatch; ++j)

@@ -35,9 +35,9 @@ protected:
         hi_     = {+1.0, +1.0, +1.0};
         nghost_ = 2;
         grid_   = std::make_unique<GridBlock>(
-            0, 0, ncells_, lo_, hi_, nghost_, M1_NUM_VARS);
+            0, 0, ncells_, lo_, hi_, nghost_, NUM_RADIATION_VARS);
         rhs_    = std::make_unique<GridBlock>(
-            1, 0, ncells_, lo_, hi_, nghost_, M1_NUM_VARS);
+            1, 0, ncells_, lo_, hi_, nghost_, NUM_RADIATION_VARS);
 
         // Uniform, isotropic radiation field (optically thick limit)
         M1Params params;
