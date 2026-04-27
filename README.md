@@ -337,14 +337,32 @@ Scientific integrity demands transparency. These limitations are known, document
 ## 📋 Versioning Policy (Pre-1.0.0)
 
 > [!IMPORTANT]
-> **Until the official `v1.0.0` full release, all version history, phase documentation, and change logs are tracked exclusively inside [`CHANGELOG.md`](./CHANGELOG.md)** — not through GitHub Releases or GitHub's release notes UI.
->
-> This is an intentional decision to keep the complete engineering audit trail (Phases 0–5 and beyond) in a single, richly-documented source of truth that lives alongside the code.
->
-> **What this means for contributors and users:**
-> - The `CHANGELOG.md` file is the canonical record of every bug fix, new feature, architectural decision, and test count milestone.
-> - GitHub Tags (e.g. `v0.6.5`) mark stable integration points but carry minimal release notes — refer to `CHANGELOG.md` for the full picture.
-> - GitHub Releases will be created officially at `v1.0.0` — the first production-ready, fully-coherent version of the engine.
+> **Pre-1.0.0 versioning is tracked exclusively in [`CHANGELOG.md`](./CHANGELOG.md)** — not through GitHub Releases or GitHub's release notes UI. This keeps the complete engineering audit trail (every physics fix, API decision, and CI repair) in a single, richly-documented source of truth that lives alongside the code.
+
+GRANITE uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). During the pre-1.0 phase, minor version bumps (`v0.x`) may carry breaking API changes as the engine matures toward production readiness.
+
+### Release History
+
+| Version | Date | Status | Milestone |
+|---|---|:---:|---|
+| `v0.1.0` | 2026-03-27 | ✅ | Initial upload — full CCZ4 + GRMHD + AMR engine |
+| `v0.3.0` | 2026-03-28 | ✅ | CI/CD stabilization, non-blocking MPI ghost-zone API |
+| `v0.4.0` | 2026-03-30 | ✅ | HLLD solver, constrained transport, tabulated EOS, MP5 reconstruction |
+| `v0.5.0` | 2026-04-02 | ✅ | Repo reorganization, CodeQL, PPM, flat `GridBlock`, GW recoil physics |
+| `v0.6.0` | 2026-04-04 | ✅ | Berger-Oliger AMR, `TwoPuncturesBBH`, Sommerfeld BCs |
+| `v0.6.5` | 2026-04-07 | ✅ | Tactical reset — stable baseline, 92 tests, 8-layer stability guard |
+| `v0.6.5.4` | 2026-04-10 | ✅ | GitHub Wiki launch — 17 technical pages, ~18,000 words |
+| `v0.6.5.5` | 2026-04-11 | ✅ | `README.md` overhaul — benchmarks, roadmap, competitor matrix |
+| `v0.6.6` | 2026-04-12–15 | ✅ | VORTEX WebGL engine + Gold Master cinematic & analytical systems |
+| **`v0.6.7`** | **2026-04-27** | ✅ **Current** | **107 tests / 20 suites — 100% CI clean. Full repo seal.** |
+| `v0.7.0` | Q2 2026 | 🔄 Planned | GPU CUDA kernels, checkpoint-restart, full dynamic AMR, M1 wired into RK3 |
+| `v1.0.0` | Q1 2027 | 🎯 Target | B5_star production run, full community release, GitHub Releases activated |
+
+### What GitHub Tags Mean
+
+- **Git tags** (e.g. `v0.6.7`) mark verified, stable integration points. CI is green; all tests pass.
+- **`CHANGELOG.md`** is the canonical record of every commit — bug fixes, new features, architectural decisions, and test milestones. Always the authoritative source.
+- **GitHub Releases** will be activated at `v1.0.0`, the first fully production-ready version of the engine.
 
 ---
 
