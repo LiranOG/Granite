@@ -226,8 +226,7 @@ void BowenYorkPuncture::solve(GridBlock& grid) const {
     SNESCreate(PETSC_COMM_WORLD, &snes);
     SNESSetFunction(snes, r, FormFunction, &ctx);
 
-    MatCreateMPIAIJ(PETSC_COMM_WORLD, N, N, PETSC_DETERMINE, PETSC_DETERMINE,
-                    7, NULL, 7, NULL, &J);
+    MatCreateMPIAIJ(PETSC_COMM_WORLD, N, N, PETSC_DETERMINE, PETSC_DETERMINE, 7, NULL, 7, NULL, &J);
     SNESSetJacobian(snes, J, J, SNESComputeJacobianDefault, &ctx);
 
     KSP ksp;

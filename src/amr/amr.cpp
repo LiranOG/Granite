@@ -596,8 +596,7 @@ void AMRHierarchy::restrict_data(const GridBlock& fine, GridBlock& coarse) const
                         for (int rk = 0; rk < ratio; ++rk) {
                             for (int rj = 0; rj < ratio; ++rj) {
                                 for (int ri = 0; ri < ratio; ++ri) {
-                                    sum += fine.data(
-                                        var, fi_base + ri, fj_base + rj, fk_base + rk);
+                                    sum += fine.data(var, fi_base + ri, fj_base + rj, fk_base + rk);
                                 }
                             }
                         }

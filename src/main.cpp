@@ -1203,8 +1203,7 @@ int main(int argc, char* argv[]) {
                                 if (std::isnan(val) || std::isinf(val)) {
                                     std::ostringstream msg;
                                     msg << "  [NaN@step=" << step << "] ST var=" << v << " (" << i
-                                        << "," << j << "," << k << ")"
-                                        << " = " << val;
+                                        << "," << j << "," << k << ")" << " = " << val;
                                     std::cout << msg.str() << std::endl;
                                     found_nan = true;
                                 }

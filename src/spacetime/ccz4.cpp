@@ -654,8 +654,8 @@ void CCZ4Evolution::computeRHS(const GridBlock& grid,
                 Real R_scalar = 0.0;
                 for (int ii = 0; ii < 3; ++ii) {
                     for (int jj = 0; jj < 3; ++jj) {
-                        R_scalar += chi * gtu[symIdx(ii, jj)] *
-                            (Rt[symIdx(ii, jj)] + Rchi[symIdx(ii, jj)]);
+                        R_scalar +=
+                            chi * gtu[symIdx(ii, jj)] * (Rt[symIdx(ii, jj)] + Rchi[symIdx(ii, jj)]);
                     }
                 }
 
