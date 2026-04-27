@@ -5,17 +5,19 @@ All notable changes to **GRANITE** (General-Relativistic Adaptive N-body Integra
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-> **Full development journal:** The granular, commit-level engineering log (2,300+ lines) is
-> archived at [`docs/DEVELOPMENT_JOURNAL.md`](docs/DEVELOPMENT_JOURNAL.md).
+> **Full development journal:** The granular, commit-level engineering log (~2,500 lines) is
+> archived at [`docs/design/DEVELOPMENT_JOURNAL.md`](docs/design/DEVELOPMENT_JOURNAL.md).
 
 ---
 
 ## [Unreleased]
 
-### In Progress
-- Checkpoint-restart (`--resume` CLI flag, v0.7 target)
-- M1 radiation coupling into RK3 main loop (v0.7 target)
-- GPU porting via CUDA kernels (v0.7 target)
+### Planned — v0.7
+- GPU porting of primary CCZ4 kernels to CUDA (target: VAST.ai H100 SXM)
+- Checkpoint-restart (`--resume` CLI flag)
+- Full M1 radiation coupling into the main RK3 evolution loop
+- Dynamic AMR regridding during evolution
+- `chi_blend_center` / `chi_blend_width` wired through YAML parser
 
 ---
 
@@ -23,34 +25,107 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ### Summary
 
-The **Gold Master & Repository Seal** release. This major milestone brings the GRANITE engine to a Tier-1 professional standard by finalizing the VORTEX cinematic experience and successfully completing a comprehensive 4-phase architectural audit. The release guarantees a 100% clean CI/CD build (107 tests across 20 suites), enforces strict documentation coherence, and formally establishes the project's individual-architect identity.
+The **Repository Seal** release. Completes the full 4-phase architectural audit of GRANITE, finalizes the VORTEX WebGL engine to Gold Master quality, and achieves a 100% clean CI/CD build (107 tests, 20 suites, zero errors, zero warnings) after a marathon 8-hour engineering session resolving API regressions, CI pipeline instability, documentation drift, and an identity attribution error across 37 files.
 
 ### Added
-- **VORTEX Gold Master (Cinematic & Audio):** Transformed the WebGL engine into a professional presentation environment. Features include a zero-allocation Gravitational Wave Audio Sonification Synthesizer (pitch/strain mapped to physics), a global Zen Mode (`Z`) for clean capture, a Cinematic Autopilot Camera Mode, and a Master Volume Control Panel.
-- **C++ Smoke Tests (API-Synchronized):** Integrated 4 new physics smoke test suites (`test_amr_basic.cpp`, `test_schwarzschild_horizon.cpp`, `test_m1_diffusion.cpp`, `test_hdf5_roundtrip.cpp`). The test matrix now comprises **107 tests across 20 test suites**, achieving broad coverage of all major physics modules.
-- **Repository Metadata:** Created `include/README.md` to map the C++ header architecture. Added a `.gitattributes` Linguist override to enforce `C++` dominance in GitHub repository statistics by properly identifying UI and scripting components as vendored/undetectable.
+- **C++ Smoke Tests — 4 new suites (92 → 107 tests):** `AMRSmokeTest` (5 tests, `test_amr_basic.cpp`), `SchwarzschildHorizonTest` (3 tests, `test_schwarzschild_horizon.cpp`), `M1SmokeTest` (4 tests, `test_m1_diffusion.cpp`), `HDF5RoundtripTest` (3 tests, `test_hdf5_roundtrip.cpp`). All API-synchronized against the actual GRANITE core headers.
+- **`include/README.md`:** Maps the C++ header architecture (`src/` ↔ `include/` mirror) for contributor onboarding.
+- **`.gitattributes`:** Linguist override enforcing C++ language dominance in GitHub statistics (`linguist-detectable=false` for `scripts/**`, `viz/**`, `*.ipynb`; `linguist-documentation` for all docs).
+- **VORTEX Gold Master — Cinematic & Audio Systems:**
+  - Zero-allocation GW Audio Sonification Synthesizer (Web Audio API; frequency mapped to `f_GW`, strain to `|h_+|`).
+  - Global Zen Mode (`Z` key) — fades all UI to 0% opacity with CSS `transition: opacity 0.5s` for distraction-free recording.
+  - Cinematic Autopilot Camera Mode — auto-selects BH/NS targets with 12–15 s jitter-randomized hold times.
+  - Master Volume Control Panel (`#vol-btn`, `#vol-popup`, `#vol-slider`, `#vol-mute`).
+  - ESC-abort system for atomic cancellation of all active body placement and slingshot drag operations.
 
 ### Changed
-- **Identity Purge & Voice Realignment:** Executed a repository-wide purge of the legacy "GRANITE Collaboration" entity, permanently replacing it with the authentic "Liran M. Schwartz" single-author attribution across 37 files (headers, `LICENSE`, LaTeX manuscripts). Realigned all documentation prose from group-centric ("We/Our") to individual-architect ("I/The").
-- **Documentation Coherence:** Stripped non-professional artifacts (emojis) from technical theory documents to enforce an academic tone. Conducted an anti-truncation sweep to ensure all directory trees in `README.md` files precisely match the physical filesystem. Synchronized all scattered version claims to `v0.6.7`.
+- **Identity Purge — "GRANITE Collaboration" → "Liran M. Schwartz" (37 files):** All `@copyright` Doxygen headers in 28 C++/HPP files, `LICENSE`, and `docs/paper/granite_preprint_v067.tex`. Verified with `grep -rI "GRANITE Collaboration"` → zero results.
+- **Documentation Voice Realignment — "We/Our" → "I/The" (24 passages):** `README.md`, `VISION.md`, `PERSONAL_NOTE.md`, `FAQ.md`, `DEPLOYMENT_AND_PERFORMANCE.md`, `Installation.md`, `DEVELOPER_GUIDE.md`, `viz/README.md`. Academic "We" preserved in LaTeX preprint.
+- **Documentation Coherence:** Stripped emojis from all `docs/theory/*.rst` files and 7 directory READMEs. Anti-truncation sweep rebuilt all directory trees to match the physical filesystem. Version stamps synchronized from `v0.6.5` → `v0.6.7` across 8 files.
 
 ### Fixed
-- **C++ API Hallucinations & Compilation:** Surgically repaired hallucinated APIs and signatures in the new smoke tests. Fixed signedness warnings, undeclared macros (`NUM_RADIATION_VARS`), and HDF5 nested group (`H5Gcreate2`) logic to achieve a flawless GCC-12 / Clang-18 build with zero errors and zero warnings.
-- **CI/CD Pipeline Stabilization:** Resolved Sphinx build failures by forcing `docs/Makefile` tracking. Eliminated cross-platform `clang-format` (v18 vs v19) disagreements by disabling `AlignOperands` and refactoring multi-line `std::ostringstream` chains.
-- **UX Polish (VORTEX):** Implemented an ESC-abort system for atomic cancellation of body placement and drag-to-spawn operations. Resolved multiple UI overlapping z-index issues.
+- **C++ API Hallucinations (4 rounds of repair):** Corrected all fabricated constructor signatures, class names, and method names in the new smoke tests (`AMRHierarchy` 2-arg constructor, `ApparentHorizonFinder`/`HorizonParams`/`HorizonData`, `M1Transport`, `HDF5Writer`+`IOParams`). Replaced undeclared `M1_NUM_VARS` with `NUM_RADIATION_VARS`. Fixed signedness warnings (`int` → `size_t`).
+- **CI/CD Pipeline:** Resolved Sphinx build failure (`docs/Makefile` blocked by `.gitignore` → `git add -f`). Eliminated cross-platform `clang-format` v18/v19 disagreements (`AlignOperands: DontAlign`; multi-line `<<` chains → `std::ostringstream`). Fixed `H5Gcreate2` nested group creation bug. Corrected HDF5 dataset path prefix (`/level_0/...`). Fixed AMR restriction tolerance (`1.0e-14` → `1.0e-12`). Constrained HDF5 verification loop to interior cells only.
+- **Git History Recovery:** Restored 214-commit GitHub history after accidental `git push --force` from a `git init` directory. Final state: 216 commits.
 
 ---
 
-## [v0.6.6] — 2026-04-12
+## [v0.6.6] — 2026-04-15
 
 ### Summary
 
-Integration of VORTEX WebGL N-body engine into `viz/vortex_eternity/`. Foundational architectural step toward decoupling the C++ HPC backend from interactive 3D rendering.
+VORTEX engine polished to **Gold Master** with cinematic, audio, and analytical systems. Concurrent with Phase 3 of the GRANITE audit, which added four major research-grade visualization systems and performed a five-pass hardening of the Floating Window Manager.
 
 ### Added
-- **VORTEX engine:** 4th-order Hermite integrator, 2.5PN radiation reaction, Kahan summation, GLSL Schwarzschild lens shader, real-time GW strain telemetry.
-- **Post-Newtonian physics:** 1PN (EIH), 1.5PN (Lense-Thirring/Rodrigues rotation), 2PN (spin-spin + QM), 2.5PN (radiation reaction).
-- `viz/vortex_eternity/VORTEX-engine.html` — single-file browser engine, no install required.
+- **VORTEX Sim-OS Audit & Shortcut Reference:** Full cross-reference of all `keydown` handlers. New `SIM-OS & INTERFACE` section in `#sc-modal` with `[`, `≡`, and `Esc` entries. Fixed modal open/close via `classList` (was `style.display`, breaking Esc handler).
+- **Relativistic Visual Physics (CPU-side, zero-allocation):** Relativistic Doppler shift + Beaming (`tog.doppler`, mutates `iColorData` Float32Array in-place). Einstein Cross GLSL extension (+20 lines into existing `ShaderPass`; activates at `lensStr > 0.18`).
+- **NR Diagnostics Floating Window:** Chart.js panels for orbital eccentricity vs. semi-major axis (GW inspiral track), `f_GW` chirp (semi-log), and `β²` velocity parameter. MTF time-filter bar (`LIVE / 1YR / 10YR / MAX`). Centralized `_clearTelemetry()` reset helper preventing cross-scenario data contamination.
+- **Minimap 3.0 Tactical Analyzer:** Isobar mode (gravitational potential field via marching squares), Flux mode (bolometric radiation flux, 5-stop thermal ramp), camera frustum overlay, ISCO proximity pulsing reticle, click-to-select, hover tooltip, velocity arrows, and logarithmic projection toggle (`⊚ LOG`). Fixed load-time canvas distortion from `display: flex` + `align-items: stretch`.
+- **Master Menu (`≡`) Professional Categorization:** Four named sections — `📭 Relativistic Optics`, `📊 Scientific Analysis`, `🗺 Tactical Tools`, `⚙ System`.
+
+### Fixed
+- **HUD Scale — FWM Floating Window Manager (5-pass hardening):**
+  - **Pass 1:** Off-screen initial placement → changed `adoptPanel()` x to `Math.floor(innerWidth / currentUIScale - cssW - 10)`.
+  - **Pass 2:** Mouse escape to OS during drag → `requestPointerLock()` + `e.movementX/Y` deltas.
+  - **Pass 3:** Sticky drag on Alt+Tab → `window.addEventListener('blur', onDragEnd)`.
+  - **Pass 4:** Zoom-aware coordinate transform → rewrote `_clampFWMWindows()` using `vw/sc - cssW` formula.
+  - **Pass 5:** Resize off-screen + drag triggered by inner controls → replaced all `el.offsetWidth` with `parseFloat(el.style.width)`; extended drag guard to all semantic interactive elements.
+- **`#ph` Phase Label Overflow at HUD Scale > 1.4×:** `max-width: 28vw; overflow: hidden; text-overflow: ellipsis`.
+- **`.fwm-win` Missing from HUD Zoom CSS Rule:** Added `.fwm-win` to `zoom: var(--ui-scale)` selector.
+
+---
+
+## [v0.6.5] — 2026-04-12
+
+### Summary
+
+Integration of **VORTEX**, a bespoke WebGL N-body visualization engine, into `viz/vortex_eternity/`. Foundational architectural step toward decoupling the C++ HPC backend from interactive 3D rendering.
+
+### Added
+- **VORTEX Engine (`viz/vortex_eternity/VORTEX-engine.html`):** Single-file browser engine, no install required. Zero-allocation architecture (all spatial vectors mutated in-place). 4th-order Hermite Predictor-Corrector integration with Aarseth adaptive timestepping and Kahan compensated summation.
+- **Post-Newtonian Physics:** 1PN (Einstein-Infeld-Hoffmann), 1.5PN (Lense-Thirring + Rodrigues rotation), 2.5PN (radiation reaction / GW inspiral). Mass-defect mergers, asymmetric recoil kicks, TDE via Roche limits.
+- **Visualization:** Real-time GLSL Schwarzschild ray-deflection post-processing shader (Einstein rings, photon spheres). Live GW telemetry dashboard (α_min, h+, h×, chirp mass Mc).
+
+---
+
+## [v0.6.5.5] — 2026-04-11
+
+### Summary
+
+Complete rebuild of `README.md`. Structural overhaul adding linked table of contents, benchmark results, competitor feature matrix, formal roadmap, known-limitations register, community section, GitHub Wiki index, and BibTeX citation block.
+
+### Added
+- **Competitor feature matrix** — Einstein Toolkit, GRChombo, SpECTRE, AthenaK vs. GRANITE across 5 capabilities.
+- **Benchmark results section** — Production run data (i5-8400, WSL2): single puncture ×84.8 ‖H‖₂ reduction, B2_eq ×61.3 at t=500M.
+- **Versioned roadmap table** — v0.6.5 → v1.0.0 with deliverables per version.
+- **Known-limitations register** — 8-row versioned table with planned fix versions.
+- **BibTeX citation block** — `@software{granite2026, ...}`.
+
+### Changed
+- Badge suite expanded to 4 rows (CI/Status, Identity, Stack, Docs). C++ standard narrowed to `c++17`.
+- Repository structure tree — corrected and expanded with all new directories (`containers/`, `python/`, `viz/`, `runs/`).
+- Quick Start guide condensed and de-cluttered.
+
+---
+
+## [v0.6.5.4] — 2026-04-10
+
+### Summary
+
+**GitHub Wiki launch** — 17 fully cross-referenced technical pages (~18,000 words) covering every subsystem, parameter, known bug, and benchmark result.
+
+### Added
+- **17 wiki pages:** `Home`, `Architecture-Overview` (10 sections, full ASCII data-flow diagram), `Physics-Formulations` (CCZ4, GRMHD, M1, numerical methods, 16-entry bibliography), `Parameter-Reference` (every `params.yaml` field with type, range, warnings), `AMR-Design`, `Initial-Data`, `Known-Fixed-Bugs` (10-entry registry with before/after diffs), `Simulation-Health-&-Debugging` (6 health indicators, debugging flowchart, 5 failure modes), `Benchmarks-&-Validation`, `Developer-Guide`, `HPC-Deployment`, `Gravitational-Wave-Extraction`, `FAQ` (12 questions), `Scientific-Context` (B5_star scenario, multi-messenger table), `Roadmap`, `CHANGELOG-Summary`, `Documentation-Index-&-Master-Reference` (35-row topic cross-reference matrix).
+- **`_Sidebar.md`** — 4-section persistent wiki navigation.
+
+### Fixed (Undocumented v0.6.5 Features — Now Formally Documented)
+- **Chi-blended selective upwinding** (`ccz4.cpp`) — tanh-sigmoid blend between 4th-order centered FD (χ < 0.05) and 4th-order upwinded FD (χ ≥ 0.05). Γ̂^i always centered.
+- **Algebraic constraint enforcement** (`main.cpp`) — `det(γ̃)=1` and `tr(Ã)=0` enforced once per full RK3 step via `applyAlgebraicConstraints()`.
+- **B2_eq quasi-circular momenta corrected** — Both BHs updated from `[0,0,0]` (head-on) to `[0, ±0.0954, 0]` (Pfeiffer et al. 2007, d=10M quasi-circular).
+
+### Changed
+- `CITATION.cff` — `date-released: 2026-04-10`.
+- `docs/diagnostic_handbook.md` — Formally deprecated; superseded by `Simulation-Health-&-Debugging` wiki page.
 
 ---
 
@@ -58,24 +133,24 @@ Integration of VORTEX WebGL N-body engine into `viz/vortex_eternity/`. Foundatio
 
 ### Summary
 
-Tactical Reset: forensic rescue restoring verified production-stable baseline. Both `single_puncture` and `B2_eq` reach t=500M with `‖H‖₂` decaying monotonically.
+**Tactical Reset** — forensic rescue restoring the verified v0.6.0 production-stable baseline. After architectural regressions from an over-engineered audit phase, a directory-wide `diff` against the v0.6.0 backup was used to surgically revert all damaging changes while preserving accumulated P0 memory safety fixes. Both `single_puncture` and `B2_eq` benchmarks now run stably to t=500M with ‖H‖₂ decaying monotonically.
 
 ### Added
-- `benchmarks/gauge_wave/params.yaml` — Alcubierre et al. (2004) gauge wave benchmark.
-- `benchmarks/B2_eq/params.yaml` — production-grade equal-mass BBH parameter file.
-- `benchmarks/validation_tests.yaml` — machine-readable validation test suite (3 physics sectors, 9 tests).
-- 2 new selective advection unit tests (test count: 90 → 92).
-- `scripts/sim_tracker.py` — procedural live dashboard with 8-layer stability guard.
-- PPM reconstruction (Colella & Woodward 1984) — 5 new unit tests.
+- `benchmarks/gauge_wave/params.yaml` — Alcubierre et al. (2004) gauge wave code-validation benchmark.
+- `benchmarks/B2_eq/params.yaml` — Production equal-mass BBH parameter file (256³ grid, ±200M domain, 6 AMR levels, `p_t = ±0.0954`).
+- `benchmarks/validation_tests.yaml` — Machine-readable validation suite: 3 physics sectors, 9 tests with quantitative pass/fail criteria (spacetime, GRMHD, radiation).
+- `scripts/sim_tracker.py` — Procedural live simulation dashboard with 8-layer stability guard (cannot falsely report "No catastrophic events").
+- **2 new selective advection unit tests** (test count: 90 → 92): `SelectiveAdvecUpwindedInFlatRegion`, `SelectiveAdvecCenteredNearPuncture`.
 
 ### Fixed
-- **Architecture:** Master reset of `ccz4.cpp`, `amr.cpp`, `main.cpp` to verified v0.6.0 baseline.
-- **Memory safety:** `levels_.reserve()` in `AMRHierarchy::initialize()` — prevents reallocation-triggered UB during subcycling.
-- **Singularity avoidance:** `MICRO_OFFSET = 1.3621415e-6` re-injected universally.
-- **H2:** `GridBlock` flat contiguous allocation — 22 heap allocs → 1 per block.
-- **H3:** RHS zero-out loop order — spatial outermost, var innermost.
-- **EOS bug (C1):** `soundSpeed()` used instead of hardcoded Γ=1.
-- **TOV unit bug:** `1.0e5 cm/km` instead of `RSUN_CGS`.
+- **Architecture reset** — `ccz4.cpp`, `amr.cpp`, `main.cpp` reverted to verified v0.6.0 baseline. Removed over-engineered chi-flooring clamps, `std::floor` replacement, `prolongateGhostOnly()` bifurcation, `truncationErrorTagger`, and undefined struct members causing CI failure.
+- **Memory safety (P0, preserved)** — `levels_.reserve(max_levels)` in `AMRHierarchy::initialize()` prevents reallocation-triggered UB during subcycling.
+- **Singularity avoidance** — `MICRO_OFFSET = 1.3621415e-6` re-injected universally after YAML parsing, before grid construction.
+- **Telemetry (`sim_tracker.py`)** — Reverted from broken class-based refactor to stable procedural architecture. `safe_float()` crash-proof casting. 8-layer Stability Summary guard.
+
+### Changed
+- `CMakeLists.txt` — `VERSION 0.6.0` → `VERSION 0.6.5`.
+- `src/main.cpp` — Banner version `"0.6.5"`.
 
 ---
 
@@ -83,47 +158,122 @@ Tactical Reset: forensic rescue restoring verified production-stable baseline. B
 
 ### Summary
 
-Berger-Oliger AMR + BBH initial data + diagnostic overhaul. Engine transitioned from single-grid to full AMR hierarchy.
+**Puncture Tracking Update** — engine fully transitions from single-grid to Berger-Oliger adaptive mesh refinement with binary black hole initial data. Diagnostic tooling completely overhauled. Test count: 90 → 92.
 
 ### Added
-- Full Berger-Oliger recursive subcycling (`subcycle()`).
-- `TwoPuncturesBBH` spectral initial data — Newton-Raphson Hamiltonian constraint solve.
-- Tracking spheres for puncture-following AMR refinement.
-- `scripts/dev_benchmark.py` — per-step NaN forensics and lapse monitoring.
-- Block-merging algorithm preventing MPI deadlocks for close binaries.
+- **Berger-Oliger AMR:** Full recursive subcycling (`subcycle()`), block-merging algorithm (prevents MPI deadlocks for close binaries), `setLevelDt()` cascade fixing frozen fine grids.
+- **`TwoPuncturesBBH` Spectral Initial Data** — Bowen-York extrinsic curvature + Newton-Raphson Hamiltonian constraint solve for conformal factor correction `u`. Tracking sphere registration for dynamic puncture-following refinement.
+- **`sim_tracker.py`** — Append-only live simulation dashboard with real-time phase classification, exponential constraint growth rate (γ), Zombie State detector, NaN forensics, and Matplotlib post-run summaries.
+- `scripts/dev_benchmark.py` — Per-step NaN forensics and lapse monitoring tool.
+- **Sommerfeld radiative BCs** — Quasi-spherical 1/r outgoing wave condition; allows gauge waves to exit domain without reflection.
+- **Algebraic constraint enforcement** — `det(γ̃)=1` and `tr(Ã)=0` enforced after each RK3 step.
+- **Adaptive CFL guardian** — Emergency 20% dt reduction when advection CFL > 0.95; warning at > 0.80.
+- **NaN-aware physics floors** — χ ∈ [1e-4, 1.5], α ≥ 1e-6, using `!std::isfinite(x) || x < threshold` (IEEE 754 safe).
 
 ### Fixed
-- **C3 (HLLE flat metric bug):** `GRMetric3` promoted to public interface — GR fluxes now correct.
-- **H1 (KO dissipation OMP):** 22 separate OpenMP regions → 1 region (var loop innermost).
-- Prolongation origin off-by-N bug causing fine ghost cell corruption.
-- `setLevelDt()` cascade fixing "Zombie Physics" frozen fine grids.
-- Chi-blended selective upwinding: `χ < 0.05` → centered FD; `χ ≥ 0.05` → 4th-order upwinded.
-- Sommerfeld radiative BCs implemented and wired.
+- **C3 (HLLE flat metric bug)** — `GRMetric3` promoted to public interface; GR fluxes now correct in curved spacetime.
+- **H1 (KO dissipation OMP)** — 22 separate OpenMP thread spawns → 1 parallel region with var loop innermost (~30% compute waste eliminated).
+- **Prolongation origin off-by-N bug** — Coordinate mapping scalar corrected to interior origin (was ghost boundary), eliminating uninitialized fine ghost cells.
+- **`setLevelDt()` cascade** — Fixed "Zombie Physics" frozen fine grids.
+- **Chi-blended selective upwinding** — Near-puncture (χ < 0.05): centered FD; far-field (χ ≥ 0.05): 4th-order upwinded. Γ̂^i always centered.
+- **OpenMP include guard** — `#ifdef GRANITE_USE_OPENMP` added to `ccz4.cpp`.
 
 ### Changed
-- Test count: 90 (from 88 in v0.5.0).
+- Test count: 90 → 92 (2 selective advection tests in `test_ccz4_flat.cpp`).
 - `VERSION 0.5.0` → `VERSION 0.6.0` in `CMakeLists.txt`.
 
 ---
 
-## [v0.5.0] — 2026-04-01
+## [v0.5.0] — 2026-04-02 / 2026-04-01
 
 ### Summary
 
-Repository reorganization to professional production standards. Security and CodeQL scanning configured. Phase 5 GRMHD completions.
+Three concurrent workstreams: **(1)** Repository reorganization to professional production standards. **(2)** Security policy and CodeQL static analysis configuration. **(3)** Phase 5 GRMHD completions: PPM reconstruction, flat GridBlock memory layout, corrected GW recoil kick and spin-weighted spherical harmonics. Final test count before v0.6.0: **90 tests, 100% pass rate**.
 
 ### Added
-- `scripts/` directory; relocated `run_granite.py`, `dev_benchmark.py`, `dev_stability_test.py`.
-- `.github/` directory; relocated `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`.
-- `docs/` restructured — `INSTALL.md`, `internal/` developer notes.
-- `SECURITY.md` — GitHub private vulnerability reporting, 30-day patch SLA.
-- `.github/workflows/codeql.yml` — CodeQL C++ + Python scanning.
-- `python/granite_analysis/gw.py`: `spin_weighted_spherical_harmonic()` — full Wigner d-matrix implementation (Goldberg 1967).
-- `python/granite_analysis/gw.py`: `compute_radiated_momentum()` — full Ruiz-Campanelli-Zlochower (2008) recoil kick.
+- **Repository reorganization** — Root reduced to 8 essential files. `scripts/` (Python utilities), `.github/` (community health files), `docs/` (restructured with `internal/`).
+- **`SECURITY.md`** — GitHub private vulnerability reporting, 48h acknowledgement, 30-day patch SLA.
+- **`.github/workflows/codeql.yml`** — CodeQL C++/Python scanning on push/PR/weekly schedule. Manual C++ build mode with GCC-12 and `-DGRANITE_ENABLE_OPENMP=ON`.
+- **PPM Reconstruction** (`src/grmhd/grmhd.cpp`) — Full Colella & Woodward (1984) §1–2: parabolic interpolation, monotonicity constraint, parabola monotonization, anti-overshoot limiter. 5 new `PPMTest` tests.
+- **`python/granite_analysis/gw.py` — `spin_weighted_spherical_harmonic()`** — Full Wigner d-matrix (Goldberg 1967) for all modes; fast analytic paths for ℓ=2,3.
+- **`python/granite_analysis/gw.py` — `compute_radiated_momentum()`** — Full Ruiz-Campanelli-Zlochower (2008) recoil kick formula with adjacent-mode coupling coefficients `a^ℓm`, `b^ℓm`.
+- **`GridBlockFlatLayoutTest`** — 4 new tests for contiguous memory layout.
+
+### Fixed
+- **H2 (GridBlock flat memory)** — `vector<vector<Real>>` (22 heap allocs) → single `vector<Real>` with `data_[var * stride_ + flat(i,j,k)]`. 22 → 1 heap allocation per block.
+- **H3 (RHS zero-out loop order)** — var-outermost → spatial-outermost, var-innermost (eliminates TLB thrashing on flat buffer).
+- **TOV unit bug** — `RSUN_CGS` (×700,000 error) → `1.0e5 cm/km`. TOV solver now yields M ≈ 1.4 M☉, R ≈ 10 km.
+- **Path compatibility** — All script paths updated for new `scripts/` directory structure.
 
 ### Changed
-- Root directory reduced to 8 essential files.
-- All documentation path references updated to new `docs/` structure.
+- Test count progression: 42 (initial) → 47 (+MPI buffer tests) → 51 (+HLLD) → 54 (+CT) → 74 (+Tabulated EOS) → 81 (+GR metric coupling, MP5, KO refactor) → **90** (+PPM, flat GridBlock, GW modes).
+
+---
+
+## [v0.4.0] — 2026-03-30
+
+### Summary
+
+Phases 4A–4D — Complete engine stabilization. Closed 5 highest-priority audit findings. HLLE now runs in actual curved GR spacetime. Production-grade MP5 5th-order reconstruction. Full HLLD Riemann solver. Constrained transport (∇·B = 0). Tabulated nuclear EOS with microphysics. Test count: 47 → 81.
+
+### Added
+- **Phase 4A — HLLD Riemann Solver** (`src/grmhd/hlld.cpp`, 477 lines) — Full Miyoshi & Kusano (2005) implementation resolving all 7 MHD wave families. 4 new `HLLDTest` tests.
+- **Phase 4B — Constrained Transport** (`hlld.cpp`) — Edge-averaged EMF, `∇·B = 0` to machine precision. Two-phase update pattern preventing in-place mutation. 3 new `CTTest` tests.
+- **Phase 4C — Tabulated Nuclear EOS** (`tabulated_eos.hpp`/`.cpp`) — Tri-linear log-space interpolation, Newton-Raphson T inversion, beta-equilibrium bisection solver. StellarCollapse/CompOSE HDF5 reader. Synthetic ideal-gas table for CI. `HydroVar::DYE` added as 9th conserved variable. 20 new tests across 4 fixtures.
+- **Phase 4D — MP5 5th-Order Reconstruction** — Suresh & Huynh (1997); default reconstruction scheme. 5 new `GRMHDGRTest` tests.
+
+### Fixed
+- **C1 (EOS sound speed)** — `maxWavespeeds()` used hardcoded Γ=1; replaced with `eos.soundSpeed()`. Was underestimating wavespeeds by ×√(5/3) for Γ=5/3.
+- **C3 (HLLE flat metric)** — `computeHLLEFlux` always used flat Minkowski metric; promoted `GRMetric3` to public interface with correct GR wavespeed formula `λ± = α(v_dir ± c_f)/(1 ± v_dir·c_f) − β_dir`.
+- **H1 (KO dissipation OMP)** — 22 separate OpenMP regions → 1 parallel region, var loop innermost (eliminated ~30% compute overhead from thread-spawn latency).
+- **HLLD Bug 1** — Contact speed sign convention (Miyoshi-Kusano eq. 38 `ρ(S−v_n)` vs. `ρ(v_n−S)`).
+- **HLLD Bug 2** — Sound speed underestimate: isothermal `p/ρ` → adiabatic `Γ·p/ρ`.
+- **HLLD Bug 3 (CT in-place mutation)** — B-field updated in-place during CT curl; fixed with two-phase compute-then-apply.
+- **TOV unit bug** — `RSUN_CGS` → `1.0e5 cm/km` (×700,000 correction).
+
+---
+
+## [v0.3.0] — 2026-03-28
+
+### Summary
+
+CI/CD pipeline stabilization, non-blocking MPI ghost-zone synchronization API, and foundational engine integration (SSP-RK3 + AMR + GRMHD wired in `main.cpp`).
+
+### Added
+- **Non-blocking MPI ghost-zone API** (`grid.hpp`/`grid.cpp`) — `packBuffer()`, `unpackBuffer()`, `bufferSize()`, `getNeighbor()` / `setNeighbor()`, `getRank()` / `setRank()`.
+- **`GridBlockBufferTest`** — 5 new MPI buffer and neighbor metadata tests.
+- **SSP-RK3 + AMR + GRMHD integration** (`main.cpp`) — Full simulation loop: initialize → evolve → regrid → output. YAML config parser. `B5_star` flagship benchmark config.
+- **`run_granite.py`** — Python driver for automated build/configure/test pipeline.
+
+### Fixed
+- **CI/CD** — Added `libomp-dev` for Clang-15 OpenMP discovery. Fixed `cppcheck` false positives (`--suppress=unusedFunction`). Corrected yaml-cpp `GIT_TAG` from `yaml-cpp-0.8.0` → `0.8.0`. Split `apt-get update` + `install` into single chained command. Added `libhdf5-dev`, `cppcheck`, `clang-format` to CI dependencies.
+- **`initial_data.cpp`** — Added missing `#include`, `granite::` namespace qualifier for GCC-12 strict mode.
+- **`ccz4.cpp`** — Variable shadowing cleanup, `const` annotations per `cppcheck`.
+- **`StarParams::position`** — Added default member initialization `= {0.0, 0.0, 0.0}`.
+
+### Changed
+- PETSc CMake integration modernized to `IMPORTED_TARGET` facility.
+- `yaml-cpp` integrated via `FetchContent`.
+
+---
+
+## [v0.1.0] — 2026-03-27
+
+### Summary
+
+Initial repository upload. Complete GRANITE engine architecture committed in a single structured snapshot.
+
+### Added
+- **CCZ4 Spacetime Evolution** (`ccz4.cpp`, ~1,024 lines) — 22 evolved variables, 4th-order FD, Kreiss-Oliger dissipation, 1+log slicing, Gamma-driver shift, constraint-damping parameters κ₁, κ₂.
+- **GRMHD** (`grmhd.cpp`, ~704 lines) — 8 conserved variables, HLLE Riemann solver, PLM reconstruction, Newton-Raphson + Palenzuela con2prim, ideal gas EOS, atmosphere floors.
+- **M1 Radiation Transport** (`m1.cpp`, ~417 lines) — Energy + flux evolution, Minerbo closure, optical-depth interpolation.
+- **Neutrino Microphysics** (`neutrino.cpp`, ~412 lines) — β-decay/e-capture (Bruenn 1985), scattering opacities, thermal pair production.
+- **Initial Data** — TOV solver, Brill-Lindquist punctures, Lane-Emden polytrope, multi-body conformal superposition.
+- **Apparent Horizon Finder** (`horizon_finder.cpp`, ~600 lines) — Y_ℓm spectral expansion, Newton-Raphson on Θ=0, irreducible mass and angular momentum.
+- **Postprocessing** (`postprocess.cpp`, ~450 lines) — Ψ₄ GW extraction, spin-weighted spherical harmonics, ADM integrals.
+- **HDF5 I/O** — Checkpoint/restart with parallel MPI-IO.
+- **Build system** — Modern CMake, C++17, optional MPI/OpenMP/HDF5/PETSc, GoogleTest via `FetchContent`, GitHub Actions CI (GCC-12, Clang-15 matrix, Debug/Release).
+- **Test suite (42 tests):** `GridBlockTest` (13), `TypesTest` (7), `CCZ4FlatTest` (6), `GaugeWaveTest` (4), `BrillLindquistTest` (5), `PolytropeTest` (7).
 
 ---
 
