@@ -126,17 +126,35 @@ jobs:
   # ============================================================
   formatting:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install clang-format
         run: sudo apt-get update && sudo apt-get install -y clang-format-18
 
-      - name: Check formatting
+      - name: Apply clang-format
         run: |
           find src include tests -name '*.cpp' -o -name '*.hpp' | \
-            xargs clang-format-18 --dry-run --Werror 2>&1
-          echo "Formatting check complete"
+            xargs clang-format-18 -i
+          echo "clang-format applied."
+
+      - name: Commit formatting fixes (if any)
+        run: |
+          if [[ -n "$(git status --porcelain)" ]]; then
+            git config --global user.name "github-actions[bot]"
+            git config --global user.email "github-actions[bot]@users.noreply.github.com"
+            git add -A
+            git commit -m "style: auto-apply clang-format-18 [skip ci]"
+            git push
+            echo "Formatting fixes pushed."
+          else
+            echo "All files already formatted correctly."
+          fi
 
   # ============================================================
   # Static analysis
