@@ -1,4 +1,4 @@
-# 🧠 GRANITE – C++ Header Definitions (include/)
+# GRANITE – C++ Header Definitions (include/)
 
 > [!NOTE]
 > **API Contracts and Data Structures.** This directory contains the complete public and internal C++ header (`.hpp`) definitions for the GRANITE engine. The architecture mirrors the `src/` directory to maintain strict modularity between physics subsystems.
