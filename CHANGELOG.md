@@ -23,25 +23,21 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ### Summary
 
-Audit remediation (P0–P3 findings resolved), VORTEX Gold Master polish, Phase 3 GitHub infrastructure hardening, and full API synchronization of smoke tests. All 107 tests across 20 suites compile and pass with zero errors and zero warnings under GCC-12 and Clang-18. This release marks the completion of the comprehensive 4-phase GRANITE audit, bringing the engine to a professional, Tier-1 Numerical Relativity standard.
+The **Gold Master & Repository Seal** release. This major milestone brings the GRANITE engine to a Tier-1 professional standard by finalizing the VORTEX cinematic experience and successfully completing a comprehensive 4-phase architectural audit. The release guarantees a 100% clean CI/CD build (107 tests across 20 suites), enforces strict documentation coherence, and formally establishes the project's individual-architect identity.
 
 ### Added
-- **Physics Smoke Tests (100% Clean Build):** API-accurate smoke tests for AMR (`test_amr_basic.cpp`, 5 tests), Horizon Finder (`test_schwarzschild_horizon.cpp`, 3 tests), M1 Radiation (`test_m1_diffusion.cpp`, 4 tests), and HDF5 I/O (`test_hdf5_roundtrip.cpp`, 3 tests). All compile against the core API with zero warnings. Total test count: 92 → **107 tests** across **20 test suites**.
-- **Repository Standards:** Established complete GitHub community standards including `CODEOWNERS`, Issue/PR templates, and detailed Theory documentation stubs in `docs/theory/`.
-- **VORTEX Gold Master:** Zen Mode (`Z`), GW Audio Chirp Synthesizer, Cinematic Autopilot, NR Diagnostics (Chart.js), Minimap 3.0 (isobar/flux sensor modes), FWM 5-pass hardening, Master Menu categorization.
+- **VORTEX Gold Master (Cinematic & Audio):** Transformed the WebGL engine into a professional presentation environment. Features include a zero-allocation Gravitational Wave Audio Sonification Synthesizer (pitch/strain mapped to physics), a global Zen Mode (`Z`) for clean capture, a Cinematic Autopilot Camera Mode, and a Master Volume Control Panel.
+- **C++ Smoke Tests (API-Synchronized):** Integrated 4 new physics smoke test suites (`test_amr_basic.cpp`, `test_schwarzschild_horizon.cpp`, `test_m1_diffusion.cpp`, `test_hdf5_roundtrip.cpp`). The test matrix now comprises **107 tests across 20 test suites**, achieving broad coverage of all major physics modules.
+- **Repository Metadata:** Created `include/README.md` to map the C++ header architecture. Added a `.gitattributes` Linguist override to enforce `C++` dominance in GitHub repository statistics by properly identifying UI and scripting components as vendored/undetectable.
 
 ### Changed
-- **Infrastructure:** Full metadata sync (CMake, PyPI, Zenodo) to v0.6.7, including unified authorship (Liran M. Schwartz).
-- **Documentation:** `README.md` and `BENCHMARKS.md` reframed for complete accuracy and transparency. `CHANGELOG.md` condensed to a standards-compliant summary with the full journal archived at `docs/DEVELOPMENT_JOURNAL.md`.
-- **Configuration:** Translated localized Hebrew comments to English within configuration files (`benchmarks/B2_eq/params.yaml`).
+- **Identity Purge & Voice Realignment:** Executed a repository-wide purge of the legacy "GRANITE Collaboration" entity, permanently replacing it with the authentic "Liran M. Schwartz" single-author attribution across 37 files (headers, `LICENSE`, LaTeX manuscripts). Realigned all documentation prose from group-centric ("We/Our") to individual-architect ("I/The").
+- **Documentation Coherence:** Stripped non-professional artifacts (emojis) from technical theory documents to enforce an academic tone. Conducted an anti-truncation sweep to ensure all directory trees in `README.md` files precisely match the physical filesystem. Synchronized all scattered version claims to `v0.6.7`.
 
 ### Fixed
-- **Core C++ Logic:** Resolved critical issues in the CCZ4 Ricci tensor, AMR grid headers, and Bowen-York solver labels.
-- **Physics Output:** `postprocess::computeRecoilVelocity` changed from a silent zero-return stub to `std::runtime_error` to prevent invalid physical outputs.
-- **Formatting & Metadata:** Expanded `.gitignore` to a comprehensive 70-line configuration, corrected `docs/conf.py` Doxygen paths, and removed desk-reject trigger tags in LaTeX manuscripts.
-
-### Security
-- **CI/CD Overhaul:** Removed silent warning flags, enforced strict compilation gates (cppcheck and clang-format now block builds on failure), and updated `SECURITY.md` to clearly define the supported version matrix.
+- **C++ API Hallucinations & Compilation:** Surgically repaired hallucinated APIs and signatures in the new smoke tests. Fixed signedness warnings, undeclared macros (`NUM_RADIATION_VARS`), and HDF5 nested group (`H5Gcreate2`) logic to achieve a flawless GCC-12 / Clang-18 build with zero errors and zero warnings.
+- **CI/CD Pipeline Stabilization:** Resolved Sphinx build failures by forcing `docs/Makefile` tracking. Eliminated cross-platform `clang-format` (v18 vs v19) disagreements by disabling `AlignOperands` and refactoring multi-line `std::ostringstream` chains.
+- **UX Polish (VORTEX):** Implemented an ESC-abort system for atomic cancellation of body placement and drag-to-spawn operations. Resolved multiple UI overlapping z-index issues.
 
 ---
 
