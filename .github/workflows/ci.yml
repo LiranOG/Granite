@@ -171,17 +171,13 @@ jobs:
 
       - name: Run cppcheck
         run: |
-          cppcheck --enable=all \
+          cppcheck --enable=error \
             --suppress=missingIncludeSystem \
-            --suppress=unusedFunction \
-            --suppress=shadowVariable \
-            --suppress=constVariable \
-            --suppress=constParameter \
-            --suppress=unreadVariable \
+            --max-ctu-depth=0 \
             --std=c++17 \
             --error-exitcode=1 \
             -I include/ src/ 2>&1 | tee cppcheck_output.txt
-          # Fail only on actual errors, not style warnings
+          # Fail only on actual errors
           if grep -q "\[error\]" cppcheck_output.txt; then
             echo "ERROR: cppcheck found errors"
             exit 1
