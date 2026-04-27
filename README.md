@@ -438,6 +438,7 @@ The Wiki covers, in full technical detail:
 | 15 answered questions on science, engineering, and HPC | [FAQ](https://github.com/LiranOG/Granite/wiki/FAQ) |
 | Complete inventory of every document in the repository | [Documentation Index](https://github.com/LiranOG/Granite/wiki/Documentation-Index-&-Master-Reference) |
 | Explore the interactive WebGL N-body simulator | [VORTEX Engine](https://github.com/LiranOG/Granite/wiki/VORTEX-Simulator) |
+| Learn about the Architecture History of GRANITE & VORTEX | [Theoretical & Architectural Overview](https://github.com/LiranOG/Granite/wiki/GRANITE%E2%80%90Astrophysics%E2%80%90Suite-%E2%80%94-Theoretical-&-Architectural-Overview#-granite-astrophysics-suite--the-definitive-theoretical--architectural-overview) |
 
 ***If something is unclear — in the code, in the physics, or in the parameters — the answer is almost certainly in one of these pages.***
 
