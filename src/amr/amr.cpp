@@ -1,12 +1,20 @@
 /**
  * @file amr.cpp
- * @brief Minimal viable AMR implementation — single-level, single-block.
+ * @brief Full Berger-Oliger block-structured AMR with subcycling.
  *
- * Provides the AMRHierarchy interface with a single level-0 block.
- * Multi-level refinement, prolongation, restriction, and load
- * balancing are deferred to Phase 2.
+ * Implements multi-level refinement driven by puncture-tracking spheres
+ * and gradient-based cell tagging. Key capabilities:
  *
- * @copyright 2026 GRANITE Collaboration
+ *   - Dynamic regridding (regrid()) with iterative box merging
+ *   - Trilinear prolongation (prolongate()) for coarse-to-fine filling
+ *   - Volume-averaged restriction (restrict_data()) for fine-to-coarse injection
+ *   - Recursive Berger-Oliger subcycling (subcycle()) integrated with RK3
+ *
+ * Known limitation: reflux correction at coarse-fine interfaces is not
+ * yet applied (see restrict_data() comment). This is a known accuracy
+ * limitation for conserved GRMHD quantities across AMR boundaries.
+ *
+ * @copyright 2026 Liran M. Schwartz
  */
 #include "granite/amr/amr.hpp"
 

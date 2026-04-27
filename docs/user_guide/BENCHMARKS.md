@@ -1,6 +1,6 @@
 # GRANITE Benchmark Report
 
-**Version:** v0.6.5 (last stable) | v0.6.7 (current development) | **Date:** April 2026
+**Version:** v0.6.7 (current) | **Date:** April 2026
 
 > All results on this page are from **real production runs** on a single consumer desktop workstation. No HPC allocation, no external infrastructure. Every number is fully reproducible by cloning the repository and running the provided benchmark configs.
 
@@ -31,7 +31,7 @@
 | MPI | OpenMPI 4.1.2 |
 | HDF5 | 1.12.1 (parallel) |
 | OpenMP threads | 6 (all physical cores) |
-| GRANITE version | v0.6.5 |
+| GRANITE version | v0.6.7 |
 | Build type | Release |
 
 All runs verified via `health_check.py` to confirm Release flags, correct OMP thread count, and memory allocation before launch.
@@ -148,6 +148,25 @@ amr:
 ---
 
 ## 4. Binary Black Hole Inspiral — Results
+
+> [!WARNING]
+> **What these benchmarks validate and do NOT validate.**
+>
+> The runs below demonstrate **long-time numerical stability** of two-puncture
+> Bowen-York initial data evolved with CCZ4 + AMR through t = 500 M.
+> They do **not** demonstrate a complete inspiral-merger-ringdown sequence.
+>
+> | Claim | Status |
+> |---|---|
+> | Simulation phase achieved | Early inspiral only (no merger observed) |
+> | Expected merger time for d = 10 M | ~150–200 M |
+> | What this validates | Long-time stability; AMR stability; constraint decay |
+> | What this does NOT validate | Correct GW-driven inspiral rate; merger dynamics; ringdown; recoil |
+>
+> A decreasing ‖H‖₂ through 500 M confirms that the evolved spacetime satisfies
+> Einstein's equations with improving accuracy — it is a **necessary but not
+> sufficient** indicator that the physics (GW radiation reaction, inspiral rate)
+> is correct. Full merger validation against the SXS catalog is a v0.8 target.
 
 ### 4.1 64³ Base Grid (dx\_L0 = 6.25M, dx\_finest = 0.781M)
 
@@ -317,6 +336,7 @@ Diagnostic output is automatically saved to `dev_logs/sim_tracker_<timestamp>.lo
 
 ---
 
-*GRANITE v0.6.5 (last stable) — Benchmark Report — April 2026*
+*GRANITE v0.6.7 (current) — Benchmark Report — April 2026*
 
 *All results verified on Intel i5-8400, 16 GB DDR4, Linux/WSL2.*
+*These benchmarks demonstrate CCZ4 stability; full merger validation is a v0.8 target.*

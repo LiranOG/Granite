@@ -12,6 +12,11 @@ add_executable(granite_tests
     grmhd/test_tabulated_eos.cpp
     grmhd/test_grmhd_gr.cpp   # Phase 4D: GR-aware HLLE + MP5 reconstruction tests
     grmhd/test_ppm.cpp         # Phase 5B: PPM reconstruction tests (Colella & Woodward 1984)
+    # P1-01 smoke tests — first coverage for previously untested subsystems
+    amr/test_amr_basic.cpp
+    horizon/test_schwarzschild_horizon.cpp
+    io/test_hdf5_roundtrip.cpp
+    radiation/test_m1_diffusion.cpp
 )
 
 target_link_libraries(granite_tests PRIVATE

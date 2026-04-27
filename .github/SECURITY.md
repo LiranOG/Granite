@@ -6,9 +6,8 @@ The following versions of GRANITE are currently receiving security updates:
 
 | Version        | Supported          |
 | -------------- | ------------------ |
-| main (v0.6.7)  | :white_check_mark: |
-| v0.6.5 (stable)| :white_check_mark: |
-| < v0.6.5       | :x:                |
+| v0.6.7 (main)  | :white_check_mark: |
+| < v0.6.7       | :x:                |
 
 ## Reporting a Vulnerability
 

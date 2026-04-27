@@ -136,7 +136,7 @@ For **GRANITE's CCZ4 spatial derivative stencils and RK3 time integration**, Hyp
 
 ### How GRANITE Auto-Tunes Threads
 
-As of **v0.6.0**, the `run_granite.py` wrapper automatically detects and injects the correct `OMP_NUM_THREADS`
+As of **v0.6.7**, the `run_granite.py` wrapper automatically detects and injects the correct `OMP_NUM_THREADS`
 at process launch — you no longer need to set this manually for typical use:
 
 ```
@@ -163,4 +163,4 @@ python scripts/health_check.py
 
 ---
 
-*GRANITE v0.6.5 (last stable) — Deployment & Performance Optimization — April 2026*
+*GRANITE v0.6.7 — Deployment & Performance Optimization — April 2026*

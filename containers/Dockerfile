@@ -11,7 +11,7 @@
 
 FROM ubuntu:24.04 AS base
 
-LABEL maintainer="GRANITE Collaboration <dev@granite-nr.org>"
+LABEL maintainer="Liran M. Schwartz <scliran9@gmail.com>"
 LABEL description="GRANITE NR Development Environment"
 
 ENV DEBIAN_FRONTEND=noninteractive

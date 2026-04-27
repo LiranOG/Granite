@@ -22,7 +22,7 @@
 # ===========================================================================
 
 grid:
-  ncells: [64, 64, 64]          # זה יוריד את צריכת הזיכרון הבסיסית מ-12GB ל-200MB!
+  ncells: [64, 64, 64]          # Reduces base memory footprint from ~12 GB to ~200 MB (desktop-safe resolution)
   domain_lo: [-200.0, -200.0, -200.0]
   domain_hi: [ 200.0,  200.0,  200.0]
 

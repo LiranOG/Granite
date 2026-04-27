@@ -1,0 +1,14 @@
+# Enforce C++ dominance in Linguist statistics
+*.cpp linguist-language=C++
+*.hpp linguist-language=C++
+*.h linguist-language=C++
+
+# Exclude orchestration scripts, heavy UI files, and peripheral tooling
+scripts/** linguist-vendored
+viz/** linguist-vendored
+*.ipynb linguist-vendored
+
+# Explicitly mark documentation directories and files
+docs/** linguist-documentation
+*.md linguist-documentation
+*.rst linguist-documentation

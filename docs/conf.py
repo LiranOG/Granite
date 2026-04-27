@@ -1,9 +1,9 @@
 # Configuration file for the Sphinx documentation builder.
 
 project = "GRANITE"
-copyright = "2026, GRANITE Collaboration"
-author = "GRANITE Collaboration"
-release = "0.6.5"
+copyright = "2026, Liran M. Schwartz"
+author = "Liran M. Schwartz"
+release = "0.6.7"
 
 # -- General configuration ---------------------------------------------------
 
@@ -21,8 +21,8 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 # -- Breathe configuration (C++ API) -----------------------------------------
 
-breathe_projects = {"granite": "../xml/"}
-breathe_default_project = "granite"
+breathe_projects = {"granite": "../build/xml/"}
+breathed_default_project = "granite"
 
 # -- Options for HTML output --------------------------------------------------
 

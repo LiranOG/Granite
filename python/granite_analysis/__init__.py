@@ -6,8 +6,8 @@ modes, computing strain, plotting, and generating publication-quality
 figures.
 """
 
-__version__ = "0.6.0"
-__author__ = "GRANITE Collaboration"
+__version__ = "0.6.7"
+__author__ = "Liran M. Schwartz"
 
 from granite_analysis.reader import GraniteDataset
 from granite_analysis.gw import Psi4Analysis, compute_strain

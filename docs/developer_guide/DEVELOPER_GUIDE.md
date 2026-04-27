@@ -532,7 +532,7 @@ Q_ν = −κ_a (E − E_eq)   [absorption / emission]
 R_ν = (source term in electron fraction Y_e evolution)
 ```
 
-**Status (v0.6.5):** The M1 module is implemented and tested but not yet wired into the main RK3 evolution loop. It will be activated in v0.7.
+**Status (v0.6.7):** The M1 module is implemented and tested but not yet wired into the main RK3 evolution loop. It will be activated in v0.7.
 
 ---
 
@@ -823,7 +823,8 @@ checkpoint_XXXXXX.h5
 │   ├── ccz4_vars   [shape: (nblocks, 22, nx, ny, nz)]
 │   └── grmhd_vars  [shape: (nblocks, 9, nx, ny, nz)]
 └── /level_1
-    └── ...
+    ├── ccz4_vars   [shape: (nblocks, 22, nx, ny, nz)]
+    └── grmhd_vars  [shape: (nblocks, 9, nx, ny, nz)]
 ```
 
 **Checkpoint frequency (recommended):**
@@ -1322,7 +1323,7 @@ Usually a CFL violation at the finest AMR level when the lapse collapses. Fix: e
 Usually incompatible BCs + ID. Verify Sommerfeld BCs are only used with Two-Punctures/Bowen-York ID, never with Brill-Lindquist.
 
 **"AMR blocks stuck at 4 throughout the run"**
-Dynamic regridding is not yet fully implemented. This is a known limitation in v0.6.5, not a bug.
+Dynamic regridding is **fully implemented in v0.6.7** and active in production runs. This is not a limitation.
 
 **"Phase labels show Early Inspiral through t=500M"**
 Phase labels are currently time-based, not separation-based. This is a known accuracy issue. Do not mistake it for a physics bug.
@@ -1482,4 +1483,4 @@ GRANITE uses geometrized units throughout: **G = c = 1**, with mass scale set by
 ---
 
 *This document is version-controlled. Always refer to the latest version in the repository.*
-*GRANITE v0.6.5 — April 10, 2026 — LiranOG*
+*GRANITE v0.6.7 — April 27, 2026 — LiranOG*

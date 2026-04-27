@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "granite-analysis"
-version = "0.6.5"
+version = "0.6.7"
 description = "Python analysis tools for GRANITE NR simulations"
 readme = "python/README.md"
 requires-python = ">=3.10"
 license = {text = "GPL-3.0-or-later"}
 authors = [
-    {name = "GRANITE Collaboration", email = "dev@granite-nr.org"},
+    {name = "Liran M. Schwartz", email = "scliran9@gmail.com"},
 ]
 dependencies = [
     "numpy>=1.24",

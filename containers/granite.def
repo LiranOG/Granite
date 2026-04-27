@@ -2,8 +2,8 @@ Bootstrap: docker
 From: ubuntu:24.04
 
 %labels
-    Author GRANITE Collaboration
-    Version 0.5.0
+    Author LiranOG
+    Version 0.6.7
     Description GRANITE NR Code — HPC Container
 
 %post

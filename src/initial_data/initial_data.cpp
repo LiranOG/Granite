@@ -157,7 +157,8 @@ void BrillLindquist::apply(GridBlock& grid) const
 }
 
 // ===========================================================================
-// Bowen-York (stub — requires elliptic solver)
+// Bowen-York — Hamiltonian constraint solver for spinning/boosted punctures
+// (SOR relaxation by default; optional PETSc SNES backend via GRANITE_USE_PETSC)
 // ===========================================================================
 
 BowenYorkPuncture::BowenYorkPuncture(const std::vector<BlackHoleParams>& bhs)

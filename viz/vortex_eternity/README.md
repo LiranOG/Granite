@@ -3,6 +3,7 @@
 # VORTEX 🌀
 ### **Zero-Allocation Post-Newtonian N-Body Simulation Engine**
 #### *The Interactive WebGL Frontend for the GRANITE Numerical Relativity Ecosystem*
+#### **File:** `VORTEX-engine.html` — open directly in any modern browser, no install required
 
 [![License](https://img.shields.io/badge/License-GPL--3.0-21e6c1.svg)]()
 [![Status](https://img.shields.io/badge/Status-Active%20Development-blue.svg)]()

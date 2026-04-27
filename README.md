@@ -21,12 +21,27 @@
 
 </div>
 
-> **Status: 🟢 v0.6.7 (VORTEX Update)** — CCZ4 + full GRMHD + fully dynamic Berger-Oliger AMR regridding (live subcycling with tracking spheres), moving-puncture gauge, HDF5 checkpoint write, and VORTEX Gold Master renderer. 92 tests / 100% pass rate. `single_puncture` + `B2_eq` validated stable through t = 500 M.
+> **Status: 🟢 v0.6.7 (active development)** — CCZ4 + full GRMHD + fully dynamic Berger-Oliger AMR, moving-puncture gauge, HDF5 checkpoint write, VORTEX Gold Master renderer. 92 unit tests covering core CCZ4/GRMHD/initial-data kernels (AMR, horizon finder, M1 radiation, I/O, and postprocess not yet covered by unit tests). `single_puncture` + `B2_eq` validated **stable** through t = 500 M (early inspiral phase; full merger run is a v0.8 target).
 
 GRANITE is a high-performance, next-generation numerical relativity and General-Relativistic Magnetohydrodynamics (GRMHD) engine.
 Designed from the ground up to model extreme astrophysical events — such as the inspiral and merger of multiple Supermassive Black Holes (SMBHs) interacting with dense stellar environments and accretion discs — GRANITE brings state-of-the-art multi-scale physics into a cohesive, open-source framework.
 
 ---
+
+> [!IMPORTANT]
+> **Current development status — please read before the feature list.**
+>
+> GRANITE is an **active research project** by a **solo independent researcher** (not affiliated with any NR collaboration or institution). Before reading the feature list, please be aware of the following current limitations:
+>
+> - **Merger runs are a v0.8 target.** The t=500M BBH benchmarks below reach *early inspiral only* — no merger has been observed. Full merger + SXS catalog validation is planned for v0.9.
+> - **M1 radiation transport** is compiled and unit-tested, but is **not yet wired** into the main RK3 evolution loop.
+> - **`--resume` checkpoint restart** is not yet exposed at the CLI (`writeCheckpoint()` works; the `--resume` flag is a v0.7 target).
+> - **Recoil velocity** (`computeRecoilVelocity`) throws `std::runtime_error` — not yet implemented.
+> - **AMR reflux correction** at coarse-fine interfaces: known accuracy limitation.
+> - **Unit tests cover ~60% of source modules.** AMR, horizon finder, M1, I/O, and postprocess are not yet covered.
+> - **Native Windows / macOS** unsupported; Linux and WSL2 only.
+>
+> See [Known Limitations](#️-known-limitations-v067) for the full table.
 
 ## 📖 Table of Contents
 
@@ -44,10 +59,10 @@ Designed from the ground up to model extreme astrophysical events — such as th
 - [🗺️ Roadmap](#️-roadmap)
 - [⚠️ Known Limitations](#️-known-limitations-v067)
 - [📋 Versioning Policy](#-versioning-policy-pre-100)
-- [🏛️ Institutional Partnership & Supercomputing Readiness](#️-institutional-partnership--supercomputing-readiness)
+- [🤝 Open for Collaboration](#-open-for-collaboration)
 - [🤝 Contributing](#-contributing)
 - [📚 Documentation](#-documentation)
-- [🗂 The Genesis Archive: Theoretical & Historical Foundation](#-the-genesis-archive-theoretical--historical-foundation)
+- [🗂 The Genesis Archive: Background & Motivation](#-the-genesis-archive-background--motivation)
 - [🌀 VORTEX: The Interactive WebGL Simulator](#-vortex-the-interactive-webgl-simulator)
 - [📎 Citing GRANITE](#-citing-granite)
 - [👥 Contributors](#-contributors)
@@ -122,9 +137,11 @@ All results are from **production runs on a single desktop workstation** (Intel 
 | 64³ | 4 | 0.781 M | 8.226 × 10⁻⁴ | **1.341 × 10⁻⁵** | **×61.3** | 98.9 min | 0.084 M/s | 0 |
 | 96³ | 4 | 0.521 M | 2.385 × 10⁻³ | **3.538 × 10⁻⁵** | **×67.4** | 496 min | 0.017 M/s | 0 |
 
-> **What ‖H‖₂ reduction means:** The Hamiltonian constraint measures how accurately the evolved spacetime satisfies Einstein's equations. A monotonically *decreasing* ‖H‖₂ over 500 M of simulated time — through a full BBH inspiral — is a quantitative proof of numerical stability, correct constraint damping, and physical consistency.
+> **What ‖H‖₂ reduction means:** The Hamiltonian constraint measures how accurately the evolved spacetime satisfies Einstein's equations. A monotonically *decreasing* ‖H‖₂ over 500 M of simulated time is a necessary (but not sufficient) indicator of **numerical stability and correct constraint damping**.
 >
-> 📄 Raw telemetry, step-by-step logs, and extended resolution tables: [`docs/BENCHMARKS.md`](./docs/BENCHMARKS.md)
+> **What these benchmarks do NOT yet prove:** The t=500M runs above reach *early inspiral phase only* (no merger observed). Merger-waveform validation against the SXS catalog is a **v0.8–v0.9 target**. See [Known Limitations](#️-known-limitations-v067).
+>
+> 📄 Raw telemetry, step-by-step logs, and extended resolution tables: [`docs/user_guide/BENCHMARKS.md`](./docs/user_guide/BENCHMARKS.md)
 
 ---
 
@@ -142,22 +159,14 @@ cd Granite
 
 ### Step 2 — Install Dependencies & Build
 
-#### 💎 Windows — WSL2 / Ubuntu (Recommended ⭐)
+#### 💎 Windows — WSL2 / Ubuntu (the only supported Windows path)
+
+> [!NOTE]
+> Native Windows builds via PowerShell or Conda are **not supported**. Use WSL2.
+
 ```bash
 sudo apt update && sudo apt install -y build-essential cmake libhdf5-dev libopenmpi-dev libyaml-cpp-dev
 python3 scripts/run_granite.py build
-```
-
-#### 🪟 Windows — Native PowerShell / CMD
-```powershell
-cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE="../vcpkg/scripts/buildsystems/vcpkg.cmake" -DCMAKE_BUILD_TYPE=Release
-cmake --build build --config Release
-```
-
-#### 🐍 Windows — Miniforge / Conda
-```bash
-conda install -c conda-forge cmake hdf5 openmpi yaml-cpp
-python scripts/run_granite.py build
 ```
 
 #### 🐧 Linux — Ubuntu / Debian
@@ -212,7 +221,7 @@ build/bin/granite_tests
 # or: cd build && ctest --output-on-failure && cd ..
 ```
 
-Expected output: `[  PASSED  ] 92 tests.` (92 tests from 16 test suites)
+Expected output: `[  PASSED  ] 92 tests.` (92 tests from 16 test suites — covers CCZ4, GRMHD, initial data, and grid kernels)
 
 ---
 
@@ -283,7 +292,7 @@ GRANITE/
 ├── runs/                # ⚠ gitignored — job scripts and parameter scans.
 ├── scripts/             # Build/run wrappers, health check, live diagnostics.
 ├── src/                 # C++17 physics kernels (~8,900 lines).
-├── tests/               # 92-test GoogleTest suite (100% pass rate).
+├── tests/               # 92-test GoogleTest suite (covers CCZ4, GRMHD, initial data; AMR/horizon/M1/I/O not yet covered).
 └── viz/                 # Post-processing and visualisation scripts.
     └── vortex_eternity/       # The new WebGL frontend directory
 ```
@@ -339,34 +348,26 @@ Scientific integrity demands transparency. These limitations are known, document
 
 ---
 
-## 🏛️ Institutional Partnership & Supercomputing Readiness
+## 🤝 Open for Collaboration
 
-GRANITE's 100% pass rate across 92 tests is not a claim - it is a verifiable, 
-reproducible, auditable fact any institution can confirm in under an hour on 
-any Linux HPC node.
+GRANITE is built by an independent researcher. If you work in numerical
+relativity, GRMHD, gravitational-wave astronomy, or computational
+astrophysics — and are interested in reviewing, extending, or testing
+the engine — your input is very welcome.
 
-| Partner type | What GRANITE brings | What we seek |
-|---|---|---|
-| **National supercomputing centres** (NERSC, BSC, ARCHER2, Jülich) | Production-ready MPI+OpenMP engine, SLURM/PBS templates, AMR telemetry | Tier-1 allocation for strong/weak scaling benchmarks |
-| **Numerical relativity groups** (AEI, RIT, Cardiff, Caltech) | Open CCZ4 codebase, community-extensible AMR, Python telemetry | Code review, physics validation, joint publications |
-| **Gravitational wave observatories** (LIGO, Virgo, LISA prep) | Template bank generation at institutional scale | Waveform validation against detector strain data |
-| **Computational science departments** | Pedagogically clean C++17 engine, 92-test teaching harness | Graduate students, postdocs, course integration |
+**What would be most useful:**
 
+| What you can offer | Why it helps |
+|---|---|
+| **Physics review** — familiarity with CCZ4, Valencia GRMHD, or apparent horizon finding | Catch formula errors, validate algorithmic choices against literature |
+| **Benchmark validation** on HPC clusters | Current benchmarks are desktop-only; cluster scaling is entirely untested |
+| **Comparison runs** against established codes (Einstein Toolkit, GRChombo) on standard scenarios | Gauge wave, single puncture, Balsara shock tubes |
+| **Bug reports and PRs** at any scale | One-line fix, new unit test, missing C2P edge case — all of it helps |
 
-### HPC Quick-Start
+I am a solo developer, not affiliated with any institutional NR group. The project is
+released under GPL-3.0 in the hope that it will be useful and instructive.
 
-```bash
-python3 scripts/run_granite_hpc.py build/bin/granite_main \
-    benchmarks/B2_eq/params.yaml  \
-    --omp-threads 32              \
-    --mpi-ranks 128               \
-    --disable-numa-bind           \
-    --amr-telemetry-file /scratch/$USER/amr_scaling.jsonl
-```
-
-Job scheduler templates (SLURM + PBS/Torque): [`benchmarks/scaling_tests/`](./benchmarks/scaling_tests/)
-
-**If your institution runs NR workloads, operates Tier-1/2 supercomputers, or trains the next generation of gravitational wave scientists — we would like to hear from you.** Open a GitHub Issue tagged `[partnership]`.
+If you're interested — open a GitHub Discussion or email `scliran9@gmail.com`.
 
 ---
 
@@ -442,53 +443,30 @@ The Wiki covers, in full technical detail:
 
 ---
 
-## 🗂 The Genesis Archive: Theoretical & Historical Foundation
+## 🗂 The Genesis Archive: Background & Motivation
 
-The C++ code in this repository is not the beginning of the GRANITE project. It is the *consequence* of it.
+The C++ engine in this repository was preceded by a series of personal research notes
+exploring the physics of multi-BH merger scenarios. These notes motivated the key
+architectural choices:
 
-Before a single line of C++ was written — before a single `CMakeLists.txt` was authored, before a single Christoffel symbol was computed on a numerical grid — the entire physical scenario was solved analytically. In closed form. On paper. Every module in this engine traces its existence to a specific equation, a specific derivation, and a specific physical necessity documented in the **GRANITE Astrophysics Suite**:
+Every major architectural decision in GRANITE traces to a specific physical requirement:
 
-**[→ github.com/LiranOG/GRANITE-Astrophysics-Suite](https://github.com/LiranOG/GRANITE-Astrophysics-Suite)** — The complete theoretical, kinematic, and computational archive.
+- **CCZ4 over BSSN** — for active constraint damping on long evolution timescales required by cascade scenarios
+- **Valencia GRMHD** — for exact conservation on curved spacetime during stellar disruption events
+- **M1 radiation transport** — for accurate photon and neutrino coupling in hot nuclear debris
+- **Deep AMR (≥12 levels targeted)** — for the ~10⁸ dynamic range spanning BH horizons to circumbinary disk scales
 
-### What the Suite Contains
+These choices are grounded in established NR literature. The personal research notes that
+preceded the code are archived separately for transparency at
+**[GRANITE-Astrophysics-Suite](https://github.com/LiranOG/GRANITE-Astrophysics-Suite)**.
 
-The Astrophysics Suite is the **Genesis Archive** — the definitive record of the analytical campaign that preceded, justified, and demanded this engine's construction. It is organized into three chronologically ordered layers:
+> **Note:** The archived notes are **personal theoretical exploration, not peer-reviewed results.**
+> They provide context for architectural decisions, but should not be read as predictions the
+> engine is validated against. Formal validation follows the standard NR protocol: benchmarks
+> against known analytic solutions and comparison against the SXS catalog (v0.9 target).
 
-| Layer | Contents | Role |
-|-------|----------|------|
-| **[01 — Theoretical Limit](https://github.com/LiranOG/GRANITE-Astrophysics-Suite/tree/main/01_Theoretical_Limit)** | 7 peer-review-grade analytical manuscripts: **NRCF**, **PRISM**, **SYNAPSE**, **AUE**, **NEXUS** | Every equation was closed before implementation began. These derivations — the geometric shape factor $s_N$, the coherent $N^2$-scaling GW formula, the running merger-cascade efficiency $\varepsilon_k$, the slim-disk EM correction, the 4-phase tri-species NEXUS cascade — are the *source of truth* for every physics module in this engine. |
-| **[02 — Kinematic Engines](https://github.com/LiranOG/GRANITE-Astrophysics-Suite/tree/main/02_Kinematic_Engines)** | 26 browser-native HTML/JavaScript interactive engines, including **VORTEX ETERNITY** | The laboratory of interactive proof. Every analytical prediction was stress-tested in real-time kinematic simulations before this C++ engine existed to provide formal validation. VORTEX ETERNITY is now the designated WebGL visualization frontend for GRANITE's HDF5 outputs. |
-| **[03 — Genesis Archive](https://github.com/LiranOG/GRANITE-Astrophysics-Suite/tree/main/03_GRANITE_Engine)** | The founding manifesto: *[THE GENESIS OF GRANITE](https://github.com/LiranOG/GRANITE-Astrophysics-Suite/blob/main/03_GRANITE_Engine/THE_GENESIS_OF_GRANITE.md)* | The complete intellectual chronicle of how the frightening questions were asked, how the mathematics was solved on paper, and how the solved mathematics — and nothing else — authorized the construction of this engine. |
-
-### The Math-First Dogma
-
-Every architectural decision in the GRANITE engine is traceable to a specific analytical result:
-
-- **CCZ4 over BSSN** → because SYNAPSE's cascade timescale of $O(10^4\,M)$ demands active constraint damping
-- **Valencia GRMHD** → because the AUE proved stellar disruption requires exact conservation on curved spacetime
-- **M1 rad transport** → because the AUE quantified a $10^6\times$ error in the naive EM burst estimate
-- **15+ AMR levels** → because the B5_STAR scenario spans $10^8$ in dynamic range
-
-The theory preceded the code. The equations were closed before the compiler was invoked. **This is not a simulation framework. It is a theorem that runs.**
-
-
-### Key Analytical Results That This Engine Validates
-
-| Prediction | Value | Framework | Status |
-|-----------|-------|-----------|--------|
-| Pentagon shape factor | $s_5 = 1.3764$ | NRCF | ✅ Incorporated |
-| Coherent GW energy | $E_{\text{GW}} \approx 8.93\times10^{61}$ erg | PRISM | 🎯 Target |
-| Cascade GW mass fraction | $f_{\text{GW}} = 14.16\%$ | SYNAPSE | 🎯 Target |
-| Final remnant mass | $M_f = 4.29\times10^8\,M_\odot$ | SYNAPSE | 🎯 Target |
-| Final remnant spin | $a_f^* = 0.857$ | SYNAPSE | 🎯 Target |
-| EM burst (photon-trapped) | $E_{\text{EM}} \approx 2.22\times10^{51}$ erg | SYNAPSE | 🎯 Target |
-| 3-band GW signature | 4.75 / 1727 / 2378 Hz | NEXUS | 🔮 v1.0 Target |
-
-> *For the full theoretical foundation, the complete derivation archive, and 26 interactive kinematic proof engines:*
+> *For the derivation archive and interactive kinematic simulations:*
 > **[→ GRANITE-Astrophysics-Suite](https://github.com/LiranOG/GRANITE-Astrophysics-Suite)**
->
-> *For a deeper dive into the engine's architectural design, complete module provenance, and the contributor navigation guide:*
-> **[→ Read the Genesis & Architecture Guide (`docs/GENESIS_AND_ARCHITECTURE.md`)](https://github.com/LiranOG/Granite/blob/main/docs/design/GENESIS_AND_ARCHITECTURE.md)**
 
 ---
 
@@ -527,9 +505,8 @@ If you use GRANITE in academic research, teaching, or scientific software, pleas
 }
 ```
 
-A technical paper describing GRANITE's formalism and validated benchmarks 
-is in preparation for submission to *Physical Review D*. 
-See also `docs/citation.bib`.
+A technical draft describing GRANITE's formalism and benchmarks is being developed.
+See `docs/paper/granite_preprint_v067.tex` and `docs/citation.bib`.
 
 ---
 
@@ -563,9 +540,10 @@ I have written a **[Personal Note to the Community](docs/PERSONAL_NOTE.md)** exp
 
 ## 👥 Contributors
 
-<a href="https://github.com/LiranOG/Granite/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=LiranOG/Granite" />
-</a>
+GRANITE is currently a **solo project** by [Liran M. Schwartz](https://orcid.org/0009-0008-8035-1308) (Independent Researcher, Haifa, Israel).
+
+If you use, test, review, or contribute to GRANITE in any way — you are part of the story.
+See [Open for Collaboration](#-open-for-collaboration) or open a [GitHub Discussion](https://github.com/LiranOG/Granite/discussions) to get involved.
 
 ---
 

@@ -601,15 +601,19 @@ Real EMDiagnostics::eddingtonLuminosity(Real mass_msun)
 std::array<Real, DIM> RemnantAnalyzer::computeRecoilVelocity(
     const Psi4Extractor& gw_extractor) const
 {
-    // Recoil velocity from GW momentum flux:
-    //   v^i = -P^i_rad / M_final
-    // P^i_rad = ∫₀^T dP^i/dt dt
+    // Recoil velocity requires integrating the GW momentum flux:
+    //   v^i = -P^i_rad / M_final,  with
+    //   P^i_rad = (r²/16π) ∫₀^T Σ_{lm,l'm'} Ψ₄^{lm} * (ḣ^{l'm'})* f^i_{lm,l'm'} dt
     //
-    // For now: compute the sum over all modes at the outermost sphere.
-    // Full implementation requires the angular mode structure.
+    // Full implementation requires angular mode decomposition of Ψ₄ and
+    // the cross-mode coupling coefficients f^i_{lm,l'm'} (see Campanelli 2007).
+    // This is a v0.7 development target. See GRANITE roadmap.
     (void)gw_extractor;
-    // TODO: implement full mode-sum when FFT is available
-    return {0.0, 0.0, 0.0};
+    throw std::runtime_error(
+        "RemnantAnalyzer::computeRecoilVelocity: not yet implemented. "
+        "Requires angular mode decomposition of Psi4 and GW momentum flux "
+        "integration (v0.7 target). "
+        "Do not use this function; results would be physically meaningless.");
 }
 
 Real RemnantAnalyzer::computeFinalMass(Real horizon_area) const

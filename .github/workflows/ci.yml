@@ -45,8 +45,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
             -DGRANITE_ENABLE_MPI=ON \
             -DGRANITE_ENABLE_GPU=OFF \
-            -DGRANITE_ENABLE_TESTS=ON \
-            -DCMAKE_CXX_FLAGS="-w"
+            -DGRANITE_ENABLE_TESTS=ON
 
       - name: Build
         run: cmake --build build -j$(nproc)
@@ -93,8 +92,7 @@ jobs:
             -DENABLE_COVERAGE=ON \
             -DGRANITE_ENABLE_MPI=ON \
             -DGRANITE_ENABLE_GPU=OFF \
-            -DGRANITE_ENABLE_TESTS=ON \
-            -DCMAKE_CXX_FLAGS="-w"
+            -DGRANITE_ENABLE_TESTS=ON
 
       # Build everything first so granite_tests exists before the
       # `coverage` target tries to invoke it.
@@ -137,8 +135,8 @@ jobs:
       - name: Check formatting
         run: |
           find src include tests -name '*.cpp' -o -name '*.hpp' | \
-            xargs clang-format-18 --dry-run --Werror 2>&1 || true
-          echo "Formatting check complete (non-blocking)"
+            xargs clang-format-18 --dry-run --Werror 2>&1
+          echo "Formatting check complete"
 
   # ============================================================
   # Static analysis
@@ -163,7 +161,7 @@ jobs:
             --suppress=constParameter \
             --suppress=unreadVariable \
             --std=c++17 \
-            --error-exitcode=0 \
+            --error-exitcode=1 \
             -I include/ src/ 2>&1 | tee cppcheck_output.txt
           # Fail only on actual errors, not style warnings
           if grep -q "\[error\]" cppcheck_output.txt; then
@@ -184,4 +182,4 @@ jobs:
         run: pip install sphinx breathe sphinx-rtd-theme
 
       - name: Build docs
-        run: cd docs && make html || true
+        run: cd docs && make html
