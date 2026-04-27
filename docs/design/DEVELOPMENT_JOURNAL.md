@@ -161,28 +161,6 @@ Updated `README.md` (status badge, known limitations, expected output, repo stru
 
 ---
 
-### Commits (Chronological — All April 27, 2026)
-
-| Hash | Message |
-|------|---------|
-| `307a6ae` | `docs: v0.6.7 audit complete — emoji cleanup, directory trees, version sync, anti-truncation sweep, linguist override` |
-| `61d2401` | `docs: add include/README.md for C++ header definitions` |
-| `9abed5f` | `fix(linguist): replace linguist-vendored with linguist-detectable=false` |
-| `d12d966` | `fix(tests): resolve API hallucinations in 4 smoke tests` |
-| `a26285c` | `fix(tests): resolve final undeclared variable and signedness warnings` |
-| `579210f` | `chore: fix CI by adding docs/Makefile and formatting tests` |
-| `294d225` | `chore(docs): force add docs/Makefile for Sphinx build in CI` |
-| `04ec6d2` | `fix(tests): resolve runtime test failures and clang-format violations` |
-| `f2f6c41` | `fix(tests): resolve all CI failures — AMR level count, HDF5 path, horizon skip` |
-| `18c27d7` | `fix(hdf5,amr): fix H5Gcreate2 nested group bug and AMR restriction assertion` |
-| `1e9b390` | `fix(test_hdf5): iterate interior cells only in LinearRamp verification` |
-| `d67b2a6` | `fix(format): disable AlignOperands for cross-platform compatibility` |
-| `4b32318` | `fix(format): replace multi-line << chains with ostringstream` |
-| `89a582c` | `identity: purge 'GRANITE Collaboration', realign voice to individual author` |
-| `534f172` | `docs: coherence sweep for v0.6.7 seal — 107 tests / 20 suites` |
-
----
-
 
 ## [v0.6.7.0] — VORTEX Gold Master Polish & Cinematic Systems (2026-04-15)
 
