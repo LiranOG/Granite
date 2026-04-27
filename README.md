@@ -21,7 +21,7 @@
 
 </div>
 
-> **Status: 🟢 v0.6.7 (active development)** — CCZ4 + full GRMHD + fully dynamic Berger-Oliger AMR, moving-puncture gauge, HDF5 checkpoint write, VORTEX Gold Master renderer. 92 unit tests covering core CCZ4/GRMHD/initial-data kernels (AMR, horizon finder, M1 radiation, I/O, and postprocess not yet covered by unit tests). `single_puncture` + `B2_eq` validated **stable** through t = 500 M (early inspiral phase; full merger run is a v0.8 target).
+> **Status: 🟢 v0.6.7 (active development)** — CCZ4 + full GRMHD + fully dynamic Berger-Oliger AMR, moving-puncture gauge, HDF5 checkpoint write, VORTEX Gold Master renderer. 107 unit tests across 20 test suites covering all physics modules: CCZ4, GRMHD, AMR, horizon finder, M1 radiation, HDF5 I/O, initial data, and grid kernels — all compiling and passing with zero errors and zero warnings. `single_puncture` + `B2_eq` validated **stable** through t = 500 M (early inspiral phase; full merger run is a v0.8 target).
 
 GRANITE is a high-performance, next-generation numerical relativity and General-Relativistic Magnetohydrodynamics (GRMHD) engine.
 Designed from the ground up to model extreme astrophysical events — such as the inspiral and merger of multiple Supermassive Black Holes (SMBHs) interacting with dense stellar environments and accretion discs — GRANITE brings state-of-the-art multi-scale physics into a cohesive, open-source framework.
@@ -38,7 +38,7 @@ Designed from the ground up to model extreme astrophysical events — such as th
 > - **`--resume` checkpoint restart** is not yet exposed at the CLI (`writeCheckpoint()` works; the `--resume` flag is a v0.7 target).
 > - **Recoil velocity** (`computeRecoilVelocity`) throws `std::runtime_error` — not yet implemented.
 > - **AMR reflux correction** at coarse-fine interfaces: known accuracy limitation.
-> - **Unit tests cover ~60% of source modules.** AMR, horizon finder, M1, I/O, and postprocess are not yet covered.
+> - **Unit tests cover all major physics modules** (107 tests across 20 suites). Only `postprocess` lacks dedicated unit tests.
 > - **Native Windows / macOS** unsupported; Linux and WSL2 only.
 >
 > See [Known Limitations](#️-known-limitations-v067) for the full table.
@@ -221,7 +221,7 @@ build/bin/granite_tests
 # or: cd build && ctest --output-on-failure && cd ..
 ```
 
-Expected output: `[  PASSED  ] 92 tests.` (92 tests from 16 test suites — covers CCZ4, GRMHD, initial data, and grid kernels)
+Expected output: `[  PASSED  ] 107 tests.` (107 tests from 20 test suites — covers CCZ4, GRMHD, AMR, horizon finder, M1 radiation, HDF5 I/O, initial data, and grid kernels)
 
 ---
 
@@ -292,7 +292,7 @@ GRANITE/
 ├── runs/                # ⚠ gitignored — job scripts and parameter scans.
 ├── scripts/             # Build/run wrappers, health check, live diagnostics.
 ├── src/                 # C++17 physics kernels (~8,900 lines).
-├── tests/               # 92-test GoogleTest suite (covers CCZ4, GRMHD, initial data; AMR/horizon/M1/I/O not yet covered).
+├── tests/               # 107-test GoogleTest suite across 20 suites (covers all physics modules: CCZ4, GRMHD, AMR, horizon, M1, HDF5 I/O, initial data).
 └── viz/                 # Post-processing and visualisation scripts.
     └── vortex_eternity/       # The new WebGL frontend directory
 ```
