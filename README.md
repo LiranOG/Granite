@@ -341,6 +341,20 @@ Scientific integrity demands transparency. These limitations are known, document
 
 GRANITE uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). During the pre-1.0 phase, minor version bumps (`v0.x`) may carry breaking API changes as the engine matures toward production readiness.
 
+### Version History (v0.5.0+)
+
+| Version | Date | Status | Milestone |
+|---|---|:---:|---|
+| `v0.5.0` | 2026-04-02 | ✅ | Repo reorganization, CodeQL, PPM, flat `GridBlock`, GW recoil physics |
+| `v0.6.0` | 2026-04-04 | ✅ | Berger-Oliger AMR, `TwoPuncturesBBH`, Sommerfeld BCs |
+| `v0.6.5` | 2026-04-07 | ✅ | Tactical reset — stable baseline, 92 tests, 8-layer stability guard |
+| `v0.6.5.4` | 2026-04-10 | ✅ | GitHub Wiki launch — 17 technical pages, ~18,000 words |
+| `v0.6.5.5` | 2026-04-11 | ✅ | `README.md` overhaul — benchmarks, roadmap, competitor matrix |
+| `v0.6.6` | 2026-04-12–15 | ✅ | VORTEX WebGL engine + Gold Master cinematic & analytical systems |
+| **`v0.6.7`** | **2026-04-27** | ✅ **Current** | **107 tests / 20 suites — 100% CI clean. Full repo seal.** |
+| `v0.7.0` | Q2 2026 | 🔄 Planned | GPU CUDA kernels, checkpoint-restart, full dynamic AMR, M1 wired into RK3 |
+| `v1.0.0` | Q1 2027 | 🎯 Target | B5_star production run, full community release, GitHub Releases activated |
+
 ### What GitHub Tags Mean
 
 - **Git tags** (e.g. `v0.6.7`) mark verified, stable integration points. CI is green; all tests pass.
