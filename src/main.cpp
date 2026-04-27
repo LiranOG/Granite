@@ -21,6 +21,7 @@
 #include <map>
 #include <memory>
 #include <set>
+#include <sstream>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -1200,9 +1201,11 @@ int main(int argc, char* argv[]) {
                             for (int i = b->istart(0); i < b->iend(0) && !found_nan; ++i) {
                                 Real val = b->data(v, i, j, k);
                                 if (std::isnan(val) || std::isinf(val)) {
-                                    std::cout << "  [NaN@step=" << step << "] ST var=" << v << " ("
-                                              << i << "," << j << "," << k << ")"
-                                              << " = " << val << std::endl;
+                                    std::ostringstream msg;
+                                    msg << "  [NaN@step=" << step << "] ST var=" << v << " (" << i
+                                        << "," << j << "," << k << ")"
+                                        << " = " << val;
+                                    std::cout << msg.str() << std::endl;
                                     found_nan = true;
                                 }
                             }

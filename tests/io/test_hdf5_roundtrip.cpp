@@ -28,6 +28,7 @@
 #include <cstdlib> // std::rand, RAND_MAX
 #include <filesystem>
 #include <gtest/gtest.h>
+#include <sstream>
 #include <vector>
 
 using namespace granite;
@@ -166,9 +167,12 @@ TEST_F(HDF5RoundtripTest, LinearRampFieldPreservedExactly) {
                 data_idx++;
             }
 
-    EXPECT_FALSE(mismatch) << "HDF5 round-trip mismatch at "
-                           << "(" << mi << "," << mj << "," << mk << "): "
-                           << "expected " << expected_val << " got " << got;
+    if (mismatch) {
+        std::ostringstream err;
+        err << "HDF5 round-trip mismatch at (" << mi << "," << mj << "," << mk << ")"
+            << ": expected " << expected_val << " got " << got;
+        FAIL() << err.str();
+    }
 }
 
 // ===========================================================================

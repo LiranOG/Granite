@@ -178,11 +178,10 @@ TEST(GRMHDGRTest, HLLEFluxScalesWithLapse) {
     //   all terms scale by alpha, so F_HLLE scales by alpha exactly.
     const Real ratio_D =
         flux2[static_cast<int>(HydroVar::D)] / flux1[static_cast<int>(HydroVar::D)];
-    EXPECT_NEAR(ratio_D, 0.5, 0.05)
-        << "Mass flux does not scale with lapse alpha. "
-        << "Expected ratio ~0.5, got: " << ratio_D
-        << "\n  F_D(alpha=1) = " << flux1[static_cast<int>(HydroVar::D)]
-        << "\n  F_D(alpha=0.5) = " << flux2[static_cast<int>(HydroVar::D)];
+    const Real fD1 = flux1[static_cast<int>(HydroVar::D)];
+    const Real fD2 = flux2[static_cast<int>(HydroVar::D)];
+    EXPECT_NEAR(ratio_D, 0.5, 0.05) << "Mass flux lapse scaling wrong: ratio=" << ratio_D
+                                    << " F_D(alpha=1)=" << fD1 << " F_D(alpha=0.5)=" << fD2;
 }
 
 /// Test C3 Fix 3: HLLE flux in a Schwarzschild-like metric remains finite.
