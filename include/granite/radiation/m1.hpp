@@ -16,11 +16,11 @@
 namespace granite::radiation {
 
 struct M1Params {
-    Real kappa_a      = 0.4;      ///< Absorption opacity [cm²/g] (default: Thomson)
-    Real kappa_s      = 0.2;      ///< Scattering opacity [cm²/g]
+    Real kappa_a = 0.4; ///< Absorption opacity [cm²/g] (default: Thomson)
+    Real kappa_s = 0.2; ///< Scattering opacity [cm²/g]
     bool use_tabulated_opacities = false;
-    bool use_imex     = true;     ///< Use IMEX for stiff source terms
-    Real floor_Er     = 1.0e-20;  ///< Radiation energy density floor
+    bool use_imex = true;    ///< Use IMEX for stiff source terms
+    Real floor_Er = 1.0e-20; ///< Radiation energy density floor
 };
 
 /**
@@ -39,8 +39,8 @@ public:
                     GridBlock& rhs) const;
 
     /// Compute the variable Eddington tensor (Minerbo/Levermore-Pomraning)
-    void eddingtonTensor(Real Er, Real Frx, Real Fry, Real Frz,
-                         std::array<Real, SYM_TENSOR_COMPS>& Pij) const;
+    void eddingtonTensor(
+        Real Er, Real Frx, Real Fry, Real Frz, std::array<Real, SYM_TENSOR_COMPS>& Pij) const;
 
     /// Apply implicit radiation-matter coupling source terms (IMEX)
     void applyImplicitSources(const GridBlock& spacetime,

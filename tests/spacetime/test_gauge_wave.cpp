@@ -7,13 +7,13 @@
  */
 // MSVC requires _USE_MATH_DEFINES before <cmath> to expose M_PI
 #define _USE_MATH_DEFINES
-#include <gtest/gtest.h>
 #include "granite/core/grid.hpp"
 #include "granite/core/types.hpp"
 #include "granite/spacetime/ccz4.hpp"
 
 #include <cmath>
 #include <cstdlib>
+#include <gtest/gtest.h>
 
 // Portable π fallback (in case _USE_MATH_DEFINES doesn't work on some platforms)
 #ifndef M_PI
@@ -42,8 +42,7 @@ TEST(GaugeWaveTest, InitializationCorrect) {
     int k_mid = nghost + ncells[2] / 2;
 
     Real alpha_expected = std::sqrt(1.0 + amplitude);
-    Real alpha_actual = grid.data(static_cast<int>(SpacetimeVar::LAPSE),
-                                  i_quarter, j_mid, k_mid);
+    Real alpha_actual = grid.data(static_cast<int>(SpacetimeVar::LAPSE), i_quarter, j_mid, k_mid);
 
     EXPECT_NEAR(alpha_actual, alpha_expected, 1e-4)
         << "Gauge wave lapse initialization incorrect at x = L/4";
@@ -59,7 +58,7 @@ TEST(GaugeWaveTest, ConformalFactorAtOrigin) {
     std::array<Real, DIM> lo = {0.0, 0.0, 0.0};
     std::array<Real, DIM> hi = {1.0, 0.125, 0.125};
     int nghost = 4;
-    Real amplitude  = 0.01;
+    Real amplitude = 0.01;
     Real wavelength = 1.0;
 
     GridBlock grid(0, 0, ncells, lo, hi, nghost, NUM_SPACETIME_VARS);
@@ -70,7 +69,7 @@ TEST(GaugeWaveTest, ConformalFactorAtOrigin) {
     int k_mid = nghost + ncells[2] / 2;
 
     // Actual x-coordinate of this cell centre
-    Real x_cell = grid.x(0, i_origin);   // lo + (i - ng + 0.5) * dx
+    Real x_cell = grid.x(0, i_origin); // lo + (i - ng + 0.5) * dx
 
     // Gauge wave: H(x) = 1 + A sin(2π x / λ)
     // γ_xx = H(x),  α = √H(x),  χ = H(x)^{-1/3}
@@ -85,8 +84,7 @@ TEST(GaugeWaveTest, ConformalFactorAtOrigin) {
     Real dx = grid.dx(0);
     Real tol = 5.0 * dx * dx; // generous 5× safety margin
     EXPECT_NEAR(chi_actual, chi_expected, tol)
-        << "Conformal factor mismatch at cell centre x=" << x_cell
-        << "  chi_actual=" << chi_actual
+        << "Conformal factor mismatch at cell centre x=" << x_cell << "  chi_actual=" << chi_actual
         << "  chi_expected=" << chi_expected;
 }
 
@@ -117,16 +115,15 @@ TEST(GaugeWaveTest, RHSFiniteAndBounded) {
             for (int j = is; j < grid.iend(1) && j < is + 4; ++j)
                 for (int i = is; i < ie; ++i) {
                     Real val = std::abs(rhs.data(v, i, j, k));
-                    EXPECT_TRUE(std::isfinite(val))
-                        << "Non-finite RHS at var=" << v
-                        << " (" << i << "," << j << "," << k << ")";
-                    if (val > max_rhs) max_rhs = val;
+                    EXPECT_TRUE(std::isfinite(val)) << "Non-finite RHS at var=" << v << " (" << i
+                                                    << "," << j << "," << k << ")";
+                    if (val > max_rhs)
+                        max_rhs = val;
                 }
     }
 
     // For a small amplitude wave, RHS should be bounded
-    EXPECT_LT(max_rhs, 100.0)
-        << "RHS unexpectedly large for small-amplitude gauge wave";
+    EXPECT_LT(max_rhs, 100.0) << "RHS unexpectedly large for small-amplitude gauge wave";
 }
 
 TEST(GaugeWaveTest, RHSWithMatterSourcesMatchesVacuum) {
@@ -152,7 +149,8 @@ TEST(GaugeWaveTest, RHSWithMatterSourcesMatchesVacuum) {
     std::vector<Real> rho(N, 0.0);
     std::vector<std::array<Real, DIM>> Si(N, {0.0, 0.0, 0.0});
     std::vector<std::array<Real, SYM_TENSOR_COMPS>> Sij(N);
-    for (auto& s : Sij) s.fill(0.0);
+    for (auto& s : Sij)
+        s.fill(0.0);
     std::vector<Real> Strace(N, 0.0);
 
     ccz4.computeRHS(grid, rhs2, rho, Si, Sij, Strace);

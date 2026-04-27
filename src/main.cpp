@@ -126,8 +126,8 @@ public:
                     int nbr_rank = st->getNeighborRank(dir);
                     if (nbr_rank == my_rank) {
                         size_t nbr_idx = id_to_index.at(nbr_id);
-                        GridBlock* nbr_st =
-                            use_stage ? active_bundles[nbr_idx].st_stage.get() : active_bundles[nbr_idx].st;
+                        GridBlock* nbr_st = use_stage ? active_bundles[nbr_idx].st_stage.get()
+                                                      : active_bundles[nbr_idx].st;
                         GridBlock* nbr_hy = use_stage ? active_bundles[nbr_idx].hydro_stage.get()
                                                       : active_bundles[nbr_idx].hydro.get();
 
@@ -223,8 +223,8 @@ public:
                     if (nbr_id < 0)
                         continue;
                     size_t nbr_idx = id_to_index.at(nbr_id);
-                    GridBlock* nbr_st =
-                        use_stage ? active_bundles[nbr_idx].st_stage.get() : active_bundles[nbr_idx].st;
+                    GridBlock* nbr_st = use_stage ? active_bundles[nbr_idx].st_stage.get()
+                                                  : active_bundles[nbr_idx].st;
                     GridBlock* nbr_hy = use_stage ? active_bundles[nbr_idx].hydro_stage.get()
                                                   : active_bundles[nbr_idx].hydro.get();
 
@@ -266,23 +266,26 @@ public:
                     const int piez = tnz - ng - 1;
                     for (int v = 0; v < nv; ++v) {
                         for (int kk = 0; kk < tnz; ++kk)
-                        for (int jj = 0; jj < tny; ++jj)
-                        for (int gi = 0; gi < ng; ++gi) {
-                            prim.data(v, pis-1-gi, jj, kk) = prim.data(v, pis, jj, kk);
-                            prim.data(v, piex+1+gi, jj, kk) = prim.data(v, piex, jj, kk);
-                        }
+                            for (int jj = 0; jj < tny; ++jj)
+                                for (int gi = 0; gi < ng; ++gi) {
+                                    prim.data(v, pis - 1 - gi, jj, kk) = prim.data(v, pis, jj, kk);
+                                    prim.data(v, piex + 1 + gi, jj, kk) =
+                                        prim.data(v, piex, jj, kk);
+                                }
                         for (int kk = 0; kk < tnz; ++kk)
-                        for (int ii = 0; ii < tnx; ++ii)
-                        for (int gi = 0; gi < ng; ++gi) {
-                            prim.data(v, ii, pis-1-gi, kk) = prim.data(v, ii, pis, kk);
-                            prim.data(v, ii, piey+1+gi, kk) = prim.data(v, ii, piey, kk);
-                        }
+                            for (int ii = 0; ii < tnx; ++ii)
+                                for (int gi = 0; gi < ng; ++gi) {
+                                    prim.data(v, ii, pis - 1 - gi, kk) = prim.data(v, ii, pis, kk);
+                                    prim.data(v, ii, piey + 1 + gi, kk) =
+                                        prim.data(v, ii, piey, kk);
+                                }
                         for (int jj = 0; jj < tny; ++jj)
-                        for (int ii = 0; ii < tnx; ++ii)
-                        for (int gi = 0; gi < ng; ++gi) {
-                            prim.data(v, ii, jj, pis-1-gi) = prim.data(v, ii, jj, pis);
-                            prim.data(v, ii, jj, piez+1+gi) = prim.data(v, ii, jj, piez);
-                        }
+                            for (int ii = 0; ii < tnx; ++ii)
+                                for (int gi = 0; gi < ng; ++gi) {
+                                    prim.data(v, ii, jj, pis - 1 - gi) = prim.data(v, ii, jj, pis);
+                                    prim.data(v, ii, jj, piez + 1 + gi) =
+                                        prim.data(v, ii, jj, piez);
+                                }
                     }
                 }
 
@@ -358,7 +361,7 @@ public:
                     const int nx = g.totalCells(0);
                     const int ny = g.totalCells(1);
                     const int nz = g.totalCells(2);
-                    const int is  = ng;
+                    const int is = ng;
                     const int iex = nx - ng - 1; // last interior
                     const int iey = ny - ng - 1;
                     const int iez = nz - ng - 1;
@@ -367,12 +370,17 @@ public:
                     // Index: 0=CHI, 1-6=GAMMA, 7-12=A, 13=K, 14-16=GAMMA_HAT,
                     //        17=THETA, 18=LAPSE, 19-21=SHIFT
                     auto f_inf = [](int v) -> Real {
-                        if (v == 0) return 1.0;   // chi → 1
-                        if (v == 1) return 1.0;   // gamma_xx → 1
-                        if (v == 4) return 1.0;   // gamma_yy → 1
-                        if (v == 6) return 1.0;   // gamma_zz → 1
-                        if (v == 18) return 1.0;  // alpha → 1
-                        return 0.0;                // all others → 0
+                        if (v == 0)
+                            return 1.0; // chi → 1
+                        if (v == 1)
+                            return 1.0; // gamma_xx → 1
+                        if (v == 4)
+                            return 1.0; // gamma_yy → 1
+                        if (v == 6)
+                            return 1.0; // gamma_zz → 1
+                        if (v == 18)
+                            return 1.0; // alpha → 1
+                        return 0.0;     // all others → 0
                     };
 
                     // Gauge wave speed for 1+log slicing
@@ -388,78 +396,90 @@ public:
                         Real finf = f_inf(v);
                         // ±X faces
                         for (int k = 0; k < nz; ++k)
-                        for (int j = 0; j < ny; ++j) {
-                            Real y = g.x(1, j);
-                            Real z = g.x(2, k);
-                            for (int gi = 0; gi < ng; ++gi) {
-                                // -X face
-                                {
-                                    Real x_int = g.x(0, is);
-                                    Real x_gh  = g.x(0, is - 1 - gi);
-                                    Real r_int = std::sqrt(x_int*x_int + y*y + z*z) + 1e-30;
-                                    Real r_gh  = std::sqrt(x_gh*x_gh + y*y + z*z) + 1e-30;
-                                    Real f_int = g.data(v, is, j, k);
-                                    g.data(v, is-1-gi, j, k) = finf + (f_int - finf) * r_int / r_gh;
-                                }
-                                // +X face
-                                {
-                                    Real x_int = g.x(0, iex);
-                                    Real x_gh  = g.x(0, iex + 1 + gi);
-                                    Real r_int = std::sqrt(x_int*x_int + y*y + z*z) + 1e-30;
-                                    Real r_gh  = std::sqrt(x_gh*x_gh + y*y + z*z) + 1e-30;
-                                    Real f_int = g.data(v, iex, j, k);
-                                    g.data(v, iex+1+gi, j, k) = finf + (f_int - finf) * r_int / r_gh;
+                            for (int j = 0; j < ny; ++j) {
+                                Real y = g.x(1, j);
+                                Real z = g.x(2, k);
+                                for (int gi = 0; gi < ng; ++gi) {
+                                    // -X face
+                                    {
+                                        Real x_int = g.x(0, is);
+                                        Real x_gh = g.x(0, is - 1 - gi);
+                                        Real r_int =
+                                            std::sqrt(x_int * x_int + y * y + z * z) + 1e-30;
+                                        Real r_gh = std::sqrt(x_gh * x_gh + y * y + z * z) + 1e-30;
+                                        Real f_int = g.data(v, is, j, k);
+                                        g.data(v, is - 1 - gi, j, k) =
+                                            finf + (f_int - finf) * r_int / r_gh;
+                                    }
+                                    // +X face
+                                    {
+                                        Real x_int = g.x(0, iex);
+                                        Real x_gh = g.x(0, iex + 1 + gi);
+                                        Real r_int =
+                                            std::sqrt(x_int * x_int + y * y + z * z) + 1e-30;
+                                        Real r_gh = std::sqrt(x_gh * x_gh + y * y + z * z) + 1e-30;
+                                        Real f_int = g.data(v, iex, j, k);
+                                        g.data(v, iex + 1 + gi, j, k) =
+                                            finf + (f_int - finf) * r_int / r_gh;
+                                    }
                                 }
                             }
-                        }
                         // ±Y faces
                         for (int k = 0; k < nz; ++k)
-                        for (int i = 0; i < nx; ++i) {
-                            Real x = g.x(0, i);
-                            Real z = g.x(2, k);
-                            for (int gi = 0; gi < ng; ++gi) {
-                                {
-                                    Real y_int = g.x(1, is);
-                                    Real y_gh  = g.x(1, is - 1 - gi);
-                                    Real r_int = std::sqrt(x*x + y_int*y_int + z*z) + 1e-30;
-                                    Real r_gh  = std::sqrt(x*x + y_gh*y_gh + z*z) + 1e-30;
-                                    Real f_int = g.data(v, i, is, k);
-                                    g.data(v, i, is-1-gi, k) = finf + (f_int - finf) * r_int / r_gh;
-                                }
-                                {
-                                    Real y_int = g.x(1, iey);
-                                    Real y_gh  = g.x(1, iey + 1 + gi);
-                                    Real r_int = std::sqrt(x*x + y_int*y_int + z*z) + 1e-30;
-                                    Real r_gh  = std::sqrt(x*x + y_gh*y_gh + z*z) + 1e-30;
-                                    Real f_int = g.data(v, i, iey, k);
-                                    g.data(v, i, iey+1+gi, k) = finf + (f_int - finf) * r_int / r_gh;
+                            for (int i = 0; i < nx; ++i) {
+                                Real x = g.x(0, i);
+                                Real z = g.x(2, k);
+                                for (int gi = 0; gi < ng; ++gi) {
+                                    {
+                                        Real y_int = g.x(1, is);
+                                        Real y_gh = g.x(1, is - 1 - gi);
+                                        Real r_int =
+                                            std::sqrt(x * x + y_int * y_int + z * z) + 1e-30;
+                                        Real r_gh = std::sqrt(x * x + y_gh * y_gh + z * z) + 1e-30;
+                                        Real f_int = g.data(v, i, is, k);
+                                        g.data(v, i, is - 1 - gi, k) =
+                                            finf + (f_int - finf) * r_int / r_gh;
+                                    }
+                                    {
+                                        Real y_int = g.x(1, iey);
+                                        Real y_gh = g.x(1, iey + 1 + gi);
+                                        Real r_int =
+                                            std::sqrt(x * x + y_int * y_int + z * z) + 1e-30;
+                                        Real r_gh = std::sqrt(x * x + y_gh * y_gh + z * z) + 1e-30;
+                                        Real f_int = g.data(v, i, iey, k);
+                                        g.data(v, i, iey + 1 + gi, k) =
+                                            finf + (f_int - finf) * r_int / r_gh;
+                                    }
                                 }
                             }
-                        }
                         // ±Z faces
                         for (int j = 0; j < ny; ++j)
-                        for (int i = 0; i < nx; ++i) {
-                            Real x = g.x(0, i);
-                            Real y = g.x(1, j);
-                            for (int gi = 0; gi < ng; ++gi) {
-                                {
-                                    Real z_int = g.x(2, is);
-                                    Real z_gh  = g.x(2, is - 1 - gi);
-                                    Real r_int = std::sqrt(x*x + y*y + z_int*z_int) + 1e-30;
-                                    Real r_gh  = std::sqrt(x*x + y*y + z_gh*z_gh) + 1e-30;
-                                    Real f_int = g.data(v, i, j, is);
-                                    g.data(v, i, j, is-1-gi) = finf + (f_int - finf) * r_int / r_gh;
-                                }
-                                {
-                                    Real z_int = g.x(2, iez);
-                                    Real z_gh  = g.x(2, iez + 1 + gi);
-                                    Real r_int = std::sqrt(x*x + y*y + z_int*z_int) + 1e-30;
-                                    Real r_gh  = std::sqrt(x*x + y*y + z_gh*z_gh) + 1e-30;
-                                    Real f_int = g.data(v, i, j, iez);
-                                    g.data(v, i, j, iez+1+gi) = finf + (f_int - finf) * r_int / r_gh;
+                            for (int i = 0; i < nx; ++i) {
+                                Real x = g.x(0, i);
+                                Real y = g.x(1, j);
+                                for (int gi = 0; gi < ng; ++gi) {
+                                    {
+                                        Real z_int = g.x(2, is);
+                                        Real z_gh = g.x(2, is - 1 - gi);
+                                        Real r_int =
+                                            std::sqrt(x * x + y * y + z_int * z_int) + 1e-30;
+                                        Real r_gh = std::sqrt(x * x + y * y + z_gh * z_gh) + 1e-30;
+                                        Real f_int = g.data(v, i, j, is);
+                                        g.data(v, i, j, is - 1 - gi) =
+                                            finf + (f_int - finf) * r_int / r_gh;
+                                    }
+                                    {
+                                        Real z_int = g.x(2, iez);
+                                        Real z_gh = g.x(2, iez + 1 + gi);
+                                        Real r_int =
+                                            std::sqrt(x * x + y * y + z_int * z_int) + 1e-30;
+                                        Real r_gh = std::sqrt(x * x + y * y + z_gh * z_gh) + 1e-30;
+                                        Real f_int = g.data(v, i, j, iez);
+                                        g.data(v, i, j, iez + 1 + gi) =
+                                            finf + (f_int - finf) * r_int / r_gh;
+                                    }
                                 }
                             }
-                        }
                     }
                 };
 
@@ -470,29 +490,29 @@ public:
                     const int nx = g.totalCells(0);
                     const int ny = g.totalCells(1);
                     const int nz = g.totalCells(2);
-                    const int is  = ng;
+                    const int is = ng;
                     const int iex = nx - ng - 1;
                     const int iey = ny - ng - 1;
                     const int iez = nz - ng - 1;
                     for (int v = 0; v < nv; ++v) {
                         for (int k = 0; k < nz; ++k)
-                        for (int j = 0; j < ny; ++j)
-                        for (int gi = 0; gi < ng; ++gi) {
-                            g.data(v, is-1-gi,  j, k) = g.data(v, is,  j, k);
-                            g.data(v, iex+1+gi, j, k) = g.data(v, iex, j, k);
-                        }
+                            for (int j = 0; j < ny; ++j)
+                                for (int gi = 0; gi < ng; ++gi) {
+                                    g.data(v, is - 1 - gi, j, k) = g.data(v, is, j, k);
+                                    g.data(v, iex + 1 + gi, j, k) = g.data(v, iex, j, k);
+                                }
                         for (int k = 0; k < nz; ++k)
-                        for (int i = 0; i < nx; ++i)
-                        for (int gi = 0; gi < ng; ++gi) {
-                            g.data(v, i, is-1-gi,  k) = g.data(v, i, is,  k);
-                            g.data(v, i, iey+1+gi, k) = g.data(v, i, iey, k);
-                        }
+                            for (int i = 0; i < nx; ++i)
+                                for (int gi = 0; gi < ng; ++gi) {
+                                    g.data(v, i, is - 1 - gi, k) = g.data(v, i, is, k);
+                                    g.data(v, i, iey + 1 + gi, k) = g.data(v, i, iey, k);
+                                }
                         for (int j = 0; j < ny; ++j)
-                        for (int i = 0; i < nx; ++i)
-                        for (int gi = 0; gi < ng; ++gi) {
-                            g.data(v, i, j, is-1-gi ) = g.data(v, i, j, is );
-                            g.data(v, i, j, iez+1+gi) = g.data(v, i, j, iez);
-                        }
+                            for (int i = 0; i < nx; ++i)
+                                for (int gi = 0; gi < ng; ++gi) {
+                                    g.data(v, i, j, is - 1 - gi) = g.data(v, i, j, is);
+                                    g.data(v, i, j, iez + 1 + gi) = g.data(v, i, j, iez);
+                                }
                     }
                 };
                 fillSommerfeldBC(*st);
@@ -513,30 +533,36 @@ public:
                     GridBlock& rhs_hy = *(bundle.hydro_rhs);
                     // Scan spacetime RHS
                     for (int v = 0; v < rhs_st.getNumVars(); ++v)
-                    for (int k = rhs_st.istart(); k < rhs_st.iend(2); ++k)
-                    for (int j = rhs_st.istart(); j < rhs_st.iend(1); ++j)
-                    for (int i = rhs_st.istart(); i < rhs_st.iend(0); ++i) {
-                        if (std::isnan(rhs_st.data(v, i, j, k)) || std::isinf(rhs_st.data(v, i, j, k))) {
-                            std::cout << "  [NaN-DIAG] ST_RHS var=" << v << " at (" << i << "," << j << "," << k << ")"
-                                      << " val=" << rhs_st.data(v, i, j, k) << std::endl;
-                            goto done_st;
-                        }
-                    }
+                        for (int k = rhs_st.istart(); k < rhs_st.iend(2); ++k)
+                            for (int j = rhs_st.istart(); j < rhs_st.iend(1); ++j)
+                                for (int i = rhs_st.istart(); i < rhs_st.iend(0); ++i) {
+                                    if (std::isnan(rhs_st.data(v, i, j, k)) ||
+                                        std::isinf(rhs_st.data(v, i, j, k))) {
+                                        std::cout << "  [NaN-DIAG] ST_RHS var=" << v << " at (" << i
+                                                  << "," << j << "," << k << ")"
+                                                  << " val=" << rhs_st.data(v, i, j, k)
+                                                  << std::endl;
+                                        goto done_st;
+                                    }
+                                }
                     std::cout << "  [NaN-DIAG] ST_RHS: all finite" << std::endl;
-                    done_st:
+                done_st:
                     // Scan hydro RHS
                     for (int v = 0; v < rhs_hy.getNumVars(); ++v)
-                    for (int k = rhs_hy.istart(); k < rhs_hy.iend(2); ++k)
-                    for (int j = rhs_hy.istart(); j < rhs_hy.iend(1); ++j)
-                    for (int i = rhs_hy.istart(); i < rhs_hy.iend(0); ++i) {
-                        if (std::isnan(rhs_hy.data(v, i, j, k)) || std::isinf(rhs_hy.data(v, i, j, k))) {
-                            std::cout << "  [NaN-DIAG] HY_RHS var=" << v << " at (" << i << "," << j << "," << k << ")"
-                                      << " val=" << rhs_hy.data(v, i, j, k) << std::endl;
-                            goto done_hy;
-                        }
-                    }
+                        for (int k = rhs_hy.istart(); k < rhs_hy.iend(2); ++k)
+                            for (int j = rhs_hy.istart(); j < rhs_hy.iend(1); ++j)
+                                for (int i = rhs_hy.istart(); i < rhs_hy.iend(0); ++i) {
+                                    if (std::isnan(rhs_hy.data(v, i, j, k)) ||
+                                        std::isinf(rhs_hy.data(v, i, j, k))) {
+                                        std::cout << "  [NaN-DIAG] HY_RHS var=" << v << " at (" << i
+                                                  << "," << j << "," << k << ")"
+                                                  << " val=" << rhs_hy.data(v, i, j, k)
+                                                  << std::endl;
+                                        goto done_hy;
+                                    }
+                                }
                     std::cout << "  [NaN-DIAG] HY_RHS: all finite" << std::endl;
-                    done_hy:;
+                done_hy:;
                 }
             }
         }
@@ -548,7 +574,7 @@ public:
         // at exactly the KO stencil width (±3 cells = 9 cells/step).
         // Fix: use !isfinite(x) || x < threshold to catch all bad values.
         // Also enforce det(γ̃) = 1 to prevent metric degeneracy.
-        constexpr int iCHI_st   = static_cast<int>(SpacetimeVar::CHI);
+        constexpr int iCHI_st = static_cast<int>(SpacetimeVar::CHI);
         constexpr int iLAPSE_st = static_cast<int>(SpacetimeVar::LAPSE);
         constexpr int iGXX = static_cast<int>(SpacetimeVar::GAMMA_XX);
         constexpr int iGXY = static_cast<int>(SpacetimeVar::GAMMA_XY);
@@ -567,14 +593,17 @@ public:
                 const int tny = g.totalCells(1);
                 const int tnz = g.totalCells(2);
                 for (int kk = 0; kk < tnz; ++kk)
-                for (int jj = 0; jj < tny; ++jj)
-                for (int ii = 0; ii < tnx; ++ii) {
-                    Real& chi = g.data(iCHI_st, ii, jj, kk);
-                    if (!std::isfinite(chi) || chi < 1.0e-4) chi = 1.0e-4;
-                    if (chi > 1.5) chi = 1.5;
-                    Real& alpha = g.data(iLAPSE_st, ii, jj, kk);
-                    if (!std::isfinite(alpha) || alpha < 1.0e-6) alpha = 1.0e-6;
-                }
+                    for (int jj = 0; jj < tny; ++jj)
+                        for (int ii = 0; ii < tnx; ++ii) {
+                            Real& chi = g.data(iCHI_st, ii, jj, kk);
+                            if (!std::isfinite(chi) || chi < 1.0e-4)
+                                chi = 1.0e-4;
+                            if (chi > 1.5)
+                                chi = 1.5;
+                            Real& alpha = g.data(iLAPSE_st, ii, jj, kk);
+                            if (!std::isfinite(alpha) || alpha < 1.0e-6)
+                                alpha = 1.0e-6;
+                        }
             }
         };
 
@@ -588,45 +617,57 @@ public:
                 const int tny = g.totalCells(1);
                 const int tnz = g.totalCells(2);
                 for (int kk = 0; kk < tnz; ++kk)
-                for (int jj = 0; jj < tny; ++jj)
-                for (int ii = 0; ii < tnx; ++ii) {
-                    Real& gxx = g.data(iGXX, ii, jj, kk);
-                    Real& gxy = g.data(iGXY, ii, jj, kk);
-                    Real& gxz = g.data(iGXZ, ii, jj, kk);
-                    Real& gyy = g.data(iGYY, ii, jj, kk);
-                    Real& gyz = g.data(iGYZ, ii, jj, kk);
-                    Real& gzz = g.data(iGZZ, ii, jj, kk);
-                    Real det = gxx*(gyy*gzz - gyz*gyz)
-                              - gxy*(gxy*gzz - gyz*gxz)
-                              + gxz*(gxy*gyz - gyy*gxz);
-                    if (std::isfinite(det) && det > 1.0e-10) {
-                        Real scale = std::cbrt(1.0 / det);
-                        gxx *= scale; gxy *= scale; gxz *= scale;
-                        gyy *= scale; gyz *= scale; gzz *= scale;
-                    } else {
-                        gxx = 1.0; gxy = 0.0; gxz = 0.0;
-                        gyy = 1.0; gyz = 0.0; gzz = 1.0;
-                    }
-                    // Traceless Ã_ij: remove (1/3) tr(Ã γ̃^{-1}) γ̃_{ij}
-                    // Cofactors of γ̃ (= inverse since det=1 now)
-                    const Real ixx = gyy*gzz - gyz*gyz;
-                    const Real ixy = gxz*gyz - gxy*gzz;
-                    const Real ixz = gxy*gyz - gxz*gyy;
-                    const Real iyy = gxx*gzz - gxz*gxz;
-                    const Real iyz = gxz*gxy - gxx*gyz;
-                    const Real izz = gxx*gyy - gxy*gxy;
-                    Real& axx = g.data(static_cast<int>(SpacetimeVar::A_XX), ii, jj, kk);
-                    Real& axy = g.data(static_cast<int>(SpacetimeVar::A_XY), ii, jj, kk);
-                    Real& axz = g.data(static_cast<int>(SpacetimeVar::A_XZ), ii, jj, kk);
-                    Real& ayy = g.data(static_cast<int>(SpacetimeVar::A_YY), ii, jj, kk);
-                    Real& ayz = g.data(static_cast<int>(SpacetimeVar::A_YZ), ii, jj, kk);
-                    Real& azz = g.data(static_cast<int>(SpacetimeVar::A_ZZ), ii, jj, kk);
-                    const Real trA = ixx*axx + iyy*ayy + izz*azz
-                                   + 2.0*(ixy*axy + ixz*axz + iyz*ayz);
-                    const Real t3 = trA / 3.0;
-                    axx -= t3*gxx; axy -= t3*gxy; axz -= t3*gxz;
-                    ayy -= t3*gyy; ayz -= t3*gyz; azz -= t3*gzz;
-                }
+                    for (int jj = 0; jj < tny; ++jj)
+                        for (int ii = 0; ii < tnx; ++ii) {
+                            Real& gxx = g.data(iGXX, ii, jj, kk);
+                            Real& gxy = g.data(iGXY, ii, jj, kk);
+                            Real& gxz = g.data(iGXZ, ii, jj, kk);
+                            Real& gyy = g.data(iGYY, ii, jj, kk);
+                            Real& gyz = g.data(iGYZ, ii, jj, kk);
+                            Real& gzz = g.data(iGZZ, ii, jj, kk);
+                            Real det = gxx * (gyy * gzz - gyz * gyz) -
+                                       gxy * (gxy * gzz - gyz * gxz) +
+                                       gxz * (gxy * gyz - gyy * gxz);
+                            if (std::isfinite(det) && det > 1.0e-10) {
+                                Real scale = std::cbrt(1.0 / det);
+                                gxx *= scale;
+                                gxy *= scale;
+                                gxz *= scale;
+                                gyy *= scale;
+                                gyz *= scale;
+                                gzz *= scale;
+                            } else {
+                                gxx = 1.0;
+                                gxy = 0.0;
+                                gxz = 0.0;
+                                gyy = 1.0;
+                                gyz = 0.0;
+                                gzz = 1.0;
+                            }
+                            // Traceless Ã_ij: remove (1/3) tr(Ã γ̃^{-1}) γ̃_{ij}
+                            // Cofactors of γ̃ (= inverse since det=1 now)
+                            const Real ixx = gyy * gzz - gyz * gyz;
+                            const Real ixy = gxz * gyz - gxy * gzz;
+                            const Real ixz = gxy * gyz - gxz * gyy;
+                            const Real iyy = gxx * gzz - gxz * gxz;
+                            const Real iyz = gxz * gxy - gxx * gyz;
+                            const Real izz = gxx * gyy - gxy * gxy;
+                            Real& axx = g.data(static_cast<int>(SpacetimeVar::A_XX), ii, jj, kk);
+                            Real& axy = g.data(static_cast<int>(SpacetimeVar::A_XY), ii, jj, kk);
+                            Real& axz = g.data(static_cast<int>(SpacetimeVar::A_XZ), ii, jj, kk);
+                            Real& ayy = g.data(static_cast<int>(SpacetimeVar::A_YY), ii, jj, kk);
+                            Real& ayz = g.data(static_cast<int>(SpacetimeVar::A_YZ), ii, jj, kk);
+                            Real& azz = g.data(static_cast<int>(SpacetimeVar::A_ZZ), ii, jj, kk);
+                            const Real trA = ixx * axx + iyy * ayy + izz * azz +
+                                             2.0 * (ixy * axy + ixz * axz + iyz * ayz);
+                            const Real t3 = trA / 3.0;
+                            axx -= t3 * gxx;
+                            axy -= t3 * gxy;
+                            axz -= t3 * gxz;
+                            ayy -= t3 * gyy;
+                            ayz -= t3 * gyz;
+                            azz -= t3 * gzz;
+                        }
             }
         };
 
@@ -644,7 +685,7 @@ public:
         applyRHS(true);
         combine(false, 1.0 / 3.0, false, 2.0 / 3.0, true, 2.0 / 3.0);
         applyFloors(false);
-        applyAlgebraicConstraints();  // once per step, on main grid
+        applyAlgebraicConstraints(); // once per step, on main grid
         syncGhostZones(false);
         applyOuterBC(false);
     }
@@ -972,12 +1013,15 @@ int main(int argc, char* argv[]) {
         if (bh_params.size() < 2) {
             // Default: two BHs M=0.5 separated by 2.0 along X
             initial_data::BlackHoleParams p1, p2;
-            p1.mass = 0.5; p1.position = {1.0, 0.0, 0.0};
-            p2.mass = 0.5; p2.position = {-1.0, 0.0, 0.0};
-            p1.momentum = {0.0, 0.1, 0.0}; p2.momentum = {0.0, -0.1, 0.0};
+            p1.mass = 0.5;
+            p1.position = {1.0, 0.0, 0.0};
+            p2.mass = 0.5;
+            p2.position = {-1.0, 0.0, 0.0};
+            p1.momentum = {0.0, 0.1, 0.0};
+            p2.momentum = {0.0, -0.1, 0.0};
             bh_params = {p1, p2};
         }
-        
+
         initial_data::TwoPuncturesParams tp_params;
         tp_params.par_m_plus[0] = bh_params[0].mass;
         tp_params.par_m_minus[0] = bh_params[1].mass;
@@ -986,7 +1030,7 @@ int main(int argc, char* argv[]) {
         tp_params.par_S_plus = bh_params[0].spin;
         tp_params.par_S_minus = bh_params[1].spin;
         tp_params.par_b[0] = std::abs(bh_params[0].position[0] - bh_params[1].position[0]) / 2.0;
-        
+
         initial_data::TwoPuncturesBBH tp_id(tp_params);
         std::cout << "  Two-Punctures: " << bh_params.size()
                   << " BH(s), generating conformal spectral data...\n";
@@ -1080,9 +1124,9 @@ int main(int argc, char* argv[]) {
             Real sphere_radius = std::max(2.0 * bh.mass, 0.5); // at least 2M radius
             int min_ref_level = std::min(amr_params.max_levels - 1, 3);
             hierarchy.addTrackingSphere(center, sphere_radius, min_ref_level);
-            std::cout << "  [AMR] Tracking sphere @ (" << center[0] << "," << center[1]
-                      << "," << center[2] << ") R=" << sphere_radius
-                      << " min_level=" << min_ref_level << "\n";
+            std::cout << "  [AMR] Tracking sphere @ (" << center[0] << "," << center[1] << ","
+                      << center[2] << ") R=" << sphere_radius << " min_level=" << min_ref_level
+                      << "\n";
         }
         // Trigger initial regrid to establish refinement before step 0
         hierarchy.regrid(0, amr::gradientChiTagger(params.refine_threshold));
@@ -1106,7 +1150,7 @@ int main(int argc, char* argv[]) {
                 cur_bundles.push_back(&active_bundles[it->second]);
             }
         }
-        
+
         TimeIntegrator::sspRK3Step(cur_bundles, active_bundles, id_to_index, ccz4, grmhd, cur_dt);
 
         // ── Adaptive CFL monitoring (Stream C2) ────────────────────
@@ -1118,16 +1162,15 @@ int main(int argc, char* argv[]) {
             const int by_var = static_cast<int>(SpacetimeVar::SHIFT_Y);
             const int bz_var = static_cast<int>(SpacetimeVar::SHIFT_Z);
             for (int k = g.istart(); k < g.iend(2); ++k)
-            for (int j = g.istart(); j < g.iend(1); ++j)
-            for (int i = g.istart(); i < g.iend(0); ++i) {
-                Real bx = std::abs(g.data(bx_var, i, j, k));
-                Real by = std::abs(g.data(by_var, i, j, k));
-                Real bz = std::abs(g.data(bz_var, i, j, k));
-                Real local_cfl = bx * cur_dt / g.dx(0)
-                               + by * cur_dt / g.dx(1)
-                               + bz * cur_dt / g.dx(2);
-                max_adv_cfl = std::max(max_adv_cfl, local_cfl);
-            }
+                for (int j = g.istart(); j < g.iend(1); ++j)
+                    for (int i = g.istart(); i < g.iend(0); ++i) {
+                        Real bx = std::abs(g.data(bx_var, i, j, k));
+                        Real by = std::abs(g.data(by_var, i, j, k));
+                        Real bz = std::abs(g.data(bz_var, i, j, k));
+                        Real local_cfl =
+                            bx * cur_dt / g.dx(0) + by * cur_dt / g.dx(1) + bz * cur_dt / g.dx(2);
+                        max_adv_cfl = std::max(max_adv_cfl, local_cfl);
+                    }
         }
         if (max_adv_cfl > 0.95) {
             std::cout << "  [CFL-GUARD] Advection CFL=" << max_adv_cfl << " > 0.95 at sub-step!\n";
@@ -1151,19 +1194,20 @@ int main(int argc, char* argv[]) {
         if (step <= 20) {
             bool found_nan = false;
             for (auto* b : hierarchy.getAllBlocks()) {
-                if (found_nan) break;
+                if (found_nan)
+                    break;
                 for (int v = 0; v < b->getNumVars() && !found_nan; ++v)
-                for (int k = b->istart(2); k < b->iend(2) && !found_nan; ++k)
-                for (int j = b->istart(1); j < b->iend(1) && !found_nan; ++j)
-                for (int i = b->istart(0); i < b->iend(0) && !found_nan; ++i) {
-                    Real val = b->data(v, i, j, k);
-                    if (std::isnan(val) || std::isinf(val)) {
-                        std::cout << "  [NaN@step=" << step << "] ST var=" << v
-                            << " (" << i << "," << j << "," << k << ")"
-                            << " = " << val << std::endl;
-                        found_nan = true;
-                    }
-                }
+                    for (int k = b->istart(2); k < b->iend(2) && !found_nan; ++k)
+                        for (int j = b->istart(1); j < b->iend(1) && !found_nan; ++j)
+                            for (int i = b->istart(0); i < b->iend(0) && !found_nan; ++i) {
+                                Real val = b->data(v, i, j, k);
+                                if (std::isnan(val) || std::isinf(val)) {
+                                    std::cout << "  [NaN@step=" << step << "] ST var=" << v << " ("
+                                              << i << "," << j << "," << k << ")"
+                                              << " = " << val << std::endl;
+                                    found_nan = true;
+                                }
+                            }
             }
             if (!found_nan)
                 std::cout << "  [NaN@step=" << step << "] all finite\n";

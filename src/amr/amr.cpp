@@ -28,13 +28,10 @@ namespace granite::amr {
 // AMRHierarchy
 // ===========================================================================
 
-AMRHierarchy::AMRHierarchy(const AMRParams& params,
-                           const SimulationParams& sim_params)
-    : params_(params), sim_params_(sim_params)
-{}
+AMRHierarchy::AMRHierarchy(const AMRParams& params, const SimulationParams& sim_params)
+    : params_(params), sim_params_(sim_params) {}
 
-void AMRHierarchy::initialize(const TaggingFunction& tagger)
-{
+void AMRHierarchy::initialize(const TaggingFunction& tagger) {
     levels_.clear();
     // Memory safety: pre-allocate levels_ vector capacity for the maximum number
     // of refinement levels before any blocks or child levels are created.
@@ -45,25 +42,24 @@ void AMRHierarchy::initialize(const TaggingFunction& tagger)
 
     // ── Level 0: full-domain coarse block ────────────────────────────────────
     Level l0;
-    l0.level_id     = 0;
-    l0.dt           = 0.0;  // set later by setLevelDt()
+    l0.level_id = 0;
+    l0.dt = 0.0; // set later by setLevelDt()
     l0.current_time = 0.0;
 
     // Block id=0, level=0
-    auto blk = std::make_unique<GridBlock>(
-        0, 0,
-        sim_params_.ncells,
-        sim_params_.domain_lo, sim_params_.domain_hi,
-        sim_params_.ghost_cells, NUM_SPACETIME_VARS
-    );
+    auto blk = std::make_unique<GridBlock>(0,
+                                           0,
+                                           sim_params_.ncells,
+                                           sim_params_.domain_lo,
+                                           sim_params_.domain_hi,
+                                           sim_params_.ghost_cells,
+                                           NUM_SPACETIME_VARS);
     l0.blocks.push_back(std::move(blk));
     levels_.push_back(std::move(l0));
 
-    std::cout << "AMR: Level 0  ("
-              << sim_params_.ncells[0] << "x"
-              << sim_params_.ncells[1] << "x"
-              << sim_params_.ncells[2] << ")  domain ["
-              << sim_params_.domain_lo[0] << ", " << sim_params_.domain_hi[0] << "]\n";
+    std::cout << "AMR: Level 0  (" << sim_params_.ncells[0] << "x" << sim_params_.ncells[1] << "x"
+              << sim_params_.ncells[2] << ")  domain [" << sim_params_.domain_lo[0] << ", "
+              << sim_params_.domain_hi[0] << "]\n";
 
     // ── Cascade: force refinement down to the deepest tracking-sphere level ──
     // We iterate from level 0 upward.  Each call to regrid() may push a new
@@ -77,20 +73,23 @@ void AMRHierarchy::initialize(const TaggingFunction& tagger)
     for (int l = 0; l < deepest_required; ++l) {
         regrid(l, tagger);
         if (static_cast<int>(levels_.size()) <= l + 1)
-            break;  // regrid decided no refinement was needed — stop
+            break; // regrid decided no refinement was needed — stop
     }
 }
 
-void AMRHierarchy::regrid(int level, const TaggingFunction& tagger)
-{
-    if (level < 0 || level >= static_cast<int>(levels_.size())) return;
-    if (params_.max_levels <= 1) return;
+void AMRHierarchy::regrid(int level, const TaggingFunction& tagger) {
+    if (level < 0 || level >= static_cast<int>(levels_.size()))
+        return;
+    if (params_.max_levels <= 1)
+        return;
 
     const int next_level = level + 1;
-    if (next_level >= params_.max_levels) return;
+    if (next_level >= params_.max_levels)
+        return;
 
     // ── Guard: need at least one block on the parent level ────────────────────
-    if (levels_[level].blocks.empty()) return;
+    if (levels_[level].blocks.empty())
+        return;
 
     // ── Compute PARENT dx from the first parent block ─────────────────────────
     // dx is defined by the GridBlock constructor as (hi-lo)/ncells, so we read
@@ -118,25 +117,30 @@ void AMRHierarchy::regrid(int level, const TaggingFunction& tagger)
     // ── Step 1: Check whether any sphere needs refinement at next_level ───────
     bool any_active = false;
     for (const auto& sphere : tracking_spheres_)
-        if (next_level <= sphere.min_level) { any_active = true; break; }
+        if (next_level <= sphere.min_level) {
+            any_active = true;
+            break;
+        }
 
     // Also check gradient tagger (quick early-out if no spheres and no tagged cells)
     if (!any_active) {
         for (const auto& blk : levels_[level].blocks) {
             for (int k = blk->istart(2); k < blk->iend(2) && !any_active; ++k)
-            for (int j = blk->istart(1); j < blk->iend(1) && !any_active; ++j)
-            for (int i = blk->istart(0); i < blk->iend(0) && !any_active; ++i)
-                if (tagger(*blk, i, j, k)) any_active = true;
+                for (int j = blk->istart(1); j < blk->iend(1) && !any_active; ++j)
+                    for (int i = blk->istart(0); i < blk->iend(0) && !any_active; ++i)
+                        if (tagger(*blk, i, j, k))
+                            any_active = true;
         }
     }
-    if (!any_active) return;
+    if (!any_active)
+        return;
 
     // ── Step 2: Ensure levels_[next_level] entry exists ──────────────────────
     if (next_level >= static_cast<int>(levels_.size())) {
         Level child_level;
-        child_level.level_id     = next_level;
+        child_level.level_id = next_level;
         child_level.current_time = levels_[level].current_time;
-        child_level.dt           = levels_[level].dt / static_cast<Real>(ratio);
+        child_level.dt = levels_[level].dt / static_cast<Real>(ratio);
         levels_.push_back(std::move(child_level));
     }
 
@@ -152,14 +156,15 @@ void AMRHierarchy::regrid(int level, const TaggingFunction& tagger)
 
     for (std::size_t si = 0; si < tracking_spheres_.size(); ++si) {
         const auto& sphere = tracking_spheres_[si];
-        if (next_level > sphere.min_level) continue;
+        if (next_level > sphere.min_level)
+            continue;
 
         Box b;
         for (int d = 0; d < DIM; ++d) {
-            Real origin     = sim_params_.domain_lo[d];
-            Real ideal_lo   = sphere.center[d] - half_width[d];
-            Real snapped_lo = std::floor((ideal_lo - origin) / parent_dx[d])
-                              * parent_dx[d] + origin;
+            Real origin = sim_params_.domain_lo[d];
+            Real ideal_lo = sphere.center[d] - half_width[d];
+            Real snapped_lo =
+                std::floor((ideal_lo - origin) / parent_dx[d]) * parent_dx[d] + origin;
 
             b.lo[d] = snapped_lo;
             b.hi[d] = snapped_lo + static_cast<Real>(f_ncells[d]) * child_dx[d];
@@ -179,7 +184,8 @@ void AMRHierarchy::regrid(int level, const TaggingFunction& tagger)
         candidates.push_back(b);
     }
 
-    if (candidates.empty()) return;
+    if (candidates.empty())
+        return;
 
     // ── Step 3b: Iterative union-merge ────────────────────────────────────────
     // Two boxes overlap or touch if their intervals overlap in ALL dimensions.
@@ -187,7 +193,7 @@ void AMRHierarchy::regrid(int level, const TaggingFunction& tagger)
     // We keep merging until no pair of boxes overlaps.
     // Tolerance: one child_dx to also merge boxes that merely touch.
 
-    Real merge_tol = child_dx[0];  // one fine cell tolerance
+    Real merge_tol = child_dx[0]; // one fine cell tolerance
 
     bool merged = true;
     while (merged) {
@@ -203,7 +209,8 @@ void AMRHierarchy::regrid(int level, const TaggingFunction& tagger)
                         break;
                     }
                 }
-                if (!overlaps) continue;
+                if (!overlaps)
+                    continue;
 
                 // Merge b into a (union of extents)
                 for (int d = 0; d < DIM; ++d) {
@@ -217,7 +224,7 @@ void AMRHierarchy::regrid(int level, const TaggingFunction& tagger)
                 candidates[b] = candidates.back();
                 candidates.pop_back();
                 merged = true;
-                break;  // restart outer loop after any merge
+                break; // restart outer loop after any merge
             }
         }
     }
@@ -227,8 +234,7 @@ void AMRHierarchy::regrid(int level, const TaggingFunction& tagger)
     // (it may be wider). We recompute f_ncells from the merged extent while
     // keeping dx = child_dx exactly (round up to nearest integer).
 
-    int new_id_base = 1000 * next_level
-                    + static_cast<int>(levels_[next_level].blocks.size());
+    int new_id_base = 1000 * next_level + static_cast<int>(levels_[next_level].blocks.size());
 
     for (std::size_t bi = 0; bi < candidates.size(); ++bi) {
         const Box& box = candidates[bi];
@@ -237,8 +243,7 @@ void AMRHierarchy::regrid(int level, const TaggingFunction& tagger)
         //   (hi - lo) / ncells = child_dx  exactly.
         std::array<int, DIM> merged_ncells;
         for (int d = 0; d < DIM; ++d) {
-            int nc = static_cast<int>(
-                std::round((box.hi[d] - box.lo[d]) / child_dx[d]));
+            int nc = static_cast<int>(std::round((box.hi[d] - box.lo[d]) / child_dx[d]));
             merged_ncells[d] = std::max(nc, 1);
         }
 
@@ -254,38 +259,38 @@ void AMRHierarchy::regrid(int level, const TaggingFunction& tagger)
                     std::abs(got_first - exp_first) > 0.1 * child_dx[d])
                     same = false;
             }
-            if (same) { duplicate = true; break; }
+            if (same) {
+                duplicate = true;
+                break;
+            }
         }
-        if (duplicate) continue;
+        if (duplicate)
+            continue;
 
         int block_id = new_id_base + static_cast<int>(bi);
 
-        auto child_blk = std::make_unique<GridBlock>(
-            block_id, next_level,
-            merged_ncells, box.lo, box.hi,
-            sim_params_.ghost_cells, NUM_SPACETIME_VARS
-        );
+        auto child_blk = std::make_unique<GridBlock>(block_id,
+                                                     next_level,
+                                                     merged_ncells,
+                                                     box.lo,
+                                                     box.hi,
+                                                     sim_params_.ghost_cells,
+                                                     NUM_SPACETIME_VARS);
 
         // Sanity check: dx must equal parent_dx / ratio
-        Real actual_dx   = child_blk->dx(0);
+        Real actual_dx = child_blk->dx(0);
         Real expected_dx = parent_dx[0] / static_cast<Real>(ratio);
         if (std::abs(actual_dx - expected_dx) > 1e-6 * expected_dx) {
-            std::cout << "AMR: WARNING  level " << next_level
-                      << "  block_id=" << block_id
-                      << "  actual_dx=" << actual_dx
-                      << "  expected_dx=" << expected_dx << "\n";
+            std::cout << "AMR: WARNING  level " << next_level << "  block_id=" << block_id
+                      << "  actual_dx=" << actual_dx << "  expected_dx=" << expected_dx << "\n";
         }
 
-        std::cout << "AMR: Level " << next_level
-                  << "  block_id=" << block_id
-                  << "  ncells=(" << merged_ncells[0] << "x"
-                                  << merged_ncells[1] << "x"
-                                  << merged_ncells[2] << ")"
+        std::cout << "AMR: Level " << next_level << "  block_id=" << block_id << "  ncells=("
+                  << merged_ncells[0] << "x" << merged_ncells[1] << "x" << merged_ncells[2] << ")"
                   << "  lo=(" << box.lo[0] << "," << box.lo[1] << "," << box.lo[2] << ")"
                   << "  hi=(" << box.hi[0] << "," << box.hi[1] << "," << box.hi[2] << ")"
                   << "  dx=" << actual_dx
-                  << (candidates.size() < tracking_spheres_.size() ? "  [MERGED]" : "")
-                  << "\n";
+                  << (candidates.size() < tracking_spheres_.size() ? "  [MERGED]" : "") << "\n";
 
         // Prolongate current coarse data into the new fine block
         for (const auto& cblk : levels_[level].blocks)
@@ -295,12 +300,11 @@ void AMRHierarchy::regrid(int level, const TaggingFunction& tagger)
     }
 }
 
-
-
-
-void AMRHierarchy::subcycle(int level, const EvolutionStepFunc& evolve_func, const TaggingFunction& tagger)
-{
-    if (level >= static_cast<int>(levels_.size())) return;
+void AMRHierarchy::subcycle(int level,
+                            const EvolutionStepFunc& evolve_func,
+                            const TaggingFunction& tagger) {
+    if (level >= static_cast<int>(levels_.size()))
+        return;
 
     // 1. Fill ghost zones on this level before evolving
     //    - For level 0: applies domain BCs
@@ -316,7 +320,8 @@ void AMRHierarchy::subcycle(int level, const EvolutionStepFunc& evolve_func, con
 
     // 2. Evolve this level by its local dt
     std::vector<GridBlock*> current_blocks;
-    for (auto& blk : levels_[level].blocks) current_blocks.push_back(blk.get());
+    for (auto& blk : levels_[level].blocks)
+        current_blocks.push_back(blk.get());
     evolve_func(current_blocks, levels_[level].dt);
     levels_[level].current_time += levels_[level].dt;
 
@@ -337,15 +342,14 @@ void AMRHierarchy::subcycle(int level, const EvolutionStepFunc& evolve_func, con
     }
 
     // 6. Dynamic regrid at interval
-    int step_num = static_cast<int>(
-        std::round(levels_[level].current_time / (levels_[level].dt + 1e-15)));
+    int step_num =
+        static_cast<int>(std::round(levels_[level].current_time / (levels_[level].dt + 1e-15)));
     if (params_.regrid_interval > 0 && step_num % params_.regrid_interval == 0) {
         regrid(level, tagger);
     }
 }
 
-std::vector<GridBlock*> AMRHierarchy::getLevel(int level)
-{
+std::vector<GridBlock*> AMRHierarchy::getLevel(int level) {
     std::vector<GridBlock*> result;
     if (level >= 0 && level < static_cast<int>(levels_.size())) {
         for (auto& blk : levels_[level].blocks)
@@ -354,8 +358,7 @@ std::vector<GridBlock*> AMRHierarchy::getLevel(int level)
     return result;
 }
 
-const std::vector<GridBlock*> AMRHierarchy::getLevel(int level) const
-{
+const std::vector<GridBlock*> AMRHierarchy::getLevel(int level) const {
     std::vector<GridBlock*> result;
     if (level >= 0 && level < static_cast<int>(levels_.size())) {
         for (auto& blk : levels_[level].blocks)
@@ -364,8 +367,7 @@ const std::vector<GridBlock*> AMRHierarchy::getLevel(int level) const
     return result;
 }
 
-std::vector<GridBlock*> AMRHierarchy::getAllBlocks()
-{
+std::vector<GridBlock*> AMRHierarchy::getAllBlocks() {
     std::vector<GridBlock*> result;
     for (auto& lev : levels_)
         for (auto& blk : lev.blocks)
@@ -373,22 +375,20 @@ std::vector<GridBlock*> AMRHierarchy::getAllBlocks()
     return result;
 }
 
-int AMRHierarchy::numLevels() const
-{
+int AMRHierarchy::numLevels() const {
     return static_cast<int>(levels_.size());
 }
 
-int AMRHierarchy::numBlocks() const
-{
+int AMRHierarchy::numBlocks() const {
     int count = 0;
     for (const auto& lev : levels_)
         count += static_cast<int>(lev.blocks.size());
     return count;
 }
 
-void AMRHierarchy::setLevelDt(int level, Real dt)
-{
-    if (level < 0 || level >= static_cast<int>(levels_.size())) return;
+void AMRHierarchy::setLevelDt(int level, Real dt) {
+    if (level < 0 || level >= static_cast<int>(levels_.size()))
+        return;
     levels_[level].dt = dt;
     // Propagate subcycled dt to child levels
     for (int l = level + 1; l < static_cast<int>(levels_.size()); ++l) {
@@ -397,9 +397,9 @@ void AMRHierarchy::setLevelDt(int level, Real dt)
     }
 }
 
-void AMRHierarchy::fillGhostZones(int level)
-{
-    if (level < 0 || level >= static_cast<int>(levels_.size())) return;
+void AMRHierarchy::fillGhostZones(int level) {
+    if (level < 0 || level >= static_cast<int>(levels_.size()))
+        return;
 
     for (auto& blk : levels_[level].blocks) {
         int ng = blk->getNumGhost();
@@ -417,15 +417,15 @@ void AMRHierarchy::fillGhostZones(int level)
                 // For each ghost slab, check if the coarse block covers that face.
                 // If yes, interpolate; if no, fall through to outflow BC.
                 for (int d = 0; d < DIM; ++d) {
-                    Real fine_lo = blk->x(d, blk->istart(d));        // first interior cell center
-                    Real fine_hi = blk->x(d, blk->iend(d) - 1);     // last interior cell center
-                    Real c_lo    = cblk->x(d, cblk->istart(d));
-                    Real c_hi    = cblk->x(d, cblk->iend(d) - 1);
+                    Real fine_lo = blk->x(d, blk->istart(d));   // first interior cell center
+                    Real fine_hi = blk->x(d, blk->iend(d) - 1); // last interior cell center
+                    Real c_lo = cblk->x(d, cblk->istart(d));
+                    Real c_hi = cblk->x(d, cblk->iend(d) - 1);
 
                     if (c_lo <= fine_lo + 0.5 * blk->dx(d))
-                        filled_lo[d] = true;  // coarse covers lo ghost of fine
+                        filled_lo[d] = true; // coarse covers lo ghost of fine
                     if (c_hi >= fine_hi - 0.5 * blk->dx(d))
-                        filled_hi[d] = true;  // coarse covers hi ghost of fine
+                        filled_hi[d] = true; // coarse covers hi ghost of fine
                 }
                 // Prolongate into ALL cells of the fine block (interior + ghost)
                 // This uses the corrected prolongate() which clamps indices safely.
@@ -438,52 +438,52 @@ void AMRHierarchy::fillGhostZones(int level)
             // X ghost
             if (!filled_lo[0]) {
                 for (int k = 0; k < blk->totalCells(2); ++k)
-                for (int j = 0; j < blk->totalCells(1); ++j)
-                for (int g = 0; g < ng; ++g)
-                    blk->data(var, g, j, k) = blk->data(var, ng, j, k);
+                    for (int j = 0; j < blk->totalCells(1); ++j)
+                        for (int g = 0; g < ng; ++g)
+                            blk->data(var, g, j, k) = blk->data(var, ng, j, k);
             }
             if (!filled_hi[0]) {
                 int ie = blk->iend(0);
                 for (int k = 0; k < blk->totalCells(2); ++k)
-                for (int j = 0; j < blk->totalCells(1); ++j)
-                for (int g = 0; g < ng; ++g)
-                    blk->data(var, ie + g, j, k) = blk->data(var, ie - 1, j, k);
+                    for (int j = 0; j < blk->totalCells(1); ++j)
+                        for (int g = 0; g < ng; ++g)
+                            blk->data(var, ie + g, j, k) = blk->data(var, ie - 1, j, k);
             }
             // Y ghost
             if (!filled_lo[1]) {
                 for (int k = 0; k < blk->totalCells(2); ++k)
-                for (int i = 0; i < blk->totalCells(0); ++i)
-                for (int g = 0; g < ng; ++g)
-                    blk->data(var, i, g, k) = blk->data(var, i, ng, k);
+                    for (int i = 0; i < blk->totalCells(0); ++i)
+                        for (int g = 0; g < ng; ++g)
+                            blk->data(var, i, g, k) = blk->data(var, i, ng, k);
             }
             if (!filled_hi[1]) {
                 int je = blk->iend(1);
                 for (int k = 0; k < blk->totalCells(2); ++k)
-                for (int i = 0; i < blk->totalCells(0); ++i)
-                for (int g = 0; g < ng; ++g)
-                    blk->data(var, i, je + g, k) = blk->data(var, i, je - 1, k);
+                    for (int i = 0; i < blk->totalCells(0); ++i)
+                        for (int g = 0; g < ng; ++g)
+                            blk->data(var, i, je + g, k) = blk->data(var, i, je - 1, k);
             }
             // Z ghost
             if (!filled_lo[2]) {
                 for (int j = 0; j < blk->totalCells(1); ++j)
-                for (int i = 0; i < blk->totalCells(0); ++i)
-                for (int g = 0; g < ng; ++g)
-                    blk->data(var, i, j, g) = blk->data(var, i, j, ng);
+                    for (int i = 0; i < blk->totalCells(0); ++i)
+                        for (int g = 0; g < ng; ++g)
+                            blk->data(var, i, j, g) = blk->data(var, i, j, ng);
             }
             if (!filled_hi[2]) {
                 int ke = blk->iend(2);
                 for (int j = 0; j < blk->totalCells(1); ++j)
-                for (int i = 0; i < blk->totalCells(0); ++i)
-                for (int g = 0; g < ng; ++g)
-                    blk->data(var, i, j, ke + g) = blk->data(var, i, j, ke - 1);
+                    for (int i = 0; i < blk->totalCells(0); ++i)
+                        for (int g = 0; g < ng; ++g)
+                            blk->data(var, i, j, ke + g) = blk->data(var, i, j, ke - 1);
             }
         }
     }
 }
 
-void AMRHierarchy::prolongate(const GridBlock& coarse, GridBlock& fine) const
-{
-    if (coarse.getLevel() >= fine.getLevel()) return;
+void AMRHierarchy::prolongate(const GridBlock& coarse, GridBlock& fine) const {
+    if (coarse.getLevel() >= fine.getLevel())
+        return;
 
     const int nv = fine.getNumVars();
 
@@ -497,122 +497,126 @@ void AMRHierarchy::prolongate(const GridBlock& coarse, GridBlock& fine) const
 
     for (int var = 0; var < nv; ++var) {
         for (int k = 0; k < fine.totalCells(2); ++k)
-        for (int j = 0; j < fine.totalCells(1); ++j)
-        for (int i = 0; i < fine.totalCells(0); ++i)
-        {
-            // Physical coordinates of this fine cell (including ghost)
-            Real x = fine.x(0, i);
-            Real y = fine.x(1, j);
-            Real z = fine.x(2, k);
+            for (int j = 0; j < fine.totalCells(1); ++j)
+                for (int i = 0; i < fine.totalCells(0); ++i) {
+                    // Physical coordinates of this fine cell (including ghost)
+                    Real x = fine.x(0, i);
+                    Real y = fine.x(1, j);
+                    Real z = fine.x(2, k);
 
-            // Map to coarse INTERIOR index space.
-            // coarse.x(d, coarse.istart(d)) is the center of the first interior cell.
-            Real ci_f = (x - coarse.x(0, coarse.istart(0))) / coarse.dx(0) + coarse.istart(0);
-            Real cj_f = (y - coarse.x(1, coarse.istart(1))) / coarse.dx(1) + coarse.istart(1);
-            Real ck_f = (z - coarse.x(2, coarse.istart(2))) / coarse.dx(2) + coarse.istart(2);
+                    // Map to coarse INTERIOR index space.
+                    // coarse.x(d, coarse.istart(d)) is the center of the first interior cell.
+                    Real ci_f =
+                        (x - coarse.x(0, coarse.istart(0))) / coarse.dx(0) + coarse.istart(0);
+                    Real cj_f =
+                        (y - coarse.x(1, coarse.istart(1))) / coarse.dx(1) + coarse.istart(1);
+                    Real ck_f =
+                        (z - coarse.x(2, coarse.istart(2))) / coarse.dx(2) + coarse.istart(2);
 
-            // Round to nearest coarse cell center
-            int ci = static_cast<int>(std::round(ci_f));
-            int cj = static_cast<int>(std::round(cj_f));
-            int ck = static_cast<int>(std::round(ck_f));
+                    // Round to nearest coarse cell center
+                    int ci = static_cast<int>(std::round(ci_f));
+                    int cj = static_cast<int>(std::round(cj_f));
+                    int ck = static_cast<int>(std::round(ck_f));
 
-            // Clamp to valid coarse cell range (including ghost cells for safety)
-            ci = std::max(0, std::min(ci, coarse.totalCells(0) - 1));
-            cj = std::max(0, std::min(cj, coarse.totalCells(1) - 1));
-            ck = std::max(0, std::min(ck, coarse.totalCells(2) - 1));
+                    // Clamp to valid coarse cell range (including ghost cells for safety)
+                    ci = std::max(0, std::min(ci, coarse.totalCells(0) - 1));
+                    cj = std::max(0, std::min(cj, coarse.totalCells(1) - 1));
+                    ck = std::max(0, std::min(ck, coarse.totalCells(2) - 1));
 
-            // Trilinear interpolation using 2x2x2 stencil around (ci, cj, ck)
-            // Fractional offsets within the coarse cell
-            Real fx = ci_f - static_cast<Real>(ci);
-            Real fy = cj_f - static_cast<Real>(cj);
-            Real fz = ck_f - static_cast<Real>(ck);
+                    // Trilinear interpolation using 2x2x2 stencil around (ci, cj, ck)
+                    // Fractional offsets within the coarse cell
+                    Real fx = ci_f - static_cast<Real>(ci);
+                    Real fy = cj_f - static_cast<Real>(cj);
+                    Real fz = ck_f - static_cast<Real>(ck);
 
-            // Clamp neighbor indices
-            int ci1 = std::min(ci + (fx >= 0.0 ? 1 : -1), coarse.totalCells(0) - 1);
-            int cj1 = std::min(cj + (fy >= 0.0 ? 1 : -1), coarse.totalCells(1) - 1);
-            int ck1 = std::min(ck + (fz >= 0.0 ? 1 : -1), coarse.totalCells(2) - 1);
-            ci1 = std::max(ci1, 0);
-            cj1 = std::max(cj1, 0);
-            ck1 = std::max(ck1, 0);
+                    // Clamp neighbor indices
+                    int ci1 = std::min(ci + (fx >= 0.0 ? 1 : -1), coarse.totalCells(0) - 1);
+                    int cj1 = std::min(cj + (fy >= 0.0 ? 1 : -1), coarse.totalCells(1) - 1);
+                    int ck1 = std::min(ck + (fz >= 0.0 ? 1 : -1), coarse.totalCells(2) - 1);
+                    ci1 = std::max(ci1, 0);
+                    cj1 = std::max(cj1, 0);
+                    ck1 = std::max(ck1, 0);
 
-            Real ax = std::abs(fx), ay = std::abs(fy), az = std::abs(fz);
+                    Real ax = std::abs(fx), ay = std::abs(fy), az = std::abs(fz);
 
-            // Trilinear weights
-            Real w000 = (1-ax)*(1-ay)*(1-az);
-            Real w100 = ax   *(1-ay)*(1-az);
-            Real w010 = (1-ax)*ay   *(1-az);
-            Real w001 = (1-ax)*(1-ay)*az;
-            Real w110 = ax   *ay   *(1-az);
-            Real w101 = ax   *(1-ay)*az;
-            Real w011 = (1-ax)*ay   *az;
-            Real w111 = ax   *ay   *az;
+                    // Trilinear weights
+                    Real w000 = (1 - ax) * (1 - ay) * (1 - az);
+                    Real w100 = ax * (1 - ay) * (1 - az);
+                    Real w010 = (1 - ax) * ay * (1 - az);
+                    Real w001 = (1 - ax) * (1 - ay) * az;
+                    Real w110 = ax * ay * (1 - az);
+                    Real w101 = ax * (1 - ay) * az;
+                    Real w011 = (1 - ax) * ay * az;
+                    Real w111 = ax * ay * az;
 
-            Real val =
-                w000 * coarse.data(var, ci,  cj,  ck ) +
-                w100 * coarse.data(var, ci1, cj,  ck ) +
-                w010 * coarse.data(var, ci,  cj1, ck ) +
-                w001 * coarse.data(var, ci,  cj,  ck1) +
-                w110 * coarse.data(var, ci1, cj1, ck ) +
-                w101 * coarse.data(var, ci1, cj,  ck1) +
-                w011 * coarse.data(var, ci,  cj1, ck1) +
-                w111 * coarse.data(var, ci1, cj1, ck1);
+                    Real val = w000 * coarse.data(var, ci, cj, ck) +
+                               w100 * coarse.data(var, ci1, cj, ck) +
+                               w010 * coarse.data(var, ci, cj1, ck) +
+                               w001 * coarse.data(var, ci, cj, ck1) +
+                               w110 * coarse.data(var, ci1, cj1, ck) +
+                               w101 * coarse.data(var, ci1, cj, ck1) +
+                               w011 * coarse.data(var, ci, cj1, ck1) +
+                               w111 * coarse.data(var, ci1, cj1, ck1);
 
-            fine.data(var, i, j, k) = val;
-        }
+                    fine.data(var, i, j, k) = val;
+                }
     }
 }
 
-void AMRHierarchy::restrict_data(const GridBlock& fine, GridBlock& coarse) const
-{
-    if (fine.getLevel() <= coarse.getLevel()) return;
-    
+void AMRHierarchy::restrict_data(const GridBlock& fine, GridBlock& coarse) const {
+    if (fine.getLevel() <= coarse.getLevel())
+        return;
+
     int nv = fine.getNumVars();
     int ratio = params_.refinement_ratio;
-    
-    #pragma omp parallel for
+
+#pragma omp parallel for
     for (int var = 0; var < nv; ++var) {
         for (int ck = coarse.istart(2); ck < coarse.iend(2); ++ck) {
             for (int cj = coarse.istart(1); cj < coarse.iend(1); ++cj) {
                 for (int ci = coarse.istart(0); ci < coarse.iend(0); ++ci) {
                     Real x = coarse.x(0, ci), y = coarse.x(1, cj), z = coarse.x(2, ck);
-                    
+
                     Real fx_float = (x - fine.x(0, 0)) / fine.dx(0);
                     Real fy_float = (y - fine.x(1, 0)) / fine.dx(1);
                     Real fz_float = (z - fine.x(2, 0)) / fine.dx(2);
-                    
-                    int fi_base = static_cast<int>(std::round(fx_float)) - ratio/2;
-                    int fj_base = static_cast<int>(std::round(fy_float)) - ratio/2;
-                    int fk_base = static_cast<int>(std::round(fz_float)) - ratio/2;
-                    
-                    if (fi_base >= fine.istart(0) && fi_base + ratio <= fine.iend(0) + fine.getNumGhost() &&
-                        fj_base >= fine.istart(1) && fj_base + ratio <= fine.iend(1) + fine.getNumGhost() &&
-                        fk_base >= fine.istart(2) && fk_base + ratio <= fine.iend(2) + fine.getNumGhost()) {
-                        
+
+                    int fi_base = static_cast<int>(std::round(fx_float)) - ratio / 2;
+                    int fj_base = static_cast<int>(std::round(fy_float)) - ratio / 2;
+                    int fk_base = static_cast<int>(std::round(fz_float)) - ratio / 2;
+
+                    if (fi_base >= fine.istart(0) &&
+                        fi_base + ratio <= fine.iend(0) + fine.getNumGhost() &&
+                        fj_base >= fine.istart(1) &&
+                        fj_base + ratio <= fine.iend(1) + fine.getNumGhost() &&
+                        fk_base >= fine.istart(2) &&
+                        fk_base + ratio <= fine.iend(2) + fine.getNumGhost()) {
+
                         Real sum = 0.0;
-                        for(int rk=0; rk<ratio; ++rk) {
-                            for(int rj=0; rj<ratio; ++rj) {
-                                for(int ri=0; ri<ratio; ++ri) {
-                                    sum += fine.data(var, fi_base+ri, fj_base+rj, fk_base+rk);
+                        for (int rk = 0; rk < ratio; ++rk) {
+                            for (int rj = 0; rj < ratio; ++rj) {
+                                for (int ri = 0; ri < ratio; ++ri) {
+                                    sum += fine.data(var, fi_base + ri, fj_base + rj, fk_base + rk);
                                 }
                             }
                         }
-                        
+
                         Real restrict_val = sum / (ratio * ratio * ratio);
-                        
+
                         // Refluxing logic
                         // Only applied to conserved GRMHD variables to preserve total mass/energy
-                        if (var == static_cast<int>(HydroVar::D) || 
+                        if (var == static_cast<int>(HydroVar::D) ||
                             var == static_cast<int>(HydroVar::TAU) ||
                             var == static_cast<int>(HydroVar::SX) ||
                             var == static_cast<int>(HydroVar::SY) ||
                             var == static_cast<int>(HydroVar::SZ)) {
-                            
+
                             // Flux correction conservatively maps fine grid fluxes back iteratively
                             // F_fine = sum(F_fine_faces)
                             // Reflux = dt/dx * (F_coarse - F_fine)
                             // Here we inject the properly restricted val + reflux ghost
                         }
-                        
+
                         coarse.data(var, ci, cj, ck) = restrict_val;
                     }
                 }
@@ -621,26 +625,21 @@ void AMRHierarchy::restrict_data(const GridBlock& fine, GridBlock& coarse) const
     }
 }
 
-void AMRHierarchy::addTrackingSphere(std::array<Real, DIM> center,
-                                     Real radius, int min_level)
-{
+void AMRHierarchy::addTrackingSphere(std::array<Real, DIM> center, Real radius, int min_level) {
     tracking_spheres_.push_back({center, radius, min_level});
 }
 
-void AMRHierarchy::updateTrackingSpheres(const std::vector<std::array<Real, DIM>>& new_centers)
-{
+void AMRHierarchy::updateTrackingSpheres(const std::vector<std::array<Real, DIM>>& new_centers) {
     for (size_t i = 0; i < std::min(tracking_spheres_.size(), new_centers.size()); ++i) {
         tracking_spheres_[i].center = new_centers[i];
     }
 }
 
-void AMRHierarchy::redistributeBlocks()
-{
+void AMRHierarchy::redistributeBlocks() {
     // Stub: no load balancing for single-rank / single-block
 }
 
-Real AMRHierarchy::effectiveResolution(const std::array<Real, DIM>& /*point*/) const
-{
+Real AMRHierarchy::effectiveResolution(const std::array<Real, DIM>& /*point*/) const {
     // Return coarsest level dx
     if (levels_.empty() || levels_[0].blocks.empty())
         return 1.0;
@@ -651,8 +650,7 @@ Real AMRHierarchy::effectiveResolution(const std::array<Real, DIM>& /*point*/) c
 // Tagging functions
 // ===========================================================================
 
-TaggingFunction gradientChiTagger(Real threshold)
-{
+TaggingFunction gradientChiTagger(Real threshold) {
     return [threshold](const GridBlock& block, int i, int j, int k) -> bool {
         int chi_idx = static_cast<int>(SpacetimeVar::CHI);
         Real chi_c = block.data(chi_idx, i, j, k);
@@ -660,8 +658,10 @@ TaggingFunction gradientChiTagger(Real threshold)
         // Compute gradient magnitude using central differences
         Real grad2 = 0.0;
         for (int d = 0; d < DIM; ++d) {
-            int ip[3] = {i, j, k}; ip[d] += 1;
-            int im[3] = {i, j, k}; im[d] -= 1;
+            int ip[3] = {i, j, k};
+            ip[d] += 1;
+            int im[3] = {i, j, k};
+            im[d] -= 1;
             Real dchi = (block.data(chi_idx, ip[0], ip[1], ip[2]) -
                          block.data(chi_idx, im[0], im[1], im[2])) /
                         (2.0 * block.dx(d));
@@ -672,20 +672,23 @@ TaggingFunction gradientChiTagger(Real threshold)
     };
 }
 
-TaggingFunction gradientRhoTagger(Real threshold)
-{
+TaggingFunction gradientRhoTagger(Real threshold) {
     return [threshold](const GridBlock& block, int i, int j, int k) -> bool {
         // Use conserved density (HydroVar::D) if available
-        if (block.getNumVars() <= static_cast<int>(HydroVar::D)) return false;
+        if (block.getNumVars() <= static_cast<int>(HydroVar::D))
+            return false;
 
         int rho_idx = static_cast<int>(HydroVar::D);
         Real rho_c = block.data(rho_idx, i, j, k);
-        if (rho_c < 1e-10) return false;
+        if (rho_c < 1e-10)
+            return false;
 
         Real grad2 = 0.0;
         for (int d = 0; d < DIM; ++d) {
-            int ip[3] = {i, j, k}; ip[d] += 1;
-            int im[3] = {i, j, k}; im[d] -= 1;
+            int ip[3] = {i, j, k};
+            ip[d] += 1;
+            int im[3] = {i, j, k};
+            im[d] -= 1;
             Real drho = (block.data(rho_idx, ip[0], ip[1], ip[2]) -
                          block.data(rho_idx, im[0], im[1], im[2])) /
                         (2.0 * block.dx(d));
@@ -696,16 +699,17 @@ TaggingFunction gradientRhoTagger(Real threshold)
     };
 }
 
-TaggingFunction gradientLapseTagger(Real threshold)
-{
+TaggingFunction gradientLapseTagger(Real threshold) {
     return [threshold](const GridBlock& block, int i, int j, int k) -> bool {
         int alpha_idx = static_cast<int>(SpacetimeVar::LAPSE);
         Real alpha_c = block.data(alpha_idx, i, j, k);
 
         Real grad2 = 0.0;
         for (int d = 0; d < DIM; ++d) {
-            int ip[3] = {i, j, k}; ip[d] += 1;
-            int im[3] = {i, j, k}; im[d] -= 1;
+            int ip[3] = {i, j, k};
+            ip[d] += 1;
+            int im[3] = {i, j, k};
+            im[d] -= 1;
             Real dalpha = (block.data(alpha_idx, ip[0], ip[1], ip[2]) -
                            block.data(alpha_idx, im[0], im[1], im[2])) /
                           (2.0 * block.dx(d));
@@ -716,12 +720,11 @@ TaggingFunction gradientLapseTagger(Real threshold)
     };
 }
 
-TaggingFunction compositeTagger(std::vector<TaggingFunction> taggers)
-{
-    return [taggers = std::move(taggers)](const GridBlock& block,
-                                          int i, int j, int k) -> bool {
+TaggingFunction compositeTagger(std::vector<TaggingFunction> taggers) {
+    return [taggers = std::move(taggers)](const GridBlock& block, int i, int j, int k) -> bool {
         for (const auto& tagger : taggers) {
-            if (tagger(block, i, j, k)) return true;
+            if (tagger(block, i, j, k))
+                return true;
         }
         return false;
     };

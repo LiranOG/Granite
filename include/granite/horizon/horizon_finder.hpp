@@ -16,11 +16,11 @@
 namespace granite::horizon {
 
 struct HorizonParams {
-    int max_iterations     = 200;     ///< Max flow iterations
-    Real tolerance         = 1.0e-10; ///< Convergence tolerance
-    int angular_resolution = 50;      ///< Points in θ, φ on the trial surface
-    Real initial_guess_radius = 1.0;  ///< Initial trial sphere radius (in M)
-    int find_every         = 10;      ///< Attempt finding every N time steps
+    int max_iterations = 200;        ///< Max flow iterations
+    Real tolerance = 1.0e-10;        ///< Convergence tolerance
+    int angular_resolution = 50;     ///< Points in θ, φ on the trial surface
+    Real initial_guess_radius = 1.0; ///< Initial trial sphere radius (in M)
+    int find_every = 10;             ///< Attempt finding every N time steps
 };
 
 /**
@@ -28,14 +28,14 @@ struct HorizonParams {
  * @brief Result of a successful horizon find.
  */
 struct HorizonData {
-    int id;                             ///< Horizon identifier
-    std::array<Real, DIM> centroid;     ///< Coordinate centroid
-    Real area;                          ///< Proper area A
-    Real irreducible_mass;              ///< M_irr = √(A/16π)
-    Real spin;                          ///< Dimensionless spin a/M (from IH)
-    std::array<Real, DIM> spin_axis;    ///< Spin direction
-    Real circumference_equatorial;      ///< Equatorial circumference
-    Real circumference_polar;           ///< Polar circumference
+    int id;                                            ///< Horizon identifier
+    std::array<Real, DIM> centroid;                    ///< Coordinate centroid
+    Real area;                                         ///< Proper area A
+    Real irreducible_mass;                             ///< M_irr = √(A/16π)
+    Real spin;                                         ///< Dimensionless spin a/M (from IH)
+    std::array<Real, DIM> spin_axis;                   ///< Spin direction
+    Real circumference_equatorial;                     ///< Equatorial circumference
+    Real circumference_polar;                          ///< Polar circumference
     std::vector<std::array<Real, DIM>> surface_points; ///< Surface embedding
 };
 
@@ -73,17 +73,15 @@ public:
      * @param horizons  Previously found individual horizons
      * @return Common HorizonData if found
      */
-    std::optional<HorizonData> findCommonHorizon(
-        const GridBlock& spacetime,
-        const std::vector<HorizonData>& horizons) const;
+    std::optional<HorizonData> findCommonHorizon(const GridBlock& spacetime,
+                                                 const std::vector<HorizonData>& horizons) const;
 
     /**
      * @brief Compute isolated-horizon spin diagnostics.
      *
      * Uses the Killing-vector method on the horizon surface.
      */
-    Real computeSpin(const GridBlock& spacetime,
-                     const HorizonData& horizon) const;
+    Real computeSpin(const GridBlock& spacetime, const HorizonData& horizon) const;
 
     const HorizonParams& params() const { return params_; }
 

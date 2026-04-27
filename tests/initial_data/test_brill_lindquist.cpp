@@ -2,12 +2,12 @@
  * @file test_brill_lindquist.cpp
  * @brief Tests for Brill-Lindquist multi-BH initial data.
  */
-#include <gtest/gtest.h>
 #include "granite/core/grid.hpp"
 #include "granite/core/types.hpp"
 #include "granite/initial_data/initial_data.hpp"
 
 #include <cmath>
+#include <gtest/gtest.h>
 #include <vector>
 
 using namespace granite;
@@ -18,7 +18,7 @@ TEST(BrillLindquistTest, SingleBHConformalFactor) {
     bh.mass = 1.0;
     bh.position = {0.0, 0.0, 0.0};
     bh.momentum = {0.0, 0.0, 0.0};
-    bh.spin    = {0.0, 0.0, 0.0};
+    bh.spin = {0.0, 0.0, 0.0};
 
     BrillLindquist bl({bh});
 
@@ -34,10 +34,14 @@ TEST(BrillLindquistTest, SingleBHConformalFactor) {
 
 TEST(BrillLindquistTest, TwoBHSymmetry) {
     BlackHoleParams bh1, bh2;
-    bh1.mass = 1.0; bh1.position = {5.0, 0.0, 0.0};
-    bh1.momentum = {0.0, 0.0, 0.0}; bh1.spin = {0.0, 0.0, 0.0};
-    bh2.mass = 1.0; bh2.position = {-5.0, 0.0, 0.0};
-    bh2.momentum = {0.0, 0.0, 0.0}; bh2.spin = {0.0, 0.0, 0.0};
+    bh1.mass = 1.0;
+    bh1.position = {5.0, 0.0, 0.0};
+    bh1.momentum = {0.0, 0.0, 0.0};
+    bh1.spin = {0.0, 0.0, 0.0};
+    bh2.mass = 1.0;
+    bh2.position = {-5.0, 0.0, 0.0};
+    bh2.momentum = {0.0, 0.0, 0.0};
+    bh2.spin = {0.0, 0.0, 0.0};
 
     BrillLindquist bl({bh1, bh2});
 
@@ -60,7 +64,7 @@ TEST(BrillLindquistTest, FiveBHPentagon) {
         bhs[A].mass = 1.0;
         bhs[A].position = {R0 * std::cos(angle), R0 * std::sin(angle), 0.0};
         bhs[A].momentum = {0.0, 0.0, 0.0};
-        bhs[A].spin    = {0.0, 0.0, 0.0};
+        bhs[A].spin = {0.0, 0.0, 0.0};
     }
 
     BrillLindquist bl(bhs);
@@ -79,7 +83,7 @@ TEST(BrillLindquistTest, ConformalFactorMonotonicallyDecreasing) {
     bh.mass = 1.0;
     bh.position = {0.0, 0.0, 0.0};
     bh.momentum = {0.0, 0.0, 0.0};
-    bh.spin    = {0.0, 0.0, 0.0};
+    bh.spin = {0.0, 0.0, 0.0};
 
     BrillLindquist bl({bh});
 
@@ -98,7 +102,7 @@ TEST(BrillLindquistTest, ConformalFactorMonotonicallyDecreasing) {
 TEST(BrillLindquistTest, ApplyToGrid) {
     std::array<int, DIM> ncells = {32, 32, 32};
     std::array<Real, DIM> lo = {-20.0, -20.0, -20.0};
-    std::array<Real, DIM> hi = { 20.0,  20.0,  20.0};
+    std::array<Real, DIM> hi = {20.0, 20.0, 20.0};
     int nghost = 4;
 
     GridBlock grid(0, 0, ncells, lo, hi, nghost, NUM_SPACETIME_VARS);
@@ -107,7 +111,7 @@ TEST(BrillLindquistTest, ApplyToGrid) {
     bh.mass = 1.0;
     bh.position = {0.0, 0.0, 0.0};
     bh.momentum = {0.0, 0.0, 0.0};
-    bh.spin    = {0.0, 0.0, 0.0};
+    bh.spin = {0.0, 0.0, 0.0};
 
     BrillLindquist bl({bh});
     bl.apply(grid);

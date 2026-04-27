@@ -22,9 +22,9 @@ namespace granite::postprocess {
 
 struct GWExtractionParams {
     std::vector<Real> extraction_radii = {100.0, 200.0, 300.0, 500.0};
-    int l_max = 4;    ///< Maximum ℓ for spherical harmonic decomposition
+    int l_max = 4;     ///< Maximum ℓ for spherical harmonic decomposition
     int n_theta = 100; ///< Angular resolution on extraction sphere
-    int n_phi   = 200;
+    int n_phi = 200;
 };
 
 /**
@@ -51,8 +51,7 @@ public:
     std::array<Real, DIM> computeRadiatedMomentum(Real r_ext) const;
 
     /// Compute GW energy spectrum dE/df
-    std::vector<std::pair<Real, Real>> computeEnergySpectrum(
-        int l, int m, Real r_ext) const;
+    std::vector<std::pair<Real, Real>> computeEnergySpectrum(int l, int m, Real r_ext) const;
 
     /// Richardson extrapolation to r → ∞
     std::complex<Real> extrapolateToInfinity(int l, int m) const;
@@ -86,8 +85,7 @@ public:
 
     /// Compute Blandford-Znajek jet power
     /// P_jet ≈ (Φ_BH / 4π)² (Ω_H r_+)² / c
-    Real computeJetPower(Real bh_spin, Real bh_mass,
-                         Real magnetic_flux_horizon) const;
+    Real computeJetPower(Real bh_spin, Real bh_mass, Real magnetic_flux_horizon) const;
 
     /// Compute accretion rate Ṁ through a surface at radius r
     Real computeAccretionRate(const GridBlock& spacetime,
@@ -109,8 +107,7 @@ public:
 class RemnantAnalyzer {
 public:
     /// Estimate recoil velocity from radiated GW momentum
-    std::array<Real, DIM> computeRecoilVelocity(
-        const Psi4Extractor& gw_extractor) const;
+    std::array<Real, DIM> computeRecoilVelocity(const Psi4Extractor& gw_extractor) const;
 
     /// Compute final mass from horizon area
     Real computeFinalMass(Real horizon_area) const;

@@ -23,14 +23,14 @@ namespace granite::spacetime {
  * @brief Parameters controlling the CCZ4 evolution.
  */
 struct CCZ4Params {
-    Real kappa1   = 0.02;    ///< Constraint damping parameter κ₁
-    Real kappa2   = 0.0;     ///< Constraint damping parameter κ₂
-    Real eta      = 2.0;     ///< Γ-driver shift damping η (typically 1/M_ADM)
-    Real ko_sigma = 0.1;     ///< Kreiss-Oliger dissipation coefficient σ ∈ [0,1)
-    int  fd_order = 4;       ///< Finite-difference order (2, 4, 6, or 8)
-    bool use_moving_puncture = true;  ///< Use χ = e^{-4φ} instead of φ
-    Real chi_blend_center = 0.05; ///< Center of the sigmoid blending chi threshold
-    Real chi_blend_width  = 0.02; ///< Width of the sigmoid blending
+    Real kappa1 = 0.02;              ///< Constraint damping parameter κ₁
+    Real kappa2 = 0.0;               ///< Constraint damping parameter κ₂
+    Real eta = 2.0;                  ///< Γ-driver shift damping η (typically 1/M_ADM)
+    Real ko_sigma = 0.1;             ///< Kreiss-Oliger dissipation coefficient σ ∈ [0,1)
+    int fd_order = 4;                ///< Finite-difference order (2, 4, 6, or 8)
+    bool use_moving_puncture = true; ///< Use χ = e^{-4φ} instead of φ
+    Real chi_blend_center = 0.05;    ///< Center of the sigmoid blending chi threshold
+    Real chi_blend_width = 0.02;     ///< Width of the sigmoid blending
 };
 
 /**

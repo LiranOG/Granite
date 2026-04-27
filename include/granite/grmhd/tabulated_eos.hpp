@@ -34,8 +34,8 @@
  */
 #pragma once
 
-#include "granite/grmhd/grmhd.hpp"
 #include "granite/core/types.hpp"
+#include "granite/grmhd/grmhd.hpp"
 
 #include <memory>
 #include <stdexcept>
@@ -48,13 +48,13 @@ namespace granite::grmhd {
 // Enum for table quantities -- used to index into the 3D data arrays
 // ===========================================================================
 enum class EOSVar : int {
-    LOGPRESS = 0,  ///< log10(p [dyne/cm^2])
-    LOGENERGY,     ///< log10(eps + energy_shift [erg/g])
-    ENTROPY,       ///< s [k_B/baryon]
-    CS2,           ///< cs^2 [cm^2/s^2] (divided by c^2 on load -> dimensionless)
-    MU_E,          ///< mu_e [MeV]
-    MU_N,          ///< mu_n [MeV]
-    MU_P,          ///< mu_p [MeV]
+    LOGPRESS = 0, ///< log10(p [dyne/cm^2])
+    LOGENERGY,    ///< log10(eps + energy_shift [erg/g])
+    ENTROPY,      ///< s [k_B/baryon]
+    CS2,          ///< cs^2 [cm^2/s^2] (divided by c^2 on load -> dimensionless)
+    MU_E,         ///< mu_e [MeV]
+    MU_N,         ///< mu_n [MeV]
+    MU_P,         ///< mu_p [MeV]
     NUM_VARS
 };
 constexpr int NUM_EOS_VARS = static_cast<int>(EOSVar::NUM_VARS);
@@ -63,15 +63,15 @@ constexpr int NUM_EOS_VARS = static_cast<int>(EOSVar::NUM_VARS);
 // Unit conversion factors (CGS <-> geometric c=1)
 // ===========================================================================
 namespace eos_units {
-    // 1 MeV = 1e6 eV; energy in erg/g -> c=1 units: divide by c^2 [cm^2/s^2]
-    constexpr double C_CGS        = 2.99792458e10;     // cm/s
-    constexpr double C2_CGS       = C_CGS * C_CGS;    // cm^2/s^2
-    constexpr double PRESS_TO_GU  = 1.0 / C2_CGS;     // dyne/cm^2 -> code units (c=1, rho in g/cc)
-    constexpr double EPS_TO_GU    = 1.0 / C2_CGS;     // erg/g -> code units
-    constexpr double MEV_TO_ERG   = 1.60217663e-6;     // MeV -> erg
-    constexpr double MEV_TO_GU    = MEV_TO_ERG / C2_CGS; // MeV -> c=1 (g/cc normalization not needed)
-    // cs2 in table: [cm^2/s^2]. Convert to c=1: divide by C2_CGS.
-    constexpr double CS2_TO_GU    = 1.0 / C2_CGS;
+// 1 MeV = 1e6 eV; energy in erg/g -> c=1 units: divide by c^2 [cm^2/s^2]
+constexpr double C_CGS = 2.99792458e10;           // cm/s
+constexpr double C2_CGS = C_CGS * C_CGS;          // cm^2/s^2
+constexpr double PRESS_TO_GU = 1.0 / C2_CGS;      // dyne/cm^2 -> code units (c=1, rho in g/cc)
+constexpr double EPS_TO_GU = 1.0 / C2_CGS;        // erg/g -> code units
+constexpr double MEV_TO_ERG = 1.60217663e-6;      // MeV -> erg
+constexpr double MEV_TO_GU = MEV_TO_ERG / C2_CGS; // MeV -> c=1 (g/cc normalization not needed)
+// cs2 in table: [cm^2/s^2]. Convert to c=1: divide by C2_CGS.
+constexpr double CS2_TO_GU = 1.0 / C2_CGS;
 } // namespace eos_units
 
 // ===========================================================================
@@ -125,12 +125,16 @@ public:
      * @param Ye_min  Minimum Y_e (default 0.01)
      * @param Ye_max  Maximum Y_e (default 0.60)
      */
-    static std::shared_ptr<TabulatedEOS> buildSynthetic(
-        int nRho = 60, int nTemp = 40, int nYe = 20,
-        Real gamma = 5.0 / 3.0,
-        Real log_rho_min = 3.0, Real log_rho_max = 15.0,
-        Real log_T_min = -2.0, Real log_T_max = 2.5,
-        Real Ye_min = 0.01, Real Ye_max = 0.60);
+    static std::shared_ptr<TabulatedEOS> buildSynthetic(int nRho = 60,
+                                                        int nTemp = 40,
+                                                        int nYe = 20,
+                                                        Real gamma = 5.0 / 3.0,
+                                                        Real log_rho_min = 3.0,
+                                                        Real log_rho_max = 15.0,
+                                                        Real log_T_min = -2.0,
+                                                        Real log_T_max = 2.5,
+                                                        Real Ye_min = 0.01,
+                                                        Real Ye_max = 0.60);
 
     // -----------------------------------------------------------------------
     // Primary EquationOfState interface (rho, eps) -- 2-parameter path
@@ -168,14 +172,14 @@ public:
     // -----------------------------------------------------------------------
 
     Real rhoMin() const { return std::pow(10.0, log_rho_[0]); }
-    Real rhoMax() const { return std::pow(10.0, log_rho_[nRho_-1]); }
-    Real TMin()   const { return std::pow(10.0, log_T_[0]); }
-    Real TMax()   const { return std::pow(10.0, log_T_[nTemp_-1]); }
-    Real YeMin()  const { return Ye_[0]; }
-    Real YeMax()  const { return Ye_[nYe_-1]; }
-    int  nRho()   const { return nRho_; }
-    int  nTemp()  const { return nTemp_; }
-    int  nYe()    const { return nYe_; }
+    Real rhoMax() const { return std::pow(10.0, log_rho_[nRho_ - 1]); }
+    Real TMin() const { return std::pow(10.0, log_T_[0]); }
+    Real TMax() const { return std::pow(10.0, log_T_[nTemp_ - 1]); }
+    Real YeMin() const { return Ye_[0]; }
+    Real YeMax() const { return Ye_[nYe_ - 1]; }
+    int nRho() const { return nRho_; }
+    int nTemp() const { return nTemp_; }
+    int nYe() const { return nYe_; }
     const std::string& eosName() const { return eos_name_; }
     Real energyShift() const { return energy_shift_; }
 
@@ -224,25 +228,25 @@ private:
     // -----------------------------------------------------------------------
     // Table grid axes
     // -----------------------------------------------------------------------
-    int nRho_  = 0;
+    int nRho_ = 0;
     int nTemp_ = 0;
-    int nYe_   = 0;
+    int nYe_ = 0;
 
-    std::vector<Real> log_rho_;   // log10(rho [g/cc]),  size nRho
-    std::vector<Real> log_T_;     // log10(T [MeV]),     size nTemp
-    std::vector<Real> Ye_;        // Y_e [-],            size nYe
+    std::vector<Real> log_rho_; // log10(rho [g/cc]),  size nRho
+    std::vector<Real> log_T_;   // log10(T [MeV]),     size nTemp
+    std::vector<Real> Ye_;      // Y_e [-],            size nYe
 
     // Grid spacings (uniform in log/linear space)
     Real d_log_rho_ = 0.0;
-    Real d_log_T_   = 0.0;
-    Real d_Ye_      = 0.0;
+    Real d_log_T_ = 0.0;
+    Real d_Ye_ = 0.0;
 
     // -----------------------------------------------------------------------
     // Table data: [NUM_EOS_VARS] arrays of size (nRho * nTemp * nYe)
     // Index: flat = iYe + nYe * (iT + nTemp * iRho)
     // All values stored in c=1 geometric units after CGS conversion on load.
     // -----------------------------------------------------------------------
-    std::vector<std::vector<Real>> data_;  // data_[var][flat_idx]
+    std::vector<std::vector<Real>> data_; // data_[var][flat_idx]
 
     // Energy shift: eps_table = log10(eps_erg_per_g + energy_shift) [erg/g].
     // On load, we store eps in c=1 units: eps_c1 = eps_erg/c^2.

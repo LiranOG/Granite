@@ -23,10 +23,10 @@ namespace granite::initial_data {
  * @brief Parameters describing a single black hole.
  */
 struct BlackHoleParams {
-    Real mass;                          ///< Bare mass parameter m
-    std::array<Real, DIM> position;     ///< Coordinate position
-    std::array<Real, DIM> momentum;     ///< Linear momentum P^i (Bowen-York)
-    std::array<Real, DIM> spin;         ///< Angular momentum S^i (Bowen-York)
+    Real mass;                      ///< Bare mass parameter m
+    std::array<Real, DIM> position; ///< Coordinate position
+    std::array<Real, DIM> momentum; ///< Linear momentum P^i (Bowen-York)
+    std::array<Real, DIM> spin;     ///< Angular momentum S^i (Bowen-York)
 };
 
 // ===========================================================================
@@ -40,16 +40,16 @@ enum class StellarModel { POLYTROPE, TOV, MESA_TABLE };
  * @brief Parameters describing a central star.
  */
 struct StarParams {
-    Real mass;                          ///< Gravitational mass M_*
-    Real radius;                         ///< Stellar radius R_*
-    std::array<Real, DIM> position = {0.0, 0.0, 0.0};  ///< Center position
+    Real mass;                                        ///< Gravitational mass M_*
+    Real radius;                                      ///< Stellar radius R_*
+    std::array<Real, DIM> position = {0.0, 0.0, 0.0}; ///< Center position
     StellarModel model = StellarModel::POLYTROPE;
-    Real polytropic_gamma = 4.0 / 3.0;  ///< Γ for polytrope
-    Real polytropic_K     = 1.0;         ///< K for polytrope
-    Real central_density  = 1.0;         ///< ρ_c [g/cm³] (for TOV / polytrope)
-    Real B_field_seed     = 1.0e4;       ///< Seed B-field [G]
-    Real temperature      = 1.0e8;       ///< Initial temperature [K]
-    Real Ye               = 0.5;         ///< Electron fraction
+    Real polytropic_gamma = 4.0 / 3.0; ///< Γ for polytrope
+    Real polytropic_K = 1.0;           ///< K for polytrope
+    Real central_density = 1.0;        ///< ρ_c [g/cm³] (for TOV / polytrope)
+    Real B_field_seed = 1.0e4;         ///< Seed B-field [G]
+    Real temperature = 1.0e8;          ///< Initial temperature [K]
+    Real Ye = 0.5;                     ///< Electron fraction
 };
 
 // ===========================================================================
@@ -131,7 +131,7 @@ struct TwoPuncturesParams {
     std::array<Real, DIM> par_P_minus = {{0.0, 0.0, 0.0}};
     std::array<Real, DIM> par_S_plus = {{0.0, 0.0, 0.0}};
     std::array<Real, DIM> par_S_minus = {{0.0, 0.0, 0.0}};
-    
+
     int npoints_A = 30;
     int npoints_B = 30;
     int npoints_phi = 16;
@@ -166,8 +166,7 @@ public:
     void apply(GridBlock& grid) const;
 
     /// Compute Kerr-Schild scalar H for a single BH
-    static Real kerrSchildH(Real mass, Real spin_a,
-                            Real x, Real y, Real z);
+    static Real kerrSchildH(Real mass, Real spin_a, Real x, Real y, Real z);
 
 private:
     std::vector<BlackHoleParams> bhs_;
@@ -182,24 +181,22 @@ public:
     explicit StellarInitialData(const std::vector<StarParams>& stars);
 
     /// Build stellar profiles and set hydro data on the grid
-    void apply(GridBlock& spacetime_grid,
-               GridBlock& hydro_grid) const;
+    void apply(GridBlock& spacetime_grid, GridBlock& hydro_grid) const;
 
     /// Solve the Lane-Emden / TOV equation for a single star
     struct StellarProfile {
-        std::vector<Real> r;       ///< Radial coordinate
-        std::vector<Real> rho;     ///< Density profile
-        std::vector<Real> press;   ///< Pressure profile
-        std::vector<Real> eps;     ///< Internal energy profile
-        std::vector<Real> mass;    ///< Enclosed mass m(r)
+        std::vector<Real> r;     ///< Radial coordinate
+        std::vector<Real> rho;   ///< Density profile
+        std::vector<Real> press; ///< Pressure profile
+        std::vector<Real> eps;   ///< Internal energy profile
+        std::vector<Real> mass;  ///< Enclosed mass m(r)
     };
 
     StellarProfile solvePolytrope(const StarParams& star) const;
     StellarProfile solveTOV(const StarParams& star) const;
 
     /// Add a seed magnetic field (dipolar) to a stellar profile
-    void addMagneticField(GridBlock& hydro_grid,
-                          const StarParams& star) const;
+    void addMagneticField(GridBlock& hydro_grid, const StarParams& star) const;
 
 private:
     std::vector<StarParams> stars_;

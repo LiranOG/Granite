@@ -12,13 +12,13 @@
  * @copyright 2026 GRANITE Collaboration
  * @license GPL-3.0-or-later
  */
-#include <gtest/gtest.h>
 #include "granite/core/grid.hpp"
 #include "granite/core/types.hpp"
 #include "granite/grmhd/grmhd.hpp"
 
-#include <cmath>
 #include <array>
+#include <cmath>
+#include <gtest/gtest.h>
 #include <memory>
 
 using namespace granite;
@@ -30,68 +30,73 @@ using namespace granite::grmhd;
 
 /// Build a generic GRMHD state: sub-Alfvenic, sub-sonic, non-relativistic.
 /// rho=1, vx=0.1, vy=0, vz=0, press=0.5, eps=0.75, B=0 (or small).
-std::array<Real, NUM_PRIMITIVE_VARS> makePrimState(
-    Real rho = 1.0, Real vx = 0.1, Real vy = 0.0, Real vz = 0.0,
-    Real press = 0.5, Real eps = 0.75,
-    Real Bx = 0.0, Real By = 0.0, Real Bz = 0.0)
-{
+std::array<Real, NUM_PRIMITIVE_VARS> makePrimState(Real rho = 1.0,
+                                                   Real vx = 0.1,
+                                                   Real vy = 0.0,
+                                                   Real vz = 0.0,
+                                                   Real press = 0.5,
+                                                   Real eps = 0.75,
+                                                   Real Bx = 0.0,
+                                                   Real By = 0.0,
+                                                   Real Bz = 0.0) {
     std::array<Real, NUM_PRIMITIVE_VARS> p{};
-    p[static_cast<int>(PrimitiveVar::RHO)]   = rho;
-    p[static_cast<int>(PrimitiveVar::VX)]    = vx;
-    p[static_cast<int>(PrimitiveVar::VY)]    = vy;
-    p[static_cast<int>(PrimitiveVar::VZ)]    = vz;
+    p[static_cast<int>(PrimitiveVar::RHO)] = rho;
+    p[static_cast<int>(PrimitiveVar::VX)] = vx;
+    p[static_cast<int>(PrimitiveVar::VY)] = vy;
+    p[static_cast<int>(PrimitiveVar::VZ)] = vz;
     p[static_cast<int>(PrimitiveVar::PRESS)] = press;
-    p[static_cast<int>(PrimitiveVar::EPS)]   = eps;
-    p[static_cast<int>(PrimitiveVar::BX)]    = Bx;
-    p[static_cast<int>(PrimitiveVar::BY)]    = By;
-    p[static_cast<int>(PrimitiveVar::BZ)]    = Bz;
-    p[static_cast<int>(PrimitiveVar::TEMP)]  = 0.0;
-    p[static_cast<int>(PrimitiveVar::YE)]    = 0.5;
+    p[static_cast<int>(PrimitiveVar::EPS)] = eps;
+    p[static_cast<int>(PrimitiveVar::BX)] = Bx;
+    p[static_cast<int>(PrimitiveVar::BY)] = By;
+    p[static_cast<int>(PrimitiveVar::BZ)] = Bz;
+    p[static_cast<int>(PrimitiveVar::TEMP)] = 0.0;
+    p[static_cast<int>(PrimitiveVar::YE)] = 0.5;
     return p;
 }
 
 /// Build a generic GRMHD conserved-variable state from primitives.
 /// Uses IdealGasEOS(5/3) and Lorentz factor from v^2.
-std::array<Real, NUM_HYDRO_VARS> makeConsState(
-    const std::array<Real, NUM_PRIMITIVE_VARS>& prim)
-{
-    const int iRHO   = static_cast<int>(PrimitiveVar::RHO);
-    const int iVX    = static_cast<int>(PrimitiveVar::VX);
-    const int iVY    = static_cast<int>(PrimitiveVar::VY);
-    const int iVZ    = static_cast<int>(PrimitiveVar::VZ);
+std::array<Real, NUM_HYDRO_VARS> makeConsState(const std::array<Real, NUM_PRIMITIVE_VARS>& prim) {
+    const int iRHO = static_cast<int>(PrimitiveVar::RHO);
+    const int iVX = static_cast<int>(PrimitiveVar::VX);
+    const int iVY = static_cast<int>(PrimitiveVar::VY);
+    const int iVZ = static_cast<int>(PrimitiveVar::VZ);
     const int iPRESS = static_cast<int>(PrimitiveVar::PRESS);
-    const int iEPS   = static_cast<int>(PrimitiveVar::EPS);
-    const int iPBX   = static_cast<int>(PrimitiveVar::BX);
-    const int iPBY   = static_cast<int>(PrimitiveVar::BY);
-    const int iPBZ   = static_cast<int>(PrimitiveVar::BZ);
-    const int iYE    = static_cast<int>(PrimitiveVar::YE);
+    const int iEPS = static_cast<int>(PrimitiveVar::EPS);
+    const int iPBX = static_cast<int>(PrimitiveVar::BX);
+    const int iPBY = static_cast<int>(PrimitiveVar::BY);
+    const int iPBZ = static_cast<int>(PrimitiveVar::BZ);
+    const int iYE = static_cast<int>(PrimitiveVar::YE);
 
-    const Real rho   = prim[iRHO];
-    const Real vx    = prim[iVX];
-    const Real vy    = prim[iVY];
-    const Real vz    = prim[iVZ];
+    const Real rho = prim[iRHO];
+    const Real vx = prim[iVX];
+    const Real vy = prim[iVY];
+    const Real vz = prim[iVZ];
     const Real press = prim[iPRESS];
-    const Real eps   = prim[iEPS];
-    const Real Bx    = prim[iPBX];
-    const Real By    = prim[iPBY];
-    const Real Bz    = prim[iPBZ];
-    const Real Ye    = prim[iYE];
+    const Real eps = prim[iEPS];
+    const Real Bx = prim[iPBX];
+    const Real By = prim[iPBY];
+    const Real Bz = prim[iPBZ];
+    const Real Ye = prim[iYE];
 
-    const Real v2 = vx*vx + vy*vy + vz*vz;
-    const Real W  = 1.0 / std::sqrt(1.0 - v2);
+    const Real v2 = vx * vx + vy * vy + vz * vz;
+    const Real W = 1.0 / std::sqrt(1.0 - v2);
     const Real W2 = W * W;
-    const Real h  = 1.0 + eps + press / rho;
-    const Real B2 = Bx*Bx + By*By + Bz*Bz;
+    const Real h = 1.0 + eps + press / rho;
+    const Real B2 = Bx * Bx + By * By + Bz * Bz;
 
     std::array<Real, NUM_HYDRO_VARS> u{};
-    u[static_cast<int>(HydroVar::D)]   = rho * W;
-    u[static_cast<int>(HydroVar::SX)]  = (rho * h * W2 + B2) * vx - (vx*Bx + vy*By + vz*Bz)*Bx;
-    u[static_cast<int>(HydroVar::SY)]  = (rho * h * W2 + B2) * vy - (vx*Bx + vy*By + vz*Bz)*By;
-    u[static_cast<int>(HydroVar::SZ)]  = (rho * h * W2 + B2) * vz - (vx*Bx + vy*By + vz*Bz)*Bz;
-    u[static_cast<int>(HydroVar::TAU)] = rho * h * W2 + B2 - press - 0.5*B2/W2 - rho*W;
-    u[static_cast<int>(HydroVar::BX)]  = Bx;
-    u[static_cast<int>(HydroVar::BY)]  = By;
-    u[static_cast<int>(HydroVar::BZ)]  = Bz;
+    u[static_cast<int>(HydroVar::D)] = rho * W;
+    u[static_cast<int>(HydroVar::SX)] =
+        (rho * h * W2 + B2) * vx - (vx * Bx + vy * By + vz * Bz) * Bx;
+    u[static_cast<int>(HydroVar::SY)] =
+        (rho * h * W2 + B2) * vy - (vx * Bx + vy * By + vz * Bz) * By;
+    u[static_cast<int>(HydroVar::SZ)] =
+        (rho * h * W2 + B2) * vz - (vx * Bx + vy * By + vz * Bz) * Bz;
+    u[static_cast<int>(HydroVar::TAU)] = rho * h * W2 + B2 - press - 0.5 * B2 / W2 - rho * W;
+    u[static_cast<int>(HydroVar::BX)] = Bx;
+    u[static_cast<int>(HydroVar::BY)] = By;
+    u[static_cast<int>(HydroVar::BZ)] = Bz;
     u[static_cast<int>(HydroVar::DYE)] = rho * W * Ye;
     return u;
 }
@@ -113,8 +118,8 @@ TEST(GRMHDGRTest, HLLEFluxReducesToSpecialRelativity) {
     GRMHDEvolution grmhd(params, eos);
 
     // Sod shock tube initial conditions
-    auto pL = makePrimState(1.0, 0.0, 0.0, 0.0, 1.0, 1.5);  // high-density left
-    auto pR = makePrimState(0.1, 0.0, 0.0, 0.0, 0.1, 1.5);   // low-density right
+    auto pL = makePrimState(1.0, 0.0, 0.0, 0.0, 1.0, 1.5); // high-density left
+    auto pR = makePrimState(0.1, 0.0, 0.0, 0.0, 0.1, 1.5); // low-density right
     auto uL = makeConsState(pL);
     auto uR = makeConsState(pR);
 
@@ -126,8 +131,7 @@ TEST(GRMHDGRTest, HLLEFluxReducesToSpecialRelativity) {
 
     // All fluxes must be finite
     for (int n = 0; n < NUM_HYDRO_VARS; ++n) {
-        EXPECT_TRUE(std::isfinite(flux[n]))
-            << "Non-finite HLLE flux at component " << n;
+        EXPECT_TRUE(std::isfinite(flux[n])) << "Non-finite HLLE flux at component " << n;
     }
 
     // Mass flux D = rho*W*v^x should be close to 0 for initial v=0 Sod problem
@@ -172,8 +176,8 @@ TEST(GRMHDGRTest, HLLEFluxScalesWithLapse) {
     //   F_HLLE = (cP*F_L - cM*F_R + cP*cM*(U_R - U_L)) / (cP - cM)
     // With F_L,R ~ alpha*f_phys and lambda ~ alpha*v_pm:
     //   all terms scale by alpha, so F_HLLE scales by alpha exactly.
-    const Real ratio_D = flux2[static_cast<int>(HydroVar::D)] /
-                         flux1[static_cast<int>(HydroVar::D)];
+    const Real ratio_D =
+        flux2[static_cast<int>(HydroVar::D)] / flux1[static_cast<int>(HydroVar::D)];
     EXPECT_NEAR(ratio_D, 0.5, 0.05)
         << "Mass flux does not scale with lapse alpha. "
         << "Expected ratio ~0.5, got: " << ratio_D
@@ -207,11 +211,11 @@ TEST(GRMHDGRTest, HLLEFluxFiniteInSchwarzschildMetric) {
     // gamma_phiphi = r^2 = 36M^2 (but we normalize r=6, M=1 -> r=6)
     // For this test we approximate as a simpler near-BH metric
     GRMetric3 g_schw = GRMetric3::flat();
-    g_schw.alpha  = std::sqrt(2.0 / 3.0);  // alpha = sqrt(1 - r_s/r) at r=3r_s
-    g_schw.sqrtg  = 1.1;                   // mild compaction: det(gamma) > 1
-    g_schw.gxx    = 1.5;                   // g_rr = 1/(1-2M/r) stretched
-    g_schw.igxx   = 1.0 / 1.5;            // consistent inverse
-    g_schw.betax  = 0.0;                   // Schwarzschild: zero shift
+    g_schw.alpha = std::sqrt(2.0 / 3.0); // alpha = sqrt(1 - r_s/r) at r=3r_s
+    g_schw.sqrtg = 1.1;                  // mild compaction: det(gamma) > 1
+    g_schw.gxx = 1.5;                    // g_rr = 1/(1-2M/r) stretched
+    g_schw.igxx = 1.0 / 1.5;             // consistent inverse
+    g_schw.betax = 0.0;                  // Schwarzschild: zero shift
 
     std::array<Real, NUM_HYDRO_VARS> flux{};
     grmhd.computeHLLEFlux(uL, uR, pL, pR, g_schw, 0, flux);
@@ -219,8 +223,8 @@ TEST(GRMHDGRTest, HLLEFluxFiniteInSchwarzschildMetric) {
     for (int n = 0; n < NUM_HYDRO_VARS; ++n) {
         EXPECT_TRUE(std::isfinite(flux[n]))
             << "Non-finite flux at component " << n
-            << " in Schwarzschild-like metric (alpha=" << g_schw.alpha
-            << ", sqrtg=" << g_schw.sqrtg << ")";
+            << " in Schwarzschild-like metric (alpha=" << g_schw.alpha << ", sqrtg=" << g_schw.sqrtg
+            << ")";
     }
 }
 
@@ -254,22 +258,22 @@ TEST(GRMHDGRTest, MP5ReconstRecoverLinear) {
 
     // Fill including ghost zones (needed for 5-point stencil)
     for (int k = 0; k < nghost + 4 + nghost; ++k)
-    for (int j = 0; j < nghost + 4 + nghost; ++j)
-    for (int i = 0; i < nghost + N + nghost; ++i) {
-        Real x = lo[0] + (i - nghost + 0.5) * dx;
-        prim.data(iRHO,   i, j, k) = 1.0 + 0.01 * x;
-        prim.data(static_cast<int>(PrimitiveVar::VX),    i, j, k) = 0.1;
-        prim.data(static_cast<int>(PrimitiveVar::PRESS), i, j, k) = 0.5;
-        prim.data(static_cast<int>(PrimitiveVar::EPS),   i, j, k) = 0.75;
-        prim.data(static_cast<int>(PrimitiveVar::YE),    i, j, k) = 0.5;
-    }
+        for (int j = 0; j < nghost + 4 + nghost; ++j)
+            for (int i = 0; i < nghost + N + nghost; ++i) {
+                Real x = lo[0] + (i - nghost + 0.5) * dx;
+                prim.data(iRHO, i, j, k) = 1.0 + 0.01 * x;
+                prim.data(static_cast<int>(PrimitiveVar::VX), i, j, k) = 0.1;
+                prim.data(static_cast<int>(PrimitiveVar::PRESS), i, j, k) = 0.5;
+                prim.data(static_cast<int>(PrimitiveVar::EPS), i, j, k) = 0.75;
+                prim.data(static_cast<int>(PrimitiveVar::YE), i, j, k) = 0.5;
+            }
     // For a linear profile, the MP5 reconstructed interface value at the right face
     // of cell i_mid (i.e., at face i_mid+1/2) must equal the exact linear interpolation.
     //
     // Cell i_mid has its center at x_mid = lo[0] + (i_mid - nghost + 0.5) * dx.
     // Its right face is at x_face = lo[0] + (i_mid - nghost + 1) * dx.
-    const int i_mid = nghost + N/2;  // center cell (array index)
-    const Real x_face = lo[0] + static_cast<Real>(i_mid - nghost + 1) * dx;  // right face
+    const int i_mid = nghost + N / 2; // center cell (array index)
+    const Real x_face = lo[0] + static_cast<Real>(i_mid - nghost + 1) * dx; // right face
 
     // Expected: rho at the right face via exact linear interpolation
     const Real rho_face_expected = 1.0 + 0.01 * x_face;
@@ -283,7 +287,7 @@ TEST(GRMHDGRTest, MP5ReconstRecoverLinear) {
     //   x = lo[0] + (i_mid + 0.5 - nghost + 0.5) * dx
     //     = lo[0] + (i_mid - nghost + 1) * dx  = x_face  (QED)
     // So q5 exactly returns rho at x_face for any linear profile.
-    const Real rho_face_analytical = rho_face_expected;   // by the derivation above
+    const Real rho_face_analytical = rho_face_expected; // by the derivation above
 
     EXPECT_NEAR(rho_face_expected, rho_face_analytical, 1e-12)
         << "Consistency check failed -- test logic error.";
@@ -294,12 +298,12 @@ TEST(GRMHDGRTest, MP5ReconstRecoverLinear) {
     for (int off = -2; off <= 2; ++off)
         rhoj[2 + off] = prim.data(iRHO, i_mid + off, nghost, nghost);
 
-    Real q5 = (2.0*rhoj[0] - 13.0*rhoj[1] + 47.0*rhoj[2] + 27.0*rhoj[3] - 3.0*rhoj[4]) / 60.0;
+    Real q5 =
+        (2.0 * rhoj[0] - 13.0 * rhoj[1] + 47.0 * rhoj[2] + 27.0 * rhoj[3] - 3.0 * rhoj[4]) / 60.0;
 
     EXPECT_NEAR(q5, rho_face_expected, 1e-10)
         << "MP5 5th-order stencil failed to exactly recover linear profile at right face."
-        << "\n  q5 (stencil) = " << q5
-        << "\n  expected     = " << rho_face_expected
+        << "\n  q5 (stencil) = " << q5 << "\n  expected     = " << rho_face_expected
         << "  (rho at x_face = " << x_face << ")"
         << "\n  difference   = " << q5 - rho_face_expected;
 }
@@ -327,47 +331,47 @@ TEST(GRMHDGRTest, MP5ReconstBoundedForStep) {
     GridBlock spc(2, 0, ncells, lo, hi, nghost, NUM_SPACETIME_VARS);
     GridBlock rhs(3, 0, ncells, lo, hi, nghost, NUM_HYDRO_VARS);
 
-    const int iRHO   = static_cast<int>(PrimitiveVar::RHO);
+    const int iRHO = static_cast<int>(PrimitiveVar::RHO);
     const int iPRESS = static_cast<int>(PrimitiveVar::PRESS);
-    const int iEPS   = static_cast<int>(PrimitiveVar::EPS);
-    const int iVX    = static_cast<int>(PrimitiveVar::VX);
-    const int iYE    = static_cast<int>(PrimitiveVar::YE);
-    const int iD     = static_cast<int>(HydroVar::D);
-    const int iTAU   = static_cast<int>(HydroVar::TAU);
-    const int iCHI   = static_cast<int>(SpacetimeVar::CHI);
-    const int iGXX   = static_cast<int>(SpacetimeVar::GAMMA_XX);
-    const int iGYY   = static_cast<int>(SpacetimeVar::GAMMA_YY);
-    const int iGZZ   = static_cast<int>(SpacetimeVar::GAMMA_ZZ);
+    const int iEPS = static_cast<int>(PrimitiveVar::EPS);
+    const int iVX = static_cast<int>(PrimitiveVar::VX);
+    const int iYE = static_cast<int>(PrimitiveVar::YE);
+    const int iD = static_cast<int>(HydroVar::D);
+    const int iTAU = static_cast<int>(HydroVar::TAU);
+    const int iCHI = static_cast<int>(SpacetimeVar::CHI);
+    const int iGXX = static_cast<int>(SpacetimeVar::GAMMA_XX);
+    const int iGYY = static_cast<int>(SpacetimeVar::GAMMA_YY);
+    const int iGZZ = static_cast<int>(SpacetimeVar::GAMMA_ZZ);
     const int iLAPSE = static_cast<int>(SpacetimeVar::LAPSE);
 
     // Initialize flat spacetime metric
     for (int k = 0; k < nghost + 4 + nghost; ++k)
-    for (int j = 0; j < nghost + 4 + nghost; ++j)
-    for (int i = 0; i < nghost + N + nghost; ++i) {
-        spc.data(iCHI,   i, j, k) = 1.0;
-        spc.data(iGXX,   i, j, k) = 1.0;
-        spc.data(iGYY,   i, j, k) = 1.0;
-        spc.data(iGZZ,   i, j, k) = 1.0;
-        spc.data(iLAPSE, i, j, k) = 1.0;
-    }
+        for (int j = 0; j < nghost + 4 + nghost; ++j)
+            for (int i = 0; i < nghost + N + nghost; ++i) {
+                spc.data(iCHI, i, j, k) = 1.0;
+                spc.data(iGXX, i, j, k) = 1.0;
+                spc.data(iGYY, i, j, k) = 1.0;
+                spc.data(iGZZ, i, j, k) = 1.0;
+                spc.data(iLAPSE, i, j, k) = 1.0;
+            }
 
     // Step-function profile: rho = 1.0 (left half) or 0.125 (right half)
     // Press and eps consistent with ideal gas gamma=5/3
     for (int k = 0; k < nghost + 4 + nghost; ++k)
-    for (int j = 0; j < nghost + 4 + nghost; ++j)
-    for (int i = 0; i < nghost + N + nghost; ++i) {
-        const bool left_half = (i < nghost + N/2);
-        const Real rho   = left_half ? 1.0 : 0.125;
-        const Real press = left_half ? 1.0 : 0.1;
-        const Real eps   = press / ((5.0/3.0 - 1.0) * rho);
-        prim.data(iRHO,   i, j, k) = rho;
-        prim.data(iPRESS, i, j, k) = press;
-        prim.data(iEPS,   i, j, k) = eps;
-        prim.data(iVX,    i, j, k) = 0.0;
-        prim.data(iYE,    i, j, k) = 0.5;
-        cons.data(iD,     i, j, k) = rho;  // W=1 for v=0
-        cons.data(iTAU,   i, j, k) = rho * eps + press;
-    }
+        for (int j = 0; j < nghost + 4 + nghost; ++j)
+            for (int i = 0; i < nghost + N + nghost; ++i) {
+                const bool left_half = (i < nghost + N / 2);
+                const Real rho = left_half ? 1.0 : 0.125;
+                const Real press = left_half ? 1.0 : 0.1;
+                const Real eps = press / ((5.0 / 3.0 - 1.0) * rho);
+                prim.data(iRHO, i, j, k) = rho;
+                prim.data(iPRESS, i, j, k) = press;
+                prim.data(iEPS, i, j, k) = eps;
+                prim.data(iVX, i, j, k) = 0.0;
+                prim.data(iYE, i, j, k) = 0.5;
+                cons.data(iD, i, j, k) = rho; // W=1 for v=0
+                cons.data(iTAU, i, j, k) = rho * eps + press;
+            }
 
     GRMHDParams params;
     params.reconstruction = Reconstruction::MP5;
@@ -381,16 +385,17 @@ TEST(GRMHDGRTest, MP5ReconstBoundedForStep) {
     // Verify all RHS values are finite
     bool all_finite = true;
     Real max_rhs = 0.0;
-    const int is = nghost + 2;  // MP5 needs 2-cell guard
+    const int is = nghost + 2; // MP5 needs 2-cell guard
     const int ie = nghost + N - 2;
     for (int v = 0; v < NUM_HYDRO_VARS; ++v) {
         for (int k = nghost; k < nghost + 4; ++k)
-        for (int j = nghost; j < nghost + 4; ++j)
-        for (int i = is; i < ie; ++i) {
-            Real val = rhs.data(v, i, j, k);
-            if (!std::isfinite(val)) all_finite = false;
-            max_rhs = std::max(max_rhs, std::abs(val));
-        }
+            for (int j = nghost; j < nghost + 4; ++j)
+                for (int i = is; i < ie; ++i) {
+                    Real val = rhs.data(v, i, j, k);
+                    if (!std::isfinite(val))
+                        all_finite = false;
+                    max_rhs = std::max(max_rhs, std::abs(val));
+                }
     }
 
     EXPECT_TRUE(all_finite)
@@ -398,6 +403,6 @@ TEST(GRMHDGRTest, MP5ReconstBoundedForStep) {
         << "This indicates a Gibbs overshoot or divide-by-zero in the MP limiter.";
 
     // For ideal gas Sod initial conditions, max |RHS| should be O(1) to O(10)
-    EXPECT_LT(max_rhs, 1e6)
-        << "MP5 RHS is unreasonably large for step-function data: max = " << max_rhs;
+    EXPECT_LT(max_rhs, 1e6) << "MP5 RHS is unreasonably large for step-function data: max = "
+                            << max_rhs;
 }

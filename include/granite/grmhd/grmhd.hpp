@@ -52,9 +52,7 @@ public:
     virtual Real soundSpeed(Real rho, Real eps, Real p) const = 0;
 
     /// Specific enthalpy h = 1 + eps + p/rho (dimensionless, c=1)
-    Real enthalpy(Real rho, Real eps, Real p) const {
-        return 1.0 + eps + p / (rho + 1e-30);
-    }
+    Real enthalpy(Real rho, Real eps, Real p) const { return 1.0 + eps + p / (rho + 1e-30); }
 
     // -----------------------------------------------------------------------
     // Extended 3-parameter interface (rho, T, Ye) -- tabulated EOS
@@ -64,14 +62,18 @@ public:
     /// Temperature T [MeV] given (rho, eps, Ye). For analytic EOS returns 0.
     /// For tabulated EOS performs Newton-Raphson inversion of eps_table(rho,T,Ye).
     virtual Real temperature(Real rho, Real eps, Real Ye) const {
-        (void)rho; (void)eps; (void)Ye;
+        (void)rho;
+        (void)eps;
+        (void)Ye;
         return 0.0;
     }
 
     /// Specific entropy per baryon s [k_B/baryon] given (rho, T, Ye).
     /// For analytic ideal gas: s = (1/(gamma-1)) * ln(p/rho^gamma) + const.
     virtual Real entropy(Real rho, Real T, Real Ye) const {
-        (void)rho; (void)T; (void)Ye;
+        (void)rho;
+        (void)T;
+        (void)Ye;
         return 0.0;
     }
 
@@ -79,14 +81,15 @@ public:
     /// for tabulated EOS. Default: delegate to soundSpeed(rho, eps, p).
     virtual Real cs2FromRhoTYe(Real rho, Real T, Real Ye) const {
         const Real eps = epsFromRhoTYe(rho, T, Ye);
-        const Real p   = pressureFromRhoTYe(rho, T, Ye);
-        const Real cs  = soundSpeed(rho, eps, p);
+        const Real p = pressureFromRhoTYe(rho, T, Ye);
+        const Real cs = soundSpeed(rho, eps, p);
         return cs * cs;
     }
 
     /// Pressure from (rho, T, Ye). Default: invert to eps and call pressure().
     virtual Real pressureFromRhoTYe(Real rho, Real T, Real Ye) const {
-        (void)T; (void)Ye;
+        (void)T;
+        (void)Ye;
         // For analytic EOS, p = (gamma-1)*rho*eps = pressure(rho, eps)
         // This default works only if eps is known -- subclasses should override.
         return pressure(rho, 0.0); // placeholder, TabulatedEOS overrides
@@ -94,32 +97,41 @@ public:
 
     /// Specific internal energy from (rho, T, Ye). Default returns 0.
     virtual Real epsFromRhoTYe(Real rho, Real T, Real Ye) const {
-        (void)rho; (void)T; (void)Ye;
+        (void)rho;
+        (void)T;
+        (void)Ye;
         return 0.0;
     }
 
     /// Electron chemical potential mu_e [MeV] from (rho, T, Ye).
     virtual Real muElectron(Real rho, Real T, Real Ye) const {
-        (void)rho; (void)T; (void)Ye;
+        (void)rho;
+        (void)T;
+        (void)Ye;
         return 0.0;
     }
 
     /// Neutron chemical potential mu_n [MeV] from (rho, T, Ye).
     virtual Real muNeutron(Real rho, Real T, Real Ye) const {
-        (void)rho; (void)T; (void)Ye;
+        (void)rho;
+        (void)T;
+        (void)Ye;
         return 0.0;
     }
 
     /// Proton chemical potential mu_p [MeV] from (rho, T, Ye).
     virtual Real muProton(Real rho, Real T, Real Ye) const {
-        (void)rho; (void)T; (void)Ye;
+        (void)rho;
+        (void)T;
+        (void)Ye;
         return 0.0;
     }
 
     /// Beta-equilibrium electron fraction Y_e such that mu_e + mu_p - mu_n = 0.
     /// Default: 0.5 (symmetric nuclear matter approximation).
     virtual Real betaEquilibriumYe(Real rho, Real T) const {
-        (void)rho; (void)T;
+        (void)rho;
+        (void)T;
         return 0.5;
     }
 
@@ -143,9 +155,7 @@ class IdealGasEOS : public EquationOfState {
 public:
     explicit IdealGasEOS(Real gamma = 5.0 / 3.0) : gamma_(gamma) {}
 
-    Real pressure(Real rho, Real eps) const override {
-        return (gamma_ - 1.0) * rho * eps;
-    }
+    Real pressure(Real rho, Real eps) const override { return (gamma_ - 1.0) * rho * eps; }
 
     Real soundSpeed(Real rho, Real eps, Real p) const override {
         Real h = enthalpy(rho, eps, p);
@@ -155,7 +165,8 @@ public:
     Real pressureFromRhoTYe(Real rho, Real T, Real Ye) const override {
         // For ideal gas: eps = (3/2) * T_cgs / (mu * m_p * c^2)
         // Here T is never physically meaningful -- this path should not be called.
-        (void)T; (void)Ye;
+        (void)T;
+        (void)Ye;
         return pressure(rho, 0.0);
     }
 
@@ -164,7 +175,6 @@ public:
 private:
     Real gamma_;
 };
-
 
 // ===========================================================================
 // GR Metric at a cell face — public interface between spacetime and matter
@@ -184,12 +194,12 @@ private:
  * bug C3) and direct construction in unit tests (GRMHDGRTest suite).
  */
 struct GRMetric3 {
-    Real gxx, gxy, gxz, gyy, gyz, gzz;       ///< Physical lower metric gamma_ij = gamma_tilde_ij / chi
+    Real gxx, gxy, gxz, gyy, gyz, gzz; ///< Physical lower metric gamma_ij = gamma_tilde_ij / chi
     Real igxx, igxy, igxz, igyy, igyz, igzz; ///< Inverse physical metric gamma^{ij}
-    Real sqrtg;   ///< sqrt(det(gamma_ij))
-    Real alpha;   ///< Lapse alpha
-    Real betax, betay, betaz;  ///< Shift beta^i
-    Real K;       ///< Trace of extrinsic curvature K = gamma^{ij} K_{ij}
+    Real sqrtg;                              ///< sqrt(det(gamma_ij))
+    Real alpha;                              ///< Lapse alpha
+    Real betax, betay, betaz;                ///< Shift beta^i
+    Real K;                                  ///< Trace of extrinsic curvature K = gamma^{ij} K_{ij}
 
     /// Construct a flat (Minkowski) metric in Cartesian coordinates.
     /// Useful for special-relativistic tests and as a unit-test baseline.
@@ -208,7 +218,6 @@ struct GRMetric3 {
     }
 };
 
-
 // ===========================================================================
 // Riemann Solver selection
 // ===========================================================================
@@ -223,14 +232,14 @@ enum class Reconstruction { MP5, PPM, WENO5, PLM };
 struct GRMHDParams {
     RiemannSolver riemann_solver = RiemannSolver::HLLE;
     Reconstruction reconstruction = Reconstruction::MP5;
-    Real atm_density    = 1.0e-12;   ///< Atmosphere density floor
-    Real atm_pressure   = 1.0e-16;   ///< Atmosphere pressure floor
-    Real lorentz_max    = 100.0;     ///< Maximum Lorentz factor
-    int  con2prim_maxiter = 30;      ///< Max iterations for conservative-to-primitive
-    Real con2prim_tol   = 1.0e-10;   ///< Convergence tolerance
-    bool use_constrained_transport = true;  ///< Enforce ∇·B = 0 via CT
-    Real excision_chi_thresh = 1.0e-4; ///< Threshold for puncture excision mask
-    Real sigma_max      = 100.0;     ///< Maximum magnetization (b^2 / 2rho)
+    Real atm_density = 1.0e-12;            ///< Atmosphere density floor
+    Real atm_pressure = 1.0e-16;           ///< Atmosphere pressure floor
+    Real lorentz_max = 100.0;              ///< Maximum Lorentz factor
+    int con2prim_maxiter = 30;             ///< Max iterations for conservative-to-primitive
+    Real con2prim_tol = 1.0e-10;           ///< Convergence tolerance
+    bool use_constrained_transport = true; ///< Enforce ∇·B = 0 via CT
+    Real excision_chi_thresh = 1.0e-4;     ///< Threshold for puncture excision mask
+    Real sigma_max = 100.0;                ///< Maximum magnetization (b^2 / 2rho)
 };
 
 // ===========================================================================

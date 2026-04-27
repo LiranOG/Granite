@@ -16,9 +16,9 @@ enum class NeutrinoSpecies { NU_E, NU_E_BAR, NU_X, NUM_SPECIES };
 constexpr int NUM_NU_SPECIES = 3;
 
 struct NeutrinoParams {
-    bool use_leakage      = true;
-    bool use_m1_transport  = false;   ///< Full M1 (more expensive)
-    Real optical_depth_transition = 2.0 / 3.0;  ///< τ at which leakage → M1
+    bool use_leakage = true;
+    bool use_m1_transport = false;             ///< Full M1 (more expensive)
+    Real optical_depth_transition = 2.0 / 3.0; ///< τ at which leakage → M1
 };
 
 /**

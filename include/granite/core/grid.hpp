@@ -94,8 +94,11 @@ public:
     }
 
     /// Interior cell range: [istart(d), iend(d)) in dimension d.
-    int istart(int d = 0) const { (void)d; return nghost_; }
-    int iend(int d)        const { return nghost_ + ncells_[d]; }
+    int istart(int d = 0) const {
+        (void)d;
+        return nghost_;
+    }
+    int iend(int d) const { return nghost_ + ncells_[d]; }
 
     int iend0() const { return nghost_ + ncells_[0]; }
     int iend1() const { return nghost_ + ncells_[1]; }
@@ -112,9 +115,7 @@ public:
 
     /// Raw pointer to contiguous data for variable var.
     /// Useful for MPI Send/Recv and BLAS calls.
-    Real* rawData(int var) {
-        return data_.data() + static_cast<std::ptrdiff_t>(var) * stride_;
-    }
+    Real* rawData(int var) { return data_.data() + static_cast<std::ptrdiff_t>(var) * stride_; }
     const Real* rawData(int var) const {
         return data_.data() + static_cast<std::ptrdiff_t>(var) * stride_;
     }

@@ -13,27 +13,27 @@
 #include "granite/core/grid.hpp"
 #include "granite/core/types.hpp"
 
+#include <array>
 #include <functional>
 #include <memory>
 #include <vector>
-#include <array>
 
 namespace granite::amr {
 
 struct AMRParams {
-    int max_levels          = 15;     ///< Maximum refinement levels
-    int refinement_ratio    = 2;      ///< Ratio between consecutive levels
-    int regrid_interval     = 4;      ///< Coarse steps between regridding
-    int buffer_width        = 4;      ///< Buffer cells around tagged region
-    Real refine_threshold   = 0.1;    ///< Gradient threshold for tagging
-    Real derefine_threshold = 0.05;   ///< Threshold for de-refinement
-    bool subcycling         = true;   ///< Berger-Oliger time subcycling
+    int max_levels = 15;            ///< Maximum refinement levels
+    int refinement_ratio = 2;       ///< Ratio between consecutive levels
+    int regrid_interval = 4;        ///< Coarse steps between regridding
+    int buffer_width = 4;           ///< Buffer cells around tagged region
+    Real refine_threshold = 0.1;    ///< Gradient threshold for tagging
+    Real derefine_threshold = 0.05; ///< Threshold for de-refinement
+    bool subcycling = true;         ///< Berger-Oliger time subcycling
 };
 
 struct TrackingSphere {
     std::array<Real, DIM> center;
     Real radius;
-    int min_level;                    ///< Minimum AMR level to force within sphere
+    int min_level; ///< Minimum AMR level to force within sphere
 };
 
 /// Refinement criterion function type
@@ -48,8 +48,7 @@ using EvolutionStepFunc = std::function<void(std::vector<GridBlock*>& blocks, Re
  */
 class AMRHierarchy {
 public:
-    explicit AMRHierarchy(const AMRParams& params,
-                          const SimulationParams& sim_params);
+    explicit AMRHierarchy(const AMRParams& params, const SimulationParams& sim_params);
     ~AMRHierarchy() = default;
 
     /// Initialize the hierarchy recursively with internal tagging
@@ -90,7 +89,7 @@ public:
 
     /// Add a tracking sphere (e.g., around moving BH punctures)
     void addTrackingSphere(std::array<Real, DIM> center, Real radius, int min_level);
-    
+
     /// Dynamically update centers of existing tracking spheres
     void updateTrackingSpheres(const std::vector<std::array<Real, DIM>>& new_centers);
 
@@ -109,8 +108,8 @@ private:
     struct Level {
         int level_id;
         std::vector<std::unique_ptr<GridBlock>> blocks;
-        Real dt;              ///< Time step for this level
-        Real current_time;    ///< Local evolution time 
+        Real dt;           ///< Time step for this level
+        Real current_time; ///< Local evolution time
     };
 
     std::vector<Level> levels_;

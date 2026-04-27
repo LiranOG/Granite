@@ -31,6 +31,7 @@
  * @license GPL-3.0-or-later
  */
 #include "granite/grmhd/tabulated_eos.hpp"
+
 #include "granite/core/types.hpp"
 
 #ifdef GRANITE_USE_HDF5
@@ -51,37 +52,38 @@ namespace granite::grmhd {
 // Internal constants
 // ===========================================================================
 namespace {
-    constexpr Real LOG10E     = 0.43429448190325182765; // log10(e)
-    constexpr double C2_CGS   = eos_units::C2_CGS;
-    constexpr int    MAX_NR_ITER = 60;
-    constexpr Real   NR_TOL   = 1.0e-10;
-    constexpr Real   EPS_FLOOR = 1.0e-20;  // Prevents division by zero in NR
+constexpr Real LOG10E = 0.43429448190325182765; // log10(e)
+constexpr double C2_CGS = eos_units::C2_CGS;
+constexpr int MAX_NR_ITER = 60;
+constexpr Real NR_TOL = 1.0e-10;
+constexpr Real EPS_FLOOR = 1.0e-20; // Prevents division by zero in NR
 
-    // MeV -> erg/g -> c=1 (geometric): T_MeV * k_B / (m_p * c^2)
-    // In CGS: k_B = 8.617e-5 eV/K, but T is in MeV = 1e6 eV = 1.602e-6 erg
-    // We store eps in erg/g * (1/c^2) = g/g = dimensionless
-    // So: k_B T / (m_p c^2) in MeV: k_B T [erg] / (m_p [g] * c^2 [cm^2/s^2])
-    //   = T [MeV] * 1.602e-6 [erg/MeV] / (1.673e-24 [g] * 8.988e20 [cm^2/s^2])
-    constexpr double M_PROTON_CGS = 1.672621898e-24; // g
-    constexpr double MEV_PER_ERG  = 1.0 / 1.60217663e-6;
-    // For synthetic EOS: eps(rho=1, T, Ye) = T_MeV * CVoverMp
-    // where CV = 3/2 k_B per baryon (ideal gas)
-    constexpr double MEV_TO_C1 = 1.60217663e-6 / (M_PROTON_CGS * C2_CGS);
-    // So eps [c=1] = T [MeV] * MEV_TO_C1 * (1/(gamma-1))
+// MeV -> erg/g -> c=1 (geometric): T_MeV * k_B / (m_p * c^2)
+// In CGS: k_B = 8.617e-5 eV/K, but T is in MeV = 1e6 eV = 1.602e-6 erg
+// We store eps in erg/g * (1/c^2) = g/g = dimensionless
+// So: k_B T / (m_p c^2) in MeV: k_B T [erg] / (m_p [g] * c^2 [cm^2/s^2])
+//   = T [MeV] * 1.602e-6 [erg/MeV] / (1.673e-24 [g] * 8.988e20 [cm^2/s^2])
+constexpr double M_PROTON_CGS = 1.672621898e-24; // g
+constexpr double MEV_PER_ERG = 1.0 / 1.60217663e-6;
+// For synthetic EOS: eps(rho=1, T, Ye) = T_MeV * CVoverMp
+// where CV = 3/2 k_B per baryon (ideal gas)
+constexpr double MEV_TO_C1 = 1.60217663e-6 / (M_PROTON_CGS * C2_CGS);
+// So eps [c=1] = T [MeV] * MEV_TO_C1 * (1/(gamma-1))
 } // anonymous namespace
 
 // ===========================================================================
 // Helper: find bracket index (binary search on sorted array)
 // ===========================================================================
 
-static int findBracket(const std::vector<Real>& axis, Real x, int n)
-{
+static int findBracket(const std::vector<Real>& axis, Real x, int n) {
     // Binary search: find i such that axis[i] <= x < axis[i+1]
     int lo = 0, hi = n - 2;
     while (lo < hi) {
         int mid = (lo + hi + 1) / 2;
-        if (axis[mid] <= x) lo = mid;
-        else hi = mid - 1;
+        if (axis[mid] <= x)
+            lo = mid;
+        else
+            hi = mid - 1;
     }
     return std::clamp(lo, 0, n - 2);
 }
@@ -90,32 +92,29 @@ static int findBracket(const std::vector<Real>& axis, Real x, int n)
 // findRhoBracket / findTBracket / findYeBracket
 // ===========================================================================
 
-void TabulatedEOS::findRhoBracket(Real rho, int& i, Real& fx) const
-{
+void TabulatedEOS::findRhoBracket(Real rho, int& i, Real& fx) const {
     const Real log_rho = std::log10(std::max(rho, 1e-30));
     // Fast O(1) lookup using uniform spacing
-    const Real log_rho_clamped = std::clamp(log_rho, log_rho_[0], log_rho_[nRho_-1]);
+    const Real log_rho_clamped = std::clamp(log_rho, log_rho_[0], log_rho_[nRho_ - 1]);
     const Real t = (log_rho_clamped - log_rho_[0]) / d_log_rho_;
-    i  = std::clamp(static_cast<int>(t), 0, nRho_ - 2);
+    i = std::clamp(static_cast<int>(t), 0, nRho_ - 2);
     fx = t - static_cast<Real>(i);
     fx = std::clamp(fx, 0.0, 1.0);
 }
 
-void TabulatedEOS::findTBracket(Real T, int& j, Real& fy) const
-{
+void TabulatedEOS::findTBracket(Real T, int& j, Real& fy) const {
     const Real log_T = std::log10(std::max(T, 1e-30));
-    const Real log_T_clamped = std::clamp(log_T, log_T_[0], log_T_[nTemp_-1]);
+    const Real log_T_clamped = std::clamp(log_T, log_T_[0], log_T_[nTemp_ - 1]);
     const Real t = (log_T_clamped - log_T_[0]) / d_log_T_;
-    j  = std::clamp(static_cast<int>(t), 0, nTemp_ - 2);
+    j = std::clamp(static_cast<int>(t), 0, nTemp_ - 2);
     fy = t - static_cast<Real>(j);
     fy = std::clamp(fy, 0.0, 1.0);
 }
 
-void TabulatedEOS::findYeBracket(Real Ye, int& k, Real& fz) const
-{
-    const Real Ye_clamped = std::clamp(Ye, Ye_[0], Ye_[nYe_-1]);
+void TabulatedEOS::findYeBracket(Real Ye, int& k, Real& fz) const {
+    const Real Ye_clamped = std::clamp(Ye, Ye_[0], Ye_[nYe_ - 1]);
     const Real t = (Ye_clamped - Ye_[0]) / d_Ye_;
-    k  = std::clamp(static_cast<int>(t), 0, nYe_ - 2);
+    k = std::clamp(static_cast<int>(t), 0, nYe_ - 2);
     fz = t - static_cast<Real>(k);
     fz = std::clamp(fz, 0.0, 1.0);
 }
@@ -124,8 +123,7 @@ void TabulatedEOS::findYeBracket(Real Ye, int& k, Real& fz) const
 // nodeValue: raw table access with bounds checking
 // ===========================================================================
 
-Real TabulatedEOS::nodeValue(EOSVar var, int iRho, int iT, int iYe) const
-{
+Real TabulatedEOS::nodeValue(EOSVar var, int iRho, int iT, int iYe) const {
     const int v = static_cast<int>(var);
     const int flat = flatIdx(iRho, iT, iYe);
     return data_[v][static_cast<size_t>(flat)];
@@ -146,12 +144,11 @@ Real TabulatedEOS::nodeValue(EOSVar var, int iRho, int iT, int iYe) const
 // smoothness and guarantees positive values when the table stores log quantities.
 // ===========================================================================
 
-Real TabulatedEOS::interpolate(EOSVar var, Real rho, Real T, Real Ye) const
-{
+Real TabulatedEOS::interpolate(EOSVar var, Real rho, Real T, Real Ye) const {
     // -------------------------------------------------------------------------
     // Step 1: Find the enclosing cell (i, j, k) and fractional positions
     // -------------------------------------------------------------------------
-    int  i, j, k;
+    int i, j, k;
     Real fx, fy, fz;
     findRhoBracket(rho, i, fx);
     findTBracket(T, j, fy);
@@ -161,14 +158,14 @@ Real TabulatedEOS::interpolate(EOSVar var, Real rho, Real T, Real Ye) const
     // Step 2: Read the 8 corner values of the cell
     //   f[a][b][c] = table at (i+a, j+b, k+c)  for a,b,c in {0,1}
     // -------------------------------------------------------------------------
-    const Real f000 = nodeValue(var, i,   j,   k  );
-    const Real f100 = nodeValue(var, i+1, j,   k  );
-    const Real f010 = nodeValue(var, i,   j+1, k  );
-    const Real f110 = nodeValue(var, i+1, j+1, k  );
-    const Real f001 = nodeValue(var, i,   j,   k+1);
-    const Real f101 = nodeValue(var, i+1, j,   k+1);
-    const Real f011 = nodeValue(var, i,   j+1, k+1);
-    const Real f111 = nodeValue(var, i+1, j+1, k+1);
+    const Real f000 = nodeValue(var, i, j, k);
+    const Real f100 = nodeValue(var, i + 1, j, k);
+    const Real f010 = nodeValue(var, i, j + 1, k);
+    const Real f110 = nodeValue(var, i + 1, j + 1, k);
+    const Real f001 = nodeValue(var, i, j, k + 1);
+    const Real f101 = nodeValue(var, i + 1, j, k + 1);
+    const Real f011 = nodeValue(var, i, j + 1, k + 1);
+    const Real f111 = nodeValue(var, i + 1, j + 1, k + 1);
 
     // -------------------------------------------------------------------------
     // Step 3: Tri-linear interpolation via successive bilinear steps
@@ -197,8 +194,7 @@ Real TabulatedEOS::interpolate(EOSVar var, Real rho, Real T, Real Ye) const
 // Primary interface: pressureFromRhoTYe
 // ===========================================================================
 
-Real TabulatedEOS::pressureFromRhoTYe(Real rho, Real T, Real Ye) const
-{
+Real TabulatedEOS::pressureFromRhoTYe(Real rho, Real T, Real Ye) const {
     // Table stores log10(p) [dyne/cm^2], converted to c=1 on load.
     return interpolate(EOSVar::LOGPRESS, rho, T, Ye);
 }
@@ -207,8 +203,7 @@ Real TabulatedEOS::pressureFromRhoTYe(Real rho, Real T, Real Ye) const
 // Primary interface: epsFromRhoTYe
 // ===========================================================================
 
-Real TabulatedEOS::epsFromRhoTYe(Real rho, Real T, Real Ye) const
-{
+Real TabulatedEOS::epsFromRhoTYe(Real rho, Real T, Real Ye) const {
     // Table stores log10(eps + energy_shift) [erg/g], converted to c=1 on load.
     // The raw table value is log10(eps_erg_per_g + energy_shift).
     // On load, we stored: eps_c1 = interpolated_value (already in c=1 units).
@@ -228,25 +223,26 @@ Real TabulatedEOS::epsFromRhoTYe(Real rho, Real T, Real Ye) const
 // nuclear EOS tables with smooth energy dependence on T.
 // ===========================================================================
 
-Real TabulatedEOS::invertTemperature(Real rho, Real eps_target, Real Ye) const
-{
+Real TabulatedEOS::invertTemperature(Real rho, Real eps_target, Real Ye) const {
     // T bounds
-    const Real T_lo  = TMin();
-    const Real T_hi  = TMax();
+    const Real T_lo = TMin();
+    const Real T_hi = TMax();
 
     // Evaluate eps at table extremes for physical sanity check
     const Real eps_lo = epsFromRhoTYe(rho, T_lo, Ye);
     const Real eps_hi = epsFromRhoTYe(rho, T_hi, Ye);
 
     // If target outside table range -- clamp to boundary
-    if (eps_target <= eps_lo) return T_lo;
-    if (eps_target >= eps_hi) return T_hi;
+    if (eps_target <= eps_lo)
+        return T_lo;
+    if (eps_target >= eps_hi)
+        return T_hi;
 
     // -------------------------------------------------------------------------
     // Initial guess: linear interpolation in log T
     // -------------------------------------------------------------------------
-    Real log_T = std::log10(T_lo) + (std::log10(T_hi) - std::log10(T_lo))
-                 * (eps_target - eps_lo) / (eps_hi - eps_lo + EPS_FLOOR);
+    Real log_T = std::log10(T_lo) + (std::log10(T_hi) - std::log10(T_lo)) * (eps_target - eps_lo) /
+                                        (eps_hi - eps_lo + EPS_FLOOR);
     Real T = std::pow(10.0, std::clamp(log_T, std::log10(T_lo), std::log10(T_hi)));
 
     // Bisection bracket (always valid since eps is monotone in T)
@@ -257,24 +253,26 @@ Real TabulatedEOS::invertTemperature(Real rho, Real eps_target, Real Ye) const
     // Newton-Raphson iteration
     // -------------------------------------------------------------------------
     for (int iter = 0; iter < MAX_NR_ITER; ++iter) {
-        const Real eps_T  = epsFromRhoTYe(rho, T, Ye);
-        const Real g      = eps_T - eps_target;
+        const Real eps_T = epsFromRhoTYe(rho, T, Ye);
+        const Real g = eps_T - eps_target;
         const Real rel_err = std::abs(g) / (std::abs(eps_target) + EPS_FLOOR);
 
-        if (rel_err < NR_TOL) return T;  // Converged
+        if (rel_err < NR_TOL)
+            return T; // Converged
 
         // Update bisection bracket (maintains root bracketing)
-        if (g < 0.0) T_brac_lo = T;
-        else         T_brac_hi = T;
+        if (g < 0.0)
+            T_brac_lo = T;
+        else
+            T_brac_hi = T;
 
         // Numerical derivative: central difference in log T space
         // dT = 1% of T, symmetric in log space
         const Real dT = 1.0e-4 * T;
-        const Real T_plus  = std::min(T + dT, T_hi);
+        const Real T_plus = std::min(T + dT, T_hi);
         const Real T_minus = std::max(T - dT, T_lo);
-        const Real deps_dT = (epsFromRhoTYe(rho, T_plus,  Ye)
-                            - epsFromRhoTYe(rho, T_minus, Ye))
-                           / (T_plus - T_minus + EPS_FLOOR);
+        const Real deps_dT = (epsFromRhoTYe(rho, T_plus, Ye) - epsFromRhoTYe(rho, T_minus, Ye)) /
+                             (T_plus - T_minus + EPS_FLOOR);
 
         Real T_new = T;
         if (std::abs(deps_dT) > EPS_FLOOR) {
@@ -298,8 +296,7 @@ Real TabulatedEOS::invertTemperature(Real rho, Real eps_target, Real Ye) const
 // temperature -- public interface calls invertTemperature
 // ===========================================================================
 
-Real TabulatedEOS::temperature(Real rho, Real eps, Real Ye) const
-{
+Real TabulatedEOS::temperature(Real rho, Real eps, Real Ye) const {
     return invertTemperature(rho, eps, Ye);
 }
 
@@ -308,8 +305,7 @@ Real TabulatedEOS::temperature(Real rho, Real eps, Real Ye) const
 // Uses default Ye = 0.5 (symmetric nuclear matter approximation)
 // ===========================================================================
 
-Real TabulatedEOS::pressure(Real rho, Real eps) const
-{
+Real TabulatedEOS::pressure(Real rho, Real eps) const {
     // Use Ye = 0.5 as default -- correct for symmetric nuclear matter.
     // For BNS/CCSN simulations, callers should use pressureFromRhoTYe directly.
     constexpr Real Ye_default = 0.5;
@@ -321,11 +317,10 @@ Real TabulatedEOS::pressure(Real rho, Real eps) const
 // soundSpeed -- from (rho, eps, p) using tabulated cs2
 // ===========================================================================
 
-Real TabulatedEOS::soundSpeed(Real rho, Real eps, Real p) const
-{
+Real TabulatedEOS::soundSpeed(Real rho, Real eps, Real p) const {
     (void)p;
     constexpr Real Ye_default = 0.5;
-    const Real T   = invertTemperature(rho, eps, Ye_default);
+    const Real T = invertTemperature(rho, eps, Ye_default);
     const Real cs2 = cs2FromRhoTYe(rho, T, Ye_default);
     return std::sqrt(std::clamp(cs2, 0.0, 1.0 - 1.0e-10));
 }
@@ -334,28 +329,23 @@ Real TabulatedEOS::soundSpeed(Real rho, Real eps, Real p) const
 // entropy, cs2, chemical potentials -- direct lookup
 // ===========================================================================
 
-Real TabulatedEOS::entropy(Real rho, Real T, Real Ye) const
-{
+Real TabulatedEOS::entropy(Real rho, Real T, Real Ye) const {
     return interpolate(EOSVar::ENTROPY, rho, T, Ye);
 }
 
-Real TabulatedEOS::cs2FromRhoTYe(Real rho, Real T, Real Ye) const
-{
+Real TabulatedEOS::cs2FromRhoTYe(Real rho, Real T, Real Ye) const {
     return interpolate(EOSVar::CS2, rho, T, Ye);
 }
 
-Real TabulatedEOS::muElectron(Real rho, Real T, Real Ye) const
-{
+Real TabulatedEOS::muElectron(Real rho, Real T, Real Ye) const {
     return interpolate(EOSVar::MU_E, rho, T, Ye);
 }
 
-Real TabulatedEOS::muNeutron(Real rho, Real T, Real Ye) const
-{
+Real TabulatedEOS::muNeutron(Real rho, Real T, Real Ye) const {
     return interpolate(EOSVar::MU_N, rho, T, Ye);
 }
 
-Real TabulatedEOS::muProton(Real rho, Real T, Real Ye) const
-{
+Real TabulatedEOS::muProton(Real rho, Real T, Real Ye) const {
     return interpolate(EOSVar::MU_P, rho, T, Ye);
 }
 
@@ -375,13 +365,10 @@ Real TabulatedEOS::muProton(Real rho, Real T, Real Ye) const
 // (~2.7e14 g/cc), beta-eq Ye is ~0.03-0.05 at T~0.
 // ===========================================================================
 
-Real TabulatedEOS::betaEquilibriumYe(Real rho, Real T) const
-{
+Real TabulatedEOS::betaEquilibriumYe(Real rho, Real T) const {
     // Delta_mu = mu_e + mu_p - mu_n
     auto delta_mu = [&](Real Ye) -> Real {
-        return muElectron(rho, T, Ye)
-             + muProton(rho, T, Ye)
-             - muNeutron(rho, T, Ye);
+        return muElectron(rho, T, Ye) + muProton(rho, T, Ye) - muNeutron(rho, T, Ye);
     };
 
     const Real Ye_lo = YeMin();
@@ -400,9 +387,12 @@ Real TabulatedEOS::betaEquilibriumYe(Real rho, Real T) const
     for (int iter = 0; iter < 60; ++iter) {
         const Real mid = 0.5 * (lo + hi);
         const Real dmu_mid = delta_mu(mid);
-        if (std::abs(dmu_mid) < 1.0e-8 || (hi - lo) < 1.0e-10) return mid;
-        if (dmu_lo * dmu_mid < 0.0) hi = mid;
-        else                         lo = mid;
+        if (std::abs(dmu_mid) < 1.0e-8 || (hi - lo) < 1.0e-10)
+            return mid;
+        if (dmu_lo * dmu_mid < 0.0)
+            hi = mid;
+        else
+            lo = mid;
     }
     return 0.5 * (lo + hi);
 }
@@ -427,16 +417,20 @@ Real TabulatedEOS::betaEquilibriumYe(Real rho, Real T) const
 // the data already in c=1 units, we store them directly.
 // ===========================================================================
 
-std::shared_ptr<TabulatedEOS> TabulatedEOS::buildSynthetic(
-    int nRho, int nTemp, int nYe, Real gamma,
-    Real log_rho_min, Real log_rho_max,
-    Real log_T_min, Real log_T_max,
-    Real Ye_min, Real Ye_max)
-{
+std::shared_ptr<TabulatedEOS> TabulatedEOS::buildSynthetic(int nRho,
+                                                           int nTemp,
+                                                           int nYe,
+                                                           Real gamma,
+                                                           Real log_rho_min,
+                                                           Real log_rho_max,
+                                                           Real log_T_min,
+                                                           Real log_T_max,
+                                                           Real Ye_min,
+                                                           Real Ye_max) {
     auto eos = std::shared_ptr<TabulatedEOS>(new TabulatedEOS());
-    eos->nRho_  = nRho;
+    eos->nRho_ = nRho;
     eos->nTemp_ = nTemp;
-    eos->nYe_   = nYe;
+    eos->nYe_ = nYe;
     eos->eos_name_ = "SyntheticIdealGas";
     eos->energy_shift_ = 0.0;
 
@@ -445,17 +439,20 @@ std::shared_ptr<TabulatedEOS> TabulatedEOS::buildSynthetic(
     eos->log_T_.resize(static_cast<size_t>(nTemp));
     eos->Ye_.resize(static_cast<size_t>(nYe));
 
-    const Real d_log_rho = (log_rho_max - log_rho_min) / (nRho  - 1);
-    const Real d_log_T   = (log_T_max   - log_T_min)   / (nTemp - 1);
-    const Real d_Ye      = (Ye_max      - Ye_min)       / (nYe   - 1);
+    const Real d_log_rho = (log_rho_max - log_rho_min) / (nRho - 1);
+    const Real d_log_T = (log_T_max - log_T_min) / (nTemp - 1);
+    const Real d_Ye = (Ye_max - Ye_min) / (nYe - 1);
 
     eos->d_log_rho_ = d_log_rho;
-    eos->d_log_T_   = d_log_T;
-    eos->d_Ye_      = d_Ye;
+    eos->d_log_T_ = d_log_T;
+    eos->d_Ye_ = d_Ye;
 
-    for (int ir = 0; ir < nRho;  ++ir) eos->log_rho_[static_cast<size_t>(ir)] = log_rho_min + ir * d_log_rho;
-    for (int it = 0; it < nTemp; ++it) eos->log_T_[static_cast<size_t>(it)]   = log_T_min   + it * d_log_T;
-    for (int iy = 0; iy < nYe;   ++iy) eos->Ye_[static_cast<size_t>(iy)]      = Ye_min       + iy * d_Ye;
+    for (int ir = 0; ir < nRho; ++ir)
+        eos->log_rho_[static_cast<size_t>(ir)] = log_rho_min + ir * d_log_rho;
+    for (int it = 0; it < nTemp; ++it)
+        eos->log_T_[static_cast<size_t>(it)] = log_T_min + it * d_log_T;
+    for (int iy = 0; iy < nYe; ++iy)
+        eos->Ye_[static_cast<size_t>(iy)] = Ye_min + iy * d_Ye;
 
     // Allocate data arrays
     const size_t ntot = static_cast<size_t>(nRho * nTemp * nYe);
@@ -464,40 +461,40 @@ std::shared_ptr<TabulatedEOS> TabulatedEOS::buildSynthetic(
     const Real gm1 = gamma - 1.0;
 
     // Fill table cell by cell
-    for (int ir = 0; ir < nRho;  ++ir)
-    for (int it = 0; it < nTemp; ++it)
-    for (int iy = 0; iy < nYe;   ++iy) {
-        const size_t flat = static_cast<size_t>(eos->flatIdx(ir, it, iy));
-        const Real rho = std::pow(10.0, eos->log_rho_[static_cast<size_t>(ir)]);
-        const Real T   = std::pow(10.0, eos->log_T_[static_cast<size_t>(it)]);  // MeV
-        const Real Ye  = eos->Ye_[static_cast<size_t>(iy)];
+    for (int ir = 0; ir < nRho; ++ir)
+        for (int it = 0; it < nTemp; ++it)
+            for (int iy = 0; iy < nYe; ++iy) {
+                const size_t flat = static_cast<size_t>(eos->flatIdx(ir, it, iy));
+                const Real rho = std::pow(10.0, eos->log_rho_[static_cast<size_t>(ir)]);
+                const Real T = std::pow(10.0, eos->log_T_[static_cast<size_t>(it)]); // MeV
+                const Real Ye = eos->Ye_[static_cast<size_t>(iy)];
 
-        // eps in c=1 units: eps = T[MeV] * k_B / ((gamma-1) * m_p c^2)
-        const Real eps = T * static_cast<Real>(MEV_TO_C1) / gm1;
+                // eps in c=1 units: eps = T[MeV] * k_B / ((gamma-1) * m_p c^2)
+                const Real eps = T * static_cast<Real>(MEV_TO_C1) / gm1;
 
-        // Pressure in c=1 units: p = (gamma-1) * rho * eps
-        const Real p = gm1 * rho * eps;
+                // Pressure in c=1 units: p = (gamma-1) * rho * eps
+                const Real p = gm1 * rho * eps;
 
-        // Sound speed squared (relativistic ideal gas): cs^2 = gamma*p / (rho*h)
-        const Real h   = 1.0 + eps + p / (rho + 1.0e-30);
-        const Real cs2 = gamma * p / (rho * h + 1.0e-30);
+                // Sound speed squared (relativistic ideal gas): cs^2 = gamma*p / (rho*h)
+                const Real h = 1.0 + eps + p / (rho + 1.0e-30);
+                const Real cs2 = gamma * p / (rho * h + 1.0e-30);
 
-        // Specific entropy (dimensionless proxy, monotone in T)
-        const Real s = std::log(T) - (gamma - 1.0) * std::log(rho + 1.0e-30);
+                // Specific entropy (dimensionless proxy, monotone in T)
+                const Real s = std::log(T) - (gamma - 1.0) * std::log(rho + 1.0e-30);
 
-        // Chemical potential proxies (monotone in Ye, sign change at ~0.278)
-        const Real mu_e = T * Ye * 10.0;
-        const Real mu_n = T * (1.0 - Ye) * 5.0;
-        const Real mu_p = T * Ye * 3.0;
+                // Chemical potential proxies (monotone in Ye, sign change at ~0.278)
+                const Real mu_e = T * Ye * 10.0;
+                const Real mu_n = T * (1.0 - Ye) * 5.0;
+                const Real mu_p = T * Ye * 3.0;
 
-        eos->data_[static_cast<int>(EOSVar::LOGPRESS)][flat] = p;
-        eos->data_[static_cast<int>(EOSVar::LOGENERGY)][flat] = eps;
-        eos->data_[static_cast<int>(EOSVar::ENTROPY)][flat]   = s;
-        eos->data_[static_cast<int>(EOSVar::CS2)][flat]       = std::clamp(cs2, 0.0, 1.0-1e-10);
-        eos->data_[static_cast<int>(EOSVar::MU_E)][flat]      = mu_e;
-        eos->data_[static_cast<int>(EOSVar::MU_N)][flat]      = mu_n;
-        eos->data_[static_cast<int>(EOSVar::MU_P)][flat]      = mu_p;
-    }
+                eos->data_[static_cast<int>(EOSVar::LOGPRESS)][flat] = p;
+                eos->data_[static_cast<int>(EOSVar::LOGENERGY)][flat] = eps;
+                eos->data_[static_cast<int>(EOSVar::ENTROPY)][flat] = s;
+                eos->data_[static_cast<int>(EOSVar::CS2)][flat] = std::clamp(cs2, 0.0, 1.0 - 1e-10);
+                eos->data_[static_cast<int>(EOSVar::MU_E)][flat] = mu_e;
+                eos->data_[static_cast<int>(EOSVar::MU_N)][flat] = mu_n;
+                eos->data_[static_cast<int>(EOSVar::MU_P)][flat] = mu_p;
+            }
 
     return eos;
 }
@@ -506,8 +503,7 @@ std::shared_ptr<TabulatedEOS> TabulatedEOS::buildSynthetic(
 // loadFromHDF5: StellarCollapse format reader
 // ===========================================================================
 
-std::shared_ptr<TabulatedEOS> TabulatedEOS::loadFromHDF5(const std::string& path)
-{
+std::shared_ptr<TabulatedEOS> TabulatedEOS::loadFromHDF5(const std::string& path) {
 #ifndef GRANITE_USE_HDF5
     (void)path;
     throw std::runtime_error(
@@ -527,8 +523,8 @@ std::shared_ptr<TabulatedEOS> TabulatedEOS::loadFromHDF5(const std::string& path
     // Helper: read 1D dataset into vector
     auto readVector1D = [&](const char* name, std::vector<double>& out) {
         hid_t ds = H5Dopen2(file, name, H5P_DEFAULT);
-        if (ds < 0) throw std::runtime_error(
-            std::string("TabulatedEOS: missing dataset '") + name + "'");
+        if (ds < 0)
+            throw std::runtime_error(std::string("TabulatedEOS: missing dataset '") + name + "'");
         hid_t sp = H5Dget_space(ds);
         hsize_t dims[1];
         H5Sget_simple_extent_dims(sp, dims, nullptr);
@@ -543,8 +539,8 @@ std::shared_ptr<TabulatedEOS> TabulatedEOS::loadFromHDF5(const std::string& path
     // but the index ordering is (Ye fastest varying in the physical flattening)
     auto readVector3D = [&](const char* name, std::vector<double>& out, size_t ntot) {
         hid_t ds = H5Dopen2(file, name, H5P_DEFAULT);
-        if (ds < 0) throw std::runtime_error(
-            std::string("TabulatedEOS: missing dataset '") + name + "'");
+        if (ds < 0)
+            throw std::runtime_error(std::string("TabulatedEOS: missing dataset '") + name + "'");
         out.resize(ntot);
         H5Dread(ds, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, out.data());
         H5Dclose(ds);
@@ -575,26 +571,32 @@ std::shared_ptr<TabulatedEOS> TabulatedEOS::loadFromHDF5(const std::string& path
     // Read axes
     // -----------------------------------------------------------------------
     std::vector<double> log_rho_raw, log_T_raw, Ye_raw;
-    readVector1D("logrho",  log_rho_raw);
+    readVector1D("logrho", log_rho_raw);
     readVector1D("logtemp", log_T_raw);
-    readVector1D("ye",      Ye_raw);
+    readVector1D("ye", Ye_raw);
 
-    eos->nRho_  = static_cast<int>(log_rho_raw.size());
+    eos->nRho_ = static_cast<int>(log_rho_raw.size());
     eos->nTemp_ = static_cast<int>(log_T_raw.size());
-    eos->nYe_   = static_cast<int>(Ye_raw.size());
+    eos->nYe_ = static_cast<int>(Ye_raw.size());
 
     eos->log_rho_.resize(static_cast<size_t>(eos->nRho_));
     eos->log_T_.resize(static_cast<size_t>(eos->nTemp_));
     eos->Ye_.resize(static_cast<size_t>(eos->nYe_));
 
-    for (int i = 0; i < eos->nRho_;  ++i) eos->log_rho_[static_cast<size_t>(i)] = static_cast<Real>(log_rho_raw[static_cast<size_t>(i)]);
-    for (int i = 0; i < eos->nTemp_; ++i) eos->log_T_[static_cast<size_t>(i)]   = static_cast<Real>(log_T_raw[static_cast<size_t>(i)]);
-    for (int i = 0; i < eos->nYe_;   ++i) eos->Ye_[static_cast<size_t>(i)]      = static_cast<Real>(Ye_raw[static_cast<size_t>(i)]);
+    for (int i = 0; i < eos->nRho_; ++i)
+        eos->log_rho_[static_cast<size_t>(i)] =
+            static_cast<Real>(log_rho_raw[static_cast<size_t>(i)]);
+    for (int i = 0; i < eos->nTemp_; ++i)
+        eos->log_T_[static_cast<size_t>(i)] = static_cast<Real>(log_T_raw[static_cast<size_t>(i)]);
+    for (int i = 0; i < eos->nYe_; ++i)
+        eos->Ye_[static_cast<size_t>(i)] = static_cast<Real>(Ye_raw[static_cast<size_t>(i)]);
 
     // Uniform spacing (validated assumption for StellarCollapse)
-    eos->d_log_rho_ = (eos->nRho_  > 1) ? (eos->log_rho_.back() - eos->log_rho_.front()) / (eos->nRho_  - 1) : 1.0;
-    eos->d_log_T_   = (eos->nTemp_ > 1) ? (eos->log_T_.back()   - eos->log_T_.front())   / (eos->nTemp_ - 1) : 1.0;
-    eos->d_Ye_      = (eos->nYe_   > 1) ? (eos->Ye_.back()       - eos->Ye_.front())       / (eos->nYe_   - 1) : 1.0;
+    eos->d_log_rho_ =
+        (eos->nRho_ > 1) ? (eos->log_rho_.back() - eos->log_rho_.front()) / (eos->nRho_ - 1) : 1.0;
+    eos->d_log_T_ =
+        (eos->nTemp_ > 1) ? (eos->log_T_.back() - eos->log_T_.front()) / (eos->nTemp_ - 1) : 1.0;
+    eos->d_Ye_ = (eos->nYe_ > 1) ? (eos->Ye_.back() - eos->Ye_.front()) / (eos->nYe_ - 1) : 1.0;
 
     // Issue 12 fix: validate that the table spacing is approximately uniform.
     // The findRhoBracket / findTBracket / findYeBracket functions use an O(1) formula
@@ -604,16 +606,16 @@ std::shared_ptr<TabulatedEOS> TabulatedEOS::loadFromHDF5(const std::string& path
     // so users know that large high-density / high-temperature tables may produce
     // slightly wrong bracket indices and should use a binary search instead.
     {
-        auto checkUniform = [](const std::vector<Real>& axis, Real d_mean,
-                               const char* name) {
-            if (axis.size() < 3) return;
+        auto checkUniform = [](const std::vector<Real>& axis, Real d_mean, const char* name) {
+            if (axis.size() < 3)
+                return;
             double tol = 0.01 * std::abs(static_cast<double>(d_mean)); // 1% tolerance
             for (size_t ii = 1; ii < axis.size(); ++ii) {
-                double gap = static_cast<double>(axis[ii] - axis[ii-1]);
+                double gap = static_cast<double>(axis[ii] - axis[ii - 1]);
                 if (std::abs(gap - static_cast<double>(d_mean)) > tol) {
                     std::cerr << "[TabulatedEOS] WARNING (Issue 12): " << name
-                              << " axis is not uniformly spaced (gap[" << ii << "]="
-                              << gap << " vs mean=" << d_mean
+                              << " axis is not uniformly spaced (gap[" << ii << "]=" << gap
+                              << " vs mean=" << d_mean
                               << "). The O(1) bracket lookup may return wrong index "
                               << "for this table. Consider using binary search.\n";
                     return; // Warn once per axis
@@ -621,8 +623,8 @@ std::shared_ptr<TabulatedEOS> TabulatedEOS::loadFromHDF5(const std::string& path
             }
         };
         checkUniform(eos->log_rho_, eos->d_log_rho_, "log_rho");
-        checkUniform(eos->log_T_,   eos->d_log_T_,   "log_T");
-        checkUniform(eos->Ye_,      eos->d_Ye_,       "Ye");
+        checkUniform(eos->log_T_, eos->d_log_T_, "log_T");
+        checkUniform(eos->Ye_, eos->d_Ye_, "Ye");
     }
 
     // -----------------------------------------------------------------------
@@ -635,54 +637,53 @@ std::shared_ptr<TabulatedEOS> TabulatedEOS::loadFromHDF5(const std::string& path
     // which when read into a flat C array gives flat = iRho + nRho*(iT + nTemp*iYe).
     // GRANITE uses flat = iYe + nYe*(iT + nTemp*iRho). We need to transpose.
 
-    auto transposeAndStore = [&](const char* ds_name, EOSVar var,
-                                 double scale, double offset,
-                                 bool is_log_table) {
-        std::vector<double> raw;
-        readVector3D(ds_name, raw, ntot);
-        const int nR = eos->nRho_, nT = eos->nTemp_, nY = eos->nYe_;
-        for (int iR = 0; iR < nR; ++iR)
-        for (int iT = 0; iT < nT; ++iT)
-        for (int iY = 0; iY < nY; ++iY) {
-            // Input layout: [iY][iT][iR] -> flat_in = iR + nR*(iT + nT*iY)
-            const int flat_in  = iR + nR * (iT + nT * iY);
-            // Output layout: iY + nY*(iT + nT*iR)
-            const int flat_out = eos->flatIdx(iR, iT, iY);
-            double val = raw[static_cast<size_t>(flat_in)];
-            if (is_log_table) {
-                // Convert from log10 to physical, then apply scale
-                val = std::pow(10.0, val) + offset;
-            }
-            eos->data_[static_cast<int>(var)][static_cast<size_t>(flat_out)] =
-                static_cast<Real>(val * scale);
-        }
-    };
+    auto transposeAndStore =
+        [&](const char* ds_name, EOSVar var, double scale, double offset, bool is_log_table) {
+            std::vector<double> raw;
+            readVector3D(ds_name, raw, ntot);
+            const int nR = eos->nRho_, nT = eos->nTemp_, nY = eos->nYe_;
+            for (int iR = 0; iR < nR; ++iR)
+                for (int iT = 0; iT < nT; ++iT)
+                    for (int iY = 0; iY < nY; ++iY) {
+                        // Input layout: [iY][iT][iR] -> flat_in = iR + nR*(iT + nT*iY)
+                        const int flat_in = iR + nR * (iT + nT * iY);
+                        // Output layout: iY + nY*(iT + nT*iR)
+                        const int flat_out = eos->flatIdx(iR, iT, iY);
+                        double val = raw[static_cast<size_t>(flat_in)];
+                        if (is_log_table) {
+                            // Convert from log10 to physical, then apply scale
+                            val = std::pow(10.0, val) + offset;
+                        }
+                        eos->data_[static_cast<int>(var)][static_cast<size_t>(flat_out)] =
+                            static_cast<Real>(val * scale);
+                    }
+        };
 
     // logpress: log10(p [dyne/cm^2]) -> p [c=1]
-    transposeAndStore("logpress",  EOSVar::LOGPRESS,  eos_units::PRESS_TO_GU, 0.0, true);
+    transposeAndStore("logpress", EOSVar::LOGPRESS, eos_units::PRESS_TO_GU, 0.0, true);
 
     // logenergy: log10(|eps_erg| + energy_shift) -> eps [c=1]
     // eps_erg_per_g = 10^(table_val) - energy_shift
     // eps_c1 = eps_erg_per_g * EPS_TO_GU
-    transposeAndStore("logenergy", EOSVar::LOGENERGY,
-                      eos_units::EPS_TO_GU, -eos->energy_shift_, true);
+    transposeAndStore(
+        "logenergy", EOSVar::LOGENERGY, eos_units::EPS_TO_GU, -eos->energy_shift_, true);
 
     // entropy: s [k_B/baryon] -- no conversion needed
-    transposeAndStore("entropy",   EOSVar::ENTROPY,   1.0, 0.0, false);
+    transposeAndStore("entropy", EOSVar::ENTROPY, 1.0, 0.0, false);
 
     // cs2: [cm^2/s^2] -> dimensionless c=1
-    transposeAndStore("cs2",       EOSVar::CS2,       eos_units::CS2_TO_GU, 0.0, false);
+    transposeAndStore("cs2", EOSVar::CS2, eos_units::CS2_TO_GU, 0.0, false);
 
     // chemical potentials: [MeV] -- stored as-is (MeV scale)
-    transposeAndStore("mu_e",      EOSVar::MU_E,      1.0, 0.0, false);
-    transposeAndStore("mu_n",      EOSVar::MU_N,      1.0, 0.0, false);
-    transposeAndStore("mu_p",      EOSVar::MU_P,      1.0, 0.0, false);
+    transposeAndStore("mu_e", EOSVar::MU_E, 1.0, 0.0, false);
+    transposeAndStore("mu_n", EOSVar::MU_N, 1.0, 0.0, false);
+    transposeAndStore("mu_p", EOSVar::MU_P, 1.0, 0.0, false);
 
     // Read EOS name attribute if present
     {
         hid_t grp = H5Gopen2(file, "/", H5P_DEFAULT);
         if (H5Aexists(grp, "eos_name") > 0) {
-            hid_t attr  = H5Aopen(grp, "eos_name", H5P_DEFAULT);
+            hid_t attr = H5Aopen(grp, "eos_name", H5P_DEFAULT);
             hid_t atype = H5Aget_type(attr);
             char buf[128] = {};
             H5Aread(attr, atype, buf);
@@ -695,10 +696,9 @@ std::shared_ptr<TabulatedEOS> TabulatedEOS::loadFromHDF5(const std::string& path
 
     H5Fclose(file);
 
-    std::cout << "[TabulatedEOS] Loaded '" << eos->eos_name_
-              << "' from " << path
-              << "  (nRho=" << eos->nRho_ << ", nT=" << eos->nTemp_
-              << ", nYe=" << eos->nYe_ << ")" << std::endl;
+    std::cout << "[TabulatedEOS] Loaded '" << eos->eos_name_ << "' from " << path
+              << "  (nRho=" << eos->nRho_ << ", nT=" << eos->nTemp_ << ", nYe=" << eos->nYe_ << ")"
+              << std::endl;
 
     return eos;
 #endif // GRANITE_USE_HDF5

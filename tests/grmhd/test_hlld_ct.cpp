@@ -8,13 +8,13 @@
  * algebraically for any A when both operators use the same 1-cell forward
  * stencil -- no boundary conditions are needed for this cancellation.
  */
-#include <gtest/gtest.h>
 #include "granite/core/grid.hpp"
 #include "granite/core/types.hpp"
 #include "granite/grmhd/grmhd.hpp"
 
-#include <cmath>
 #include <array>
+#include <cmath>
+#include <gtest/gtest.h>
 #include <memory>
 
 using namespace granite;
@@ -24,44 +24,39 @@ using namespace granite::grmhd;
 // Helpers
 // ===========================================================================
 
-static std::shared_ptr<EquationOfState> makeIdealEOS()
-{
+static std::shared_ptr<EquationOfState> makeIdealEOS() {
     return std::make_shared<IdealGasEOS>(5.0 / 3.0);
 }
 
-static std::array<Real, NUM_HYDRO_VARS> primToConserved(
-    Real rho, Real vx, Real vy, Real vz, Real p, Real eps,
-    Real Bx, Real By, Real Bz)
-{
-    Real B2 = Bx*Bx + By*By + Bz*Bz;
-    Real v2 = vx*vx + vy*vy + vz*vz;
+static std::array<Real, NUM_HYDRO_VARS>
+primToConserved(Real rho, Real vx, Real vy, Real vz, Real p, Real eps, Real Bx, Real By, Real Bz) {
+    Real B2 = Bx * Bx + By * By + Bz * Bz;
+    Real v2 = vx * vx + vy * vy + vz * vz;
     std::array<Real, NUM_HYDRO_VARS> U;
-    U[static_cast<int>(HydroVar::D)]   = rho;
-    U[static_cast<int>(HydroVar::SX)]  = rho * vx;
-    U[static_cast<int>(HydroVar::SY)]  = rho * vy;
-    U[static_cast<int>(HydroVar::SZ)]  = rho * vz;
-    U[static_cast<int>(HydroVar::TAU)] = 0.5*rho*v2 + rho*eps + 0.5*B2;
-    U[static_cast<int>(HydroVar::BX)]  = Bx;
-    U[static_cast<int>(HydroVar::BY)]  = By;
-    U[static_cast<int>(HydroVar::BZ)]  = Bz;
+    U[static_cast<int>(HydroVar::D)] = rho;
+    U[static_cast<int>(HydroVar::SX)] = rho * vx;
+    U[static_cast<int>(HydroVar::SY)] = rho * vy;
+    U[static_cast<int>(HydroVar::SZ)] = rho * vz;
+    U[static_cast<int>(HydroVar::TAU)] = 0.5 * rho * v2 + rho * eps + 0.5 * B2;
+    U[static_cast<int>(HydroVar::BX)] = Bx;
+    U[static_cast<int>(HydroVar::BY)] = By;
+    U[static_cast<int>(HydroVar::BZ)] = Bz;
     (void)p;
     return U;
 }
 
-static std::array<Real, NUM_PRIMITIVE_VARS> makePrimState(
-    Real rho, Real vx, Real vy, Real vz, Real p, Real eps,
-    Real Bx, Real By, Real Bz)
-{
+static std::array<Real, NUM_PRIMITIVE_VARS>
+makePrimState(Real rho, Real vx, Real vy, Real vz, Real p, Real eps, Real Bx, Real By, Real Bz) {
     std::array<Real, NUM_PRIMITIVE_VARS> P{};
-    P[static_cast<int>(PrimitiveVar::RHO)]   = rho;
-    P[static_cast<int>(PrimitiveVar::VX)]    = vx;
-    P[static_cast<int>(PrimitiveVar::VY)]    = vy;
-    P[static_cast<int>(PrimitiveVar::VZ)]    = vz;
+    P[static_cast<int>(PrimitiveVar::RHO)] = rho;
+    P[static_cast<int>(PrimitiveVar::VX)] = vx;
+    P[static_cast<int>(PrimitiveVar::VY)] = vy;
+    P[static_cast<int>(PrimitiveVar::VZ)] = vz;
     P[static_cast<int>(PrimitiveVar::PRESS)] = p;
-    P[static_cast<int>(PrimitiveVar::BX)]    = Bx;
-    P[static_cast<int>(PrimitiveVar::BY)]    = By;
-    P[static_cast<int>(PrimitiveVar::BZ)]    = Bz;
-    P[static_cast<int>(PrimitiveVar::EPS)]   = eps;
+    P[static_cast<int>(PrimitiveVar::BX)] = Bx;
+    P[static_cast<int>(PrimitiveVar::BY)] = By;
+    P[static_cast<int>(PrimitiveVar::BZ)] = Bz;
+    P[static_cast<int>(PrimitiveVar::EPS)] = eps;
     return P;
 }
 
@@ -84,10 +79,8 @@ static std::array<Real, NUM_PRIMITIVE_VARS> makePrimState(
 // formula), so Az at j+1=tot1 or i+1=tot0 is well-defined.
 // ===========================================================================
 
-template<typename AzFunc>
-static void initBfromDiscreteVectorPotential(GridBlock& hydro_grid,
-                                              AzFunc Az_fn)
-{
+template <typename AzFunc>
+static void initBfromDiscreteVectorPotential(GridBlock& hydro_grid, AzFunc Az_fn) {
     constexpr int iBXh = static_cast<int>(HydroVar::BX);
     constexpr int iBYh = static_cast<int>(HydroVar::BY);
     constexpr int iBZh = static_cast<int>(HydroVar::BZ);
@@ -99,24 +92,24 @@ static void initBfromDiscreteVectorPotential(GridBlock& hydro_grid,
     const Real inv_dy = 1.0 / hydro_grid.dx(1);
 
     for (int k = 0; k < tot2; ++k)
-    for (int j = 0; j < tot1; ++j)
-    for (int i = 0; i < tot0; ++i) {
-        // Cell-center coordinates (extended formula valid outside [lo,hi])
-        Real x0 = hydro_grid.x(0, i);
-        Real x1 = hydro_grid.x(0, i + 1);
-        Real y0 = hydro_grid.x(1, j);
-        Real y1 = hydro_grid.x(1, j + 1);
-        Real z0 = hydro_grid.x(2, k);
+        for (int j = 0; j < tot1; ++j)
+            for (int i = 0; i < tot0; ++i) {
+                // Cell-center coordinates (extended formula valid outside [lo,hi])
+                Real x0 = hydro_grid.x(0, i);
+                Real x1 = hydro_grid.x(0, i + 1);
+                Real y0 = hydro_grid.x(1, j);
+                Real y1 = hydro_grid.x(1, j + 1);
+                Real z0 = hydro_grid.x(2, k);
 
-        Real Az_ij  = Az_fn(x0, y0, z0);
-        Real Az_ijp = Az_fn(x0, y1, z0);
-        Real Az_ipj = Az_fn(x1, y0, z0);
+                Real Az_ij = Az_fn(x0, y0, z0);
+                Real Az_ijp = Az_fn(x0, y1, z0);
+                Real Az_ipj = Az_fn(x1, y0, z0);
 
-        // Forward-difference curl: same stencil as CT update
-        hydro_grid.data(iBXh, i, j, k) = (Az_ijp - Az_ij) * inv_dy;
-        hydro_grid.data(iBYh, i, j, k) = -(Az_ipj - Az_ij) * inv_dx;
-        hydro_grid.data(iBZh, i, j, k) = 0.0;
-    }
+                // Forward-difference curl: same stencil as CT update
+                hydro_grid.data(iBXh, i, j, k) = (Az_ijp - Az_ij) * inv_dy;
+                hydro_grid.data(iBYh, i, j, k) = -(Az_ipj - Az_ij) * inv_dx;
+                hydro_grid.data(iBZh, i, j, k) = 0.0;
+            }
 }
 
 // ===========================================================================
@@ -129,9 +122,8 @@ static void initBfromDiscreteVectorPotential(GridBlock& hydro_grid,
 //    updated value from the wrapped ghost (not the original stale value).
 // ===========================================================================
 
-static void fillPeriodicGhosts(GridBlock& grid, int var_idx)
-{
-    const int is  = grid.istart();
+static void fillPeriodicGhosts(GridBlock& grid, int var_idx) {
+    const int is = grid.istart();
     const int ie0 = grid.iend(0);
     const int ie1 = grid.iend(1);
     const int ie2 = grid.iend(2);
@@ -144,38 +136,36 @@ static void fillPeriodicGhosts(GridBlock& grid, int var_idx)
 
     // X direction
     for (int k = 0; k < tot2; ++k)
-    for (int j = 0; j < tot1; ++j)
-    for (int g = 0; g < is; ++g) {
-        grid.data(var_idx, g,        j, k) = grid.data(var_idx, g + n0, j, k);
-        grid.data(var_idx, ie0 + g,  j, k) = grid.data(var_idx, is + g, j, k);
-    }
+        for (int j = 0; j < tot1; ++j)
+            for (int g = 0; g < is; ++g) {
+                grid.data(var_idx, g, j, k) = grid.data(var_idx, g + n0, j, k);
+                grid.data(var_idx, ie0 + g, j, k) = grid.data(var_idx, is + g, j, k);
+            }
 
     // Y direction
     for (int k = 0; k < tot2; ++k)
-    for (int i = 0; i < tot0; ++i)
-    for (int g = 0; g < is; ++g) {
-        grid.data(var_idx, i, g,       k) = grid.data(var_idx, i, g + n1, k);
-        grid.data(var_idx, i, ie1 + g, k) = grid.data(var_idx, i, is + g, k);
-    }
+        for (int i = 0; i < tot0; ++i)
+            for (int g = 0; g < is; ++g) {
+                grid.data(var_idx, i, g, k) = grid.data(var_idx, i, g + n1, k);
+                grid.data(var_idx, i, ie1 + g, k) = grid.data(var_idx, i, is + g, k);
+            }
 
     // Z direction
     for (int j = 0; j < tot1; ++j)
-    for (int i = 0; i < tot0; ++i)
-    for (int g = 0; g < is; ++g) {
-        grid.data(var_idx, i, j, g      ) = grid.data(var_idx, i, j, g + n2);
-        grid.data(var_idx, i, j, ie2 + g) = grid.data(var_idx, i, j, is + g);
-    }
+        for (int i = 0; i < tot0; ++i)
+            for (int g = 0; g < is; ++g) {
+                grid.data(var_idx, i, j, g) = grid.data(var_idx, i, j, g + n2);
+                grid.data(var_idx, i, j, ie2 + g) = grid.data(var_idx, i, j, is + g);
+            }
 }
 
-static void fillPeriodicGhostsAllB(GridBlock& grid)
-{
+static void fillPeriodicGhostsAllB(GridBlock& grid) {
     fillPeriodicGhosts(grid, static_cast<int>(HydroVar::BX));
     fillPeriodicGhosts(grid, static_cast<int>(HydroVar::BY));
     fillPeriodicGhosts(grid, static_cast<int>(HydroVar::BZ));
 }
 
-static void fillPeriodicGhostsAllV(GridBlock& grid)
-{
+static void fillPeriodicGhostsAllV(GridBlock& grid) {
     fillPeriodicGhosts(grid, static_cast<int>(PrimitiveVar::VX));
     fillPeriodicGhosts(grid, static_cast<int>(PrimitiveVar::VY));
     fillPeriodicGhosts(grid, static_cast<int>(PrimitiveVar::VZ));
@@ -199,8 +189,8 @@ protected:
 
 TEST_F(HLLDTest, ReducesToHydroForZeroB) {
     const Real gamma = 5.0 / 3.0;
-    Real rhoL = 1.0,   pL = 1.0,   epsL = pL / (rhoL * (gamma - 1.0));
-    Real rhoR = 0.125, pR = 0.1,   epsR = pR / (rhoR * (gamma - 1.0));
+    Real rhoL = 1.0, pL = 1.0, epsL = pL / (rhoL * (gamma - 1.0));
+    Real rhoR = 0.125, pR = 0.1, epsR = pR / (rhoR * (gamma - 1.0));
 
     auto PL = makePrimState(rhoL, 0.0, 0.0, 0.0, pL, epsL, 0.0, 0.0, 0.0);
     auto PR = makePrimState(rhoR, 0.0, 0.0, 0.0, pR, epsR, 0.0, 0.0, 0.0);
@@ -222,7 +212,7 @@ TEST_F(HLLDTest, ReducesToHydroForZeroB) {
 TEST_F(HLLDTest, BrioWuShockTubeFluxBounded) {
     const Real gamma = 5.0 / 3.0;
     Real Bn = 0.75;
-    Real rhoL = 1.0,   pL = 1.0, ByL = 1.0,  BzL = 0.0;
+    Real rhoL = 1.0, pL = 1.0, ByL = 1.0, BzL = 0.0;
     Real rhoR = 0.125, pR = 0.1, ByR = -1.0, BzR = 0.0;
     Real epsL = pL / (rhoL * (gamma - 1.0));
     Real epsR = pR / (rhoR * (gamma - 1.0));
@@ -237,11 +227,9 @@ TEST_F(HLLDTest, BrioWuShockTubeFluxBounded) {
 
     for (int n = 0; n < NUM_HYDRO_VARS; ++n)
         EXPECT_TRUE(std::isfinite(flux[n])) << "Brio-Wu flux[" << n << "] not finite";
-    EXPECT_GT(flux[static_cast<int>(HydroVar::D)], 0.0)
-        << "Brio-Wu mass flux must be positive";
+    EXPECT_GT(flux[static_cast<int>(HydroVar::D)], 0.0) << "Brio-Wu mass flux must be positive";
     EXPECT_NEAR(flux[static_cast<int>(HydroVar::BX)], 0.0, 1e-15);
-    EXPECT_NE(flux[static_cast<int>(HydroVar::BY)], 0.0)
-        << "By flux must be non-zero for Brio-Wu";
+    EXPECT_NE(flux[static_cast<int>(HydroVar::BY)], 0.0) << "By flux must be non-zero for Brio-Wu";
 }
 
 TEST_F(HLLDTest, ContactDiscontinuityPreserved) {
@@ -260,8 +248,8 @@ TEST_F(HLLDTest, ContactDiscontinuityPreserved) {
 
     EXPECT_NEAR(flux[static_cast<int>(HydroVar::D)], 0.0, 1e-12)
         << "Mass flux across stationary contact must be zero";
-    Real ptot = p + 0.5*(Bn*Bn + By*By + Bz*Bz);
-    EXPECT_NEAR(flux[static_cast<int>(HydroVar::SX)], ptot - Bn*Bn, 1e-12)
+    Real ptot = p + 0.5 * (Bn * Bn + By * By + Bz * Bz);
+    EXPECT_NEAR(flux[static_cast<int>(HydroVar::SX)], ptot - Bn * Bn, 1e-12)
         << "Normal momentum flux = total pressure minus magnetic tension";
 }
 
@@ -279,8 +267,7 @@ TEST_F(HLLDTest, DirectionalSymmetry) {
     grmhd_->computeHLLDFlux(UX, UX, PX, PX, B, 0, fluxX);
     grmhd_->computeHLLDFlux(UY, UY, PY, PY, B, 1, fluxY);
 
-    EXPECT_NEAR(fluxX[static_cast<int>(HydroVar::D)],
-                fluxY[static_cast<int>(HydroVar::D)], 1e-12)
+    EXPECT_NEAR(fluxX[static_cast<int>(HydroVar::D)], fluxY[static_cast<int>(HydroVar::D)], 1e-12)
         << "Mass flux must be symmetric across dimensions";
 }
 
@@ -293,7 +280,7 @@ protected:
     void SetUp() override {
         ncells = {16, 16, 16};
         lo = {-1.0, -1.0, -1.0};
-        hi = { 1.0,  1.0,  1.0};
+        hi = {1.0, 1.0, 1.0};
         nghost = 4;
 
         hydro = std::make_unique<GridBlock>(0, 0, ncells, lo, hi, nghost, NUM_HYDRO_VARS);
@@ -310,40 +297,39 @@ protected:
         int tot1 = spacetime->totalCells(1);
         int tot2 = spacetime->totalCells(2);
         for (int k = 0; k < tot2; ++k)
-        for (int j = 0; j < tot1; ++j)
-        for (int i = 0; i < tot0; ++i) {
-            spacetime->data(static_cast<int>(SpacetimeVar::CHI),     i,j,k) = 1.0;
-            spacetime->data(static_cast<int>(SpacetimeVar::GAMMA_XX),i,j,k) = 1.0;
-            spacetime->data(static_cast<int>(SpacetimeVar::GAMMA_YY),i,j,k) = 1.0;
-            spacetime->data(static_cast<int>(SpacetimeVar::GAMMA_ZZ),i,j,k) = 1.0;
-            spacetime->data(static_cast<int>(SpacetimeVar::LAPSE),   i,j,k) = 1.0;
-        }
+            for (int j = 0; j < tot1; ++j)
+                for (int i = 0; i < tot0; ++i) {
+                    spacetime->data(static_cast<int>(SpacetimeVar::CHI), i, j, k) = 1.0;
+                    spacetime->data(static_cast<int>(SpacetimeVar::GAMMA_XX), i, j, k) = 1.0;
+                    spacetime->data(static_cast<int>(SpacetimeVar::GAMMA_YY), i, j, k) = 1.0;
+                    spacetime->data(static_cast<int>(SpacetimeVar::GAMMA_ZZ), i, j, k) = 1.0;
+                    spacetime->data(static_cast<int>(SpacetimeVar::LAPSE), i, j, k) = 1.0;
+                }
     }
 
     // Initialize fluid primitives and hydro conserved (non-B) at all cells.
-    void initFluid(Real rho, Real vx, Real vy, Real vz, Real p)
-    {
+    void initFluid(Real rho, Real vx, Real vy, Real vz, Real p) {
         const Real gamma = 5.0 / 3.0;
-        const Real eps   = p / (rho * (gamma - 1.0));
+        const Real eps = p / (rho * (gamma - 1.0));
         int tot0 = hydro->totalCells(0);
         int tot1 = hydro->totalCells(1);
         int tot2 = hydro->totalCells(2);
         for (int k = 0; k < tot2; ++k)
-        for (int j = 0; j < tot1; ++j)
-        for (int i = 0; i < tot0; ++i) {
-            hydro->data(static_cast<int>(HydroVar::D),   i,j,k) = rho;
-            hydro->data(static_cast<int>(HydroVar::SX),  i,j,k) = rho*vx;
-            hydro->data(static_cast<int>(HydroVar::SY),  i,j,k) = rho*vy;
-            hydro->data(static_cast<int>(HydroVar::SZ),  i,j,k) = 0.0;
-            hydro->data(static_cast<int>(HydroVar::TAU), i,j,k) = rho*eps;
+            for (int j = 0; j < tot1; ++j)
+                for (int i = 0; i < tot0; ++i) {
+                    hydro->data(static_cast<int>(HydroVar::D), i, j, k) = rho;
+                    hydro->data(static_cast<int>(HydroVar::SX), i, j, k) = rho * vx;
+                    hydro->data(static_cast<int>(HydroVar::SY), i, j, k) = rho * vy;
+                    hydro->data(static_cast<int>(HydroVar::SZ), i, j, k) = 0.0;
+                    hydro->data(static_cast<int>(HydroVar::TAU), i, j, k) = rho * eps;
 
-            prims->data(static_cast<int>(PrimitiveVar::RHO),   i,j,k) = rho;
-            prims->data(static_cast<int>(PrimitiveVar::VX),    i,j,k) = vx;
-            prims->data(static_cast<int>(PrimitiveVar::VY),    i,j,k) = vy;
-            prims->data(static_cast<int>(PrimitiveVar::VZ),    i,j,k) = vz;
-            prims->data(static_cast<int>(PrimitiveVar::PRESS), i,j,k) = p;
-            prims->data(static_cast<int>(PrimitiveVar::EPS),   i,j,k) = eps;
-        }
+                    prims->data(static_cast<int>(PrimitiveVar::RHO), i, j, k) = rho;
+                    prims->data(static_cast<int>(PrimitiveVar::VX), i, j, k) = vx;
+                    prims->data(static_cast<int>(PrimitiveVar::VY), i, j, k) = vy;
+                    prims->data(static_cast<int>(PrimitiveVar::VZ), i, j, k) = vz;
+                    prims->data(static_cast<int>(PrimitiveVar::PRESS), i, j, k) = p;
+                    prims->data(static_cast<int>(PrimitiveVar::EPS), i, j, k) = eps;
+                }
         fillPeriodicGhostsAllV(*prims);
     }
 
@@ -377,15 +363,15 @@ TEST_F(CTTest, DivBPreservedUnderCTUpdate) {
     int tot1 = hydro->totalCells(1);
     int tot2 = hydro->totalCells(2);
     for (int k = 0; k < tot2; ++k)
-    for (int j = 0; j < tot1; ++j)
-    for (int i = 0; i < tot0; ++i) {
-        prims->data(static_cast<int>(PrimitiveVar::BX), i,j,k)
-            = hydro->data(static_cast<int>(HydroVar::BX), i,j,k);
-        prims->data(static_cast<int>(PrimitiveVar::BY), i,j,k)
-            = hydro->data(static_cast<int>(HydroVar::BY), i,j,k);
-        prims->data(static_cast<int>(PrimitiveVar::BZ), i,j,k)
-            = hydro->data(static_cast<int>(HydroVar::BZ), i,j,k);
-    }
+        for (int j = 0; j < tot1; ++j)
+            for (int i = 0; i < tot0; ++i) {
+                prims->data(static_cast<int>(PrimitiveVar::BX), i, j, k) =
+                    hydro->data(static_cast<int>(HydroVar::BX), i, j, k);
+                prims->data(static_cast<int>(PrimitiveVar::BY), i, j, k) =
+                    hydro->data(static_cast<int>(HydroVar::BY), i, j, k);
+                prims->data(static_cast<int>(PrimitiveVar::BZ), i, j, k) =
+                    hydro->data(static_cast<int>(HydroVar::BZ), i, j, k);
+            }
 
     // Periodic ghost fill so CT stencil accesses valid B at boundaries
     fillPeriodicGhostsAllB(*hydro);
@@ -393,9 +379,8 @@ TEST_F(CTTest, DivBPreservedUnderCTUpdate) {
 
     // Initial divB must be machine-zero by construction
     Real divB_before = GRMHDEvolution::divergenceB(*hydro);
-    EXPECT_LT(divB_before, 1e-12)
-        << "Discrete vector potential must give initial divB = 0."
-        << " Got: " << divB_before;
+    EXPECT_LT(divB_before, 1e-12) << "Discrete vector potential must give initial divB = 0."
+                                  << " Got: " << divB_before;
 
     // Apply one CT step
     Real dt = 0.001;
@@ -407,9 +392,8 @@ TEST_F(CTTest, DivBPreservedUnderCTUpdate) {
     Real divB_after = GRMHDEvolution::divergenceB(*hydro);
 
     // CT must preserve div-B to machine precision
-    EXPECT_LT(divB_after, 1e-10)
-        << "CT must preserve div-B after one step."
-        << " Before: " << divB_before << ", After: " << divB_after;
+    EXPECT_LT(divB_after, 1e-10) << "CT must preserve div-B after one step."
+                                 << " Before: " << divB_before << ", After: " << divB_after;
 }
 
 // ===========================================================================
@@ -425,15 +409,15 @@ TEST_F(CTTest, UniformBFieldDivBIsZero) {
     int tot2 = hydro->totalCells(2);
 
     for (int k = 0; k < tot2; ++k)
-    for (int j = 0; j < tot1; ++j)
-    for (int i = 0; i < tot0; ++i) {
-        hydro->data(static_cast<int>(HydroVar::BX), i,j,k) = Bx0;
-        hydro->data(static_cast<int>(HydroVar::BY), i,j,k) = By0;
-        hydro->data(static_cast<int>(HydroVar::BZ), i,j,k) = Bz0;
-        prims->data(static_cast<int>(PrimitiveVar::BX), i,j,k) = Bx0;
-        prims->data(static_cast<int>(PrimitiveVar::BY), i,j,k) = By0;
-        prims->data(static_cast<int>(PrimitiveVar::BZ), i,j,k) = Bz0;
-    }
+        for (int j = 0; j < tot1; ++j)
+            for (int i = 0; i < tot0; ++i) {
+                hydro->data(static_cast<int>(HydroVar::BX), i, j, k) = Bx0;
+                hydro->data(static_cast<int>(HydroVar::BY), i, j, k) = By0;
+                hydro->data(static_cast<int>(HydroVar::BZ), i, j, k) = Bz0;
+                prims->data(static_cast<int>(PrimitiveVar::BX), i, j, k) = Bx0;
+                prims->data(static_cast<int>(PrimitiveVar::BY), i, j, k) = By0;
+                prims->data(static_cast<int>(PrimitiveVar::BZ), i, j, k) = Bz0;
+            }
 
     Real divB = GRMHDEvolution::divergenceB(*hydro);
     EXPECT_LT(divB, 1e-14) << "Uniform B must have divB = 0 exactly";
@@ -442,9 +426,9 @@ TEST_F(CTTest, UniformBFieldDivBIsZero) {
 
     // B must remain uniform (all EMFs are zero with v=0)
     int ic = hydro->istart() + 3;
-    EXPECT_NEAR(hydro->data(static_cast<int>(HydroVar::BX), ic,ic,ic), Bx0, 1e-13);
-    EXPECT_NEAR(hydro->data(static_cast<int>(HydroVar::BY), ic,ic,ic), By0, 1e-13);
-    EXPECT_NEAR(hydro->data(static_cast<int>(HydroVar::BZ), ic,ic,ic), Bz0, 1e-13);
+    EXPECT_NEAR(hydro->data(static_cast<int>(HydroVar::BX), ic, ic, ic), Bx0, 1e-13);
+    EXPECT_NEAR(hydro->data(static_cast<int>(HydroVar::BY), ic, ic, ic), By0, 1e-13);
+    EXPECT_NEAR(hydro->data(static_cast<int>(HydroVar::BZ), ic, ic, ic), Bz0, 1e-13);
 }
 
 // ===========================================================================
@@ -468,23 +452,22 @@ TEST_F(CTTest, DivBZeroAfterMultipleSteps) {
     int tot1 = hydro->totalCells(1);
     int tot2 = hydro->totalCells(2);
     for (int k = 0; k < tot2; ++k)
-    for (int j = 0; j < tot1; ++j)
-    for (int i = 0; i < tot0; ++i) {
-        prims->data(static_cast<int>(PrimitiveVar::BX), i,j,k)
-            = hydro->data(static_cast<int>(HydroVar::BX), i,j,k);
-        prims->data(static_cast<int>(PrimitiveVar::BY), i,j,k)
-            = hydro->data(static_cast<int>(HydroVar::BY), i,j,k);
-        prims->data(static_cast<int>(PrimitiveVar::BZ), i,j,k)
-            = hydro->data(static_cast<int>(HydroVar::BZ), i,j,k);
-    }
+        for (int j = 0; j < tot1; ++j)
+            for (int i = 0; i < tot0; ++i) {
+                prims->data(static_cast<int>(PrimitiveVar::BX), i, j, k) =
+                    hydro->data(static_cast<int>(HydroVar::BX), i, j, k);
+                prims->data(static_cast<int>(PrimitiveVar::BY), i, j, k) =
+                    hydro->data(static_cast<int>(HydroVar::BY), i, j, k);
+                prims->data(static_cast<int>(PrimitiveVar::BZ), i, j, k) =
+                    hydro->data(static_cast<int>(HydroVar::BZ), i, j, k);
+            }
 
     // Initial periodic fill
     fillPeriodicGhostsAllB(*hydro);
     fillPeriodicGhostsAllB(*prims);
 
     Real divB_init = GRMHDEvolution::divergenceB(*hydro);
-    EXPECT_LT(divB_init, 1e-12)
-        << "Initial divB must be machine-zero. Got: " << divB_init;
+    EXPECT_LT(divB_init, 1e-12) << "Initial divB must be machine-zero. Got: " << divB_init;
 
     // Run 10 CT steps with periodic ghost fills each iteration
     Real dt = 0.0005;
@@ -496,7 +479,6 @@ TEST_F(CTTest, DivBZeroAfterMultipleSteps) {
 
     Real divB_final = GRMHDEvolution::divergenceB(*hydro);
 
-    EXPECT_LT(divB_final, 1e-10)
-        << "div-B must remain near machine-zero after 10 CT steps."
-        << " Initial: " << divB_init << ", Final: " << divB_final;
+    EXPECT_LT(divB_final, 1e-10) << "div-B must remain near machine-zero after 10 CT steps."
+                                 << " Initial: " << divB_init << ", Final: " << divB_final;
 }

@@ -16,12 +16,12 @@
 namespace granite::io {
 
 struct IOParams {
-    std::string output_dir       = "output";
+    std::string output_dir = "output";
     std::string checkpoint_prefix = "checkpoint";
-    int output_interval          = 10;
-    int checkpoint_interval      = 1000;
-    bool parallel_hdf5           = true;
-    int compression_level        = 0;  ///< 0 = none, 1-9 = gzip level
+    int output_interval = 10;
+    int checkpoint_interval = 1000;
+    bool parallel_hdf5 = true;
+    int compression_level = 0; ///< 0 = none, 1-9 = gzip level
 };
 
 /**
@@ -41,22 +41,26 @@ public:
     /// Write all blocks at a given time step
     void writeTimestep(const std::vector<const GridBlock*>& blocks,
                        const std::vector<std::string>& var_names,
-                       int step, Real time) const;
+                       int step,
+                       Real time) const;
 
     /// Write checkpoint (all data needed for restart)
     void writeCheckpoint(const std::vector<const GridBlock*>& blocks,
-                         int step, Real time,
+                         int step,
+                         Real time,
                          const SimulationParams& sim_params) const;
 
     /// Write 1D scalar time-series (e.g., constraints, GW modes)
     void appendTimeSeries(const std::string& filename,
                           const std::string& dataset_name,
-                          Real time, Real value) const;
+                          Real time,
+                          Real value) const;
 
     /// Write 2D spherical data (for Ψ₄ extraction on spheres)
     void writeSphericalData(const std::string& filename,
                             int l_max,
-                            Real time, Real r_ext,
+                            Real time,
+                            Real r_ext,
                             const std::vector<Real>& data) const;
 
     const IOParams& params() const { return params_; }
@@ -77,7 +81,8 @@ public:
     /// Read a checkpoint file and reconstruct grid blocks
     void readCheckpoint(const std::string& filename,
                         std::vector<std::unique_ptr<GridBlock>>& blocks,
-                        int& step, Real& time,
+                        int& step,
+                        Real& time,
                         SimulationParams& sim_params) const;
 
     /// Read a specific dataset from an HDF5 file
