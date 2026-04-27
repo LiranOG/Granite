@@ -35,7 +35,7 @@ using namespace granite::amr;
 // Helper: fill a GridBlock with a constant value for all variables.
 // ---------------------------------------------------------------------------
 static void fillConstant(GridBlock& block, Real value) {
-    for (int v = 0; v < block.numVars(); ++v)
+    for (int v = 0; v < block.getNumVars(); ++v)
         for (int k = 0; k < block.totalCells(2); ++k)
             for (int j = 0; j < block.totalCells(1); ++j)
                 for (int i = 0; i < block.totalCells(0); ++i)
@@ -48,7 +48,7 @@ static void fillConstant(GridBlock& block, Real value) {
 static Real maxError(const GridBlock& block, Real expected) {
     Real err = 0.0;
     int is = block.istart();
-    for (int v = 0; v < block.numVars(); ++v)
+    for (int v = 0; v < block.getNumVars(); ++v)
         for (int k = is; k < block.iend(2); ++k)
             for (int j = is; j < block.iend(1); ++j)
                 for (int i = is; i < block.iend(0); ++i) {
@@ -66,15 +66,16 @@ protected:
     void SetUp() override {
         params_.max_levels    = 3;
         params_.refinement_ratio = 2;
-        params_.base_ncells   = {8, 8, 8};
-        params_.base_lo       = {-1.0, -1.0, -1.0};
-        params_.base_hi       = {+1.0, +1.0, +1.0};
-        params_.nghost        = 4;
-        params_.num_vars      = 5;   // Minimal: chi + alpha + 3 shift components
         params_.regrid_interval = 4;
+
+        sim_params_.ncells = {8, 8, 8};
+        sim_params_.domain_lo = {-1.0, -1.0, -1.0};
+        sim_params_.domain_hi = {+1.0, +1.0, +1.0};
+        sim_params_.ghost_cells = 4;
     }
 
     AMRParams params_;
+    SimulationParams sim_params_;
 };
 
 // ---------------------------------------------------------------------------
@@ -82,7 +83,7 @@ protected:
 // ---------------------------------------------------------------------------
 TEST_F(AMRSmokeTest, ConstructionSucceeds) {
     EXPECT_NO_THROW({
-        AMRHierarchy hier(params_);
+        AMRHierarchy hier(params_, sim_params_);
     }) << "AMRHierarchy constructor threw an exception on well-formed params.";
 }
 
@@ -91,7 +92,8 @@ TEST_F(AMRSmokeTest, ConstructionSucceeds) {
 //     (the base level). It must never have zero or negative levels.
 // ---------------------------------------------------------------------------
 TEST_F(AMRSmokeTest, InitialLevelCountIsOne) {
-    AMRHierarchy hier(params_);
+    AMRHierarchy hier(params_, sim_params_);
+    hier.initialize([](const GridBlock&, int, int, int) { return false; });
     EXPECT_EQ(hier.numLevels(), 1)
         << "Expected 1 base level after construction; got " << hier.numLevels();
 }
@@ -105,22 +107,21 @@ TEST_F(AMRSmokeTest, InitialLevelCountIsOne) {
 //     to degree 1. A constant field is degree 0, so the error must be zero.
 // ---------------------------------------------------------------------------
 TEST_F(AMRSmokeTest, ProlongationPreservesConstantField) {
-    // Build a minimal 2-level hierarchy
-    AMRHierarchy hier(params_);
-    hier.addLevel();   // Adds level 1 (2× refinement of base)
+    AMRHierarchy hier(params_, sim_params_);
+    hier.initialize([](const GridBlock&, int, int, int) { return true; }); // Tag all cells
 
     ASSERT_GE(hier.numLevels(), 2)
-        << "addLevel() failed to create level 1.";
+        << "initialize() failed to create level 1.";
 
-    GridBlock& coarse = hier.getBlock(0, 0);  // level 0, block 0
-    GridBlock& fine   = hier.getBlock(1, 0);  // level 1, block 0
+    GridBlock& coarse = *hier.getLevel(0)[0];
+    GridBlock& fine   = *hier.getLevel(1)[0];
 
     const Real C = 42.0;
     fillConstant(coarse, C);
     fillConstant(fine,   0.0);   // Zero out fine before prolongation
 
-    EXPECT_NO_THROW(hier.prolongate(0, 1))
-        << "prolongate(0→1) threw on constant-field coarse grid.";
+    EXPECT_NO_THROW(hier.prolongate(coarse, fine))
+        << "prolongate() threw on constant-field coarse grid.";
 
     Real err = maxError(fine, C);
     EXPECT_LT(err, 1.0e-12)
@@ -137,20 +138,20 @@ TEST_F(AMRSmokeTest, ProlongationPreservesConstantField) {
 //     Physical rationale: volume-average of a constant is the constant.
 // ---------------------------------------------------------------------------
 TEST_F(AMRSmokeTest, RestrictionPreservesConstantField) {
-    AMRHierarchy hier(params_);
-    hier.addLevel();
+    AMRHierarchy hier(params_, sim_params_);
+    hier.initialize([](const GridBlock&, int, int, int) { return true; });
 
     ASSERT_GE(hier.numLevels(), 2);
 
-    GridBlock& coarse = hier.getBlock(0, 0);
-    GridBlock& fine   = hier.getBlock(1, 0);
+    GridBlock& coarse = *hier.getLevel(0)[0];
+    GridBlock& fine   = *hier.getLevel(1)[0];
 
     const Real C = 3.14159;
     fillConstant(fine,   C);
     fillConstant(coarse, 0.0);
 
-    EXPECT_NO_THROW(hier.restrict_data(1, 0))
-        << "restrict_data(1→0) threw on constant-field fine grid.";
+    EXPECT_NO_THROW(hier.restrict_data(fine, coarse))
+        << "restrict_data() threw on constant-field fine grid.";
 
     Real err = maxError(coarse, C);
     EXPECT_LT(err, 1.0e-12)
@@ -164,13 +165,15 @@ TEST_F(AMRSmokeTest, RestrictionPreservesConstantField) {
 //     Expected behaviour: no new blocks are created (no refinement needed).
 // ---------------------------------------------------------------------------
 TEST_F(AMRSmokeTest, RegridWithNoTaggedCellsIsStable) {
-    AMRHierarchy hier(params_);
+    AMRHierarchy hier(params_, sim_params_);
+    hier.initialize([](const GridBlock&, int, int, int) { return false; });
 
     // Fill base level with zero (no refinement criterion will trigger)
-    fillConstant(hier.getBlock(0, 0), 0.0);
+    fillConstant(*hier.getLevel(0)[0], 0.0);
 
     int before = hier.numLevels();
-    EXPECT_NO_THROW(hier.regrid(0.0 /* current time */))
+    auto no_tagger = [](const GridBlock&, int, int, int) { return false; };
+    EXPECT_NO_THROW(hier.regrid(0, no_tagger))
         << "regrid() threw when no cells were tagged for refinement.";
 
     // After regridding with nothing tagged, we expect the hierarchy to

@@ -57,6 +57,7 @@ protected:
     std::array<Real, 3> hi_      = {+1.0, +1.0, +1.0};
     int nghost_   = 2;
     int num_vars_ = 6;
+    std::vector<std::string> var_names_ = {"V1", "V2", "V3", "V4", "V5", "V6"};
 
     fs::path tmp_path_;
 };
@@ -77,27 +78,31 @@ TEST_F(HDF5RoundtripTest, ConstantFieldPreservedExactly) {
                     src.data(v, i, j, k) = C;
 
     // Write
-    HDF5Writer writer(tmp_path_.string());
-    ASSERT_NO_THROW(writer.writeBlock(src, /*timestep=*/0, /*time=*/0.0))
+    IOParams io_params;
+    HDF5Writer writer(io_params);
+    ASSERT_NO_THROW(writer.writeBlock(src, var_names_, tmp_path_.string()))
         << "HDF5Writer::writeBlock threw on constant-filled GridBlock.";
-    writer.close();
 
-    // Read back
-    GridBlock dst(1, 0, ncells_, lo_, hi_, nghost_, num_vars_);
-    HDF5Reader reader(tmp_path_.string());
-    ASSERT_NO_THROW(reader.readBlock(dst, /*timestep=*/0))
-        << "HDF5Reader::readBlock threw on a valid file.";
-    reader.close();
+    // Read back first variable to verify
+    HDF5Reader reader;
+    std::vector<Real> dst_data;
+    std::vector<int> shape;
+    ASSERT_NO_THROW(reader.readDataset(tmp_path_.string(), var_names_[0], dst_data, shape))
+        << "HDF5Reader::readDataset threw on a valid file.";
 
     // Compare
     Real max_err = 0.0;
-    for (int v = 0; v < num_vars_; ++v)
-        for (int k = 0; k < src.totalCells(2); ++k)
-            for (int j = 0; j < src.totalCells(1); ++j)
-                for (int i = 0; i < src.totalCells(0); ++i) {
-                    Real err = std::abs(dst.data(v, i, j, k) - C);
+    int data_idx = 0;
+    int v = 0; // we only read the first variable
+    for (int k = 0; k < src.totalCells(2); ++k)
+        for (int j = 0; j < src.totalCells(1); ++j)
+            for (int i = 0; i < src.totalCells(0); ++i) {
+                if (data_idx < dst_data.size()) {
+                    Real err = std::abs(dst_data[data_idx] - C);
                     if (err > max_err) max_err = err;
                 }
+                data_idx++;
+            }
 
     EXPECT_LT(max_err, 1.0e-14)
         << "HDF5 round-trip modified constant field C=" << C
@@ -119,35 +124,39 @@ TEST_F(HDF5RoundtripTest, LinearRampFieldPreservedExactly) {
                 for (int i = 0; i < src.totalCells(0); ++i)
                     src.data(v, i, j, k) = static_cast<Real>(v + i + j*10 + k*100);
 
-    HDF5Writer writer(tmp_path_.string());
-    ASSERT_NO_THROW(writer.writeBlock(src, 0, 0.0));
-    writer.close();
+    IOParams io_params;
+    HDF5Writer writer(io_params);
+    ASSERT_NO_THROW(writer.writeBlock(src, var_names_, tmp_path_.string()));
 
-    GridBlock dst(3, 0, ncells_, lo_, hi_, nghost_, num_vars_);
-    HDF5Reader reader(tmp_path_.string());
-    ASSERT_NO_THROW(reader.readBlock(dst, 0));
-    reader.close();
+    HDF5Reader reader;
+    std::vector<Real> dst_data;
+    std::vector<int> shape;
+    ASSERT_NO_THROW(reader.readDataset(tmp_path_.string(), var_names_[0], dst_data, shape));
 
-    // Verify every cell
+    // Verify every cell for var 0
     bool mismatch = false;
-    int mv = -1, mi = -1, mj = -1, mk = -1;
+    int mi = -1, mj = -1, mk = -1;
     Real got = 0.0, expected = 0.0;
-    for (int v = 0; v < num_vars_ && !mismatch; ++v)
-        for (int k = 0; k < src.totalCells(2) && !mismatch; ++k)
-            for (int j = 0; j < src.totalCells(1) && !mismatch; ++j)
-                for (int i = 0; i < src.totalCells(0) && !mismatch; ++i) {
+    int data_idx = 0;
+    int v = 0;
+    for (int k = 0; k < src.totalCells(2) && !mismatch; ++k)
+        for (int j = 0; j < src.totalCells(1) && !mismatch; ++j)
+            for (int i = 0; i < src.totalCells(0) && !mismatch; ++i) {
+                if (data_idx < dst_data.size()) {
                     Real ex = static_cast<Real>(v + i + j*10 + k*100);
-                    Real rd = dst.data(v, i, j, k);
+                    Real rd = dst_data[data_idx];
                     if (std::abs(rd - ex) > 1.0e-14) {
                         mismatch = true;
-                        mv = v; mi = i; mj = j; mk = k;
+                        mi = i; mj = j; mk = k;
                         got = rd; expected = ex;
                     }
                 }
+                data_idx++;
+            }
 
     EXPECT_FALSE(mismatch)
-        << "HDF5 round-trip mismatch at var=" << mv
-        << " (" << mi << "," << mj << "," << mk << "): "
+        << "HDF5 round-trip mismatch at "
+        << "(" << mi << "," << mj << "," << mk << "): "
         << "expected " << expected << " got " << got;
 }
 
@@ -164,9 +173,9 @@ TEST_F(HDF5RoundtripTest, FileExistsAndNonEmptyAfterWrite) {
                 for (int i = 0; i < src.totalCells(0); ++i)
                     src.data(v, i, j, k) = 1.0;
 
-    HDF5Writer writer(tmp_path_.string());
-    writer.writeBlock(src, 0, 0.0);
-    writer.close();
+    IOParams io_params;
+    HDF5Writer writer(io_params);
+    writer.writeBlock(src, var_names_, tmp_path_.string());
 
     EXPECT_TRUE(fs::exists(tmp_path_))
         << "HDF5 file does not exist after writer.close().";

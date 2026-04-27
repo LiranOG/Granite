@@ -43,15 +43,26 @@ protected:
         M1Params params;
         params.kappa_a = 1.0;
         params.kappa_s = 0.0;
-        m1_ = std::make_unique<M1Solver>(params);
-        m1_->setUniformField(*grid_, /*E_r=*/1.0e-3, /*F_r=*/0.0);
+        m1_ = std::make_unique<M1Transport>(params);
+
+        // Manually set uniform field
+        for (int k = 0; k < grid_->totalCells(2); ++k) {
+            for (int j = 0; j < grid_->totalCells(1); ++j) {
+                for (int i = 0; i < grid_->totalCells(0); ++i) {
+                    grid_->data(static_cast<int>(RadiationVar::ER), i, j, k) = 1.0e-3;
+                    grid_->data(static_cast<int>(RadiationVar::FRX), i, j, k) = 0.0;
+                    grid_->data(static_cast<int>(RadiationVar::FRY), i, j, k) = 0.0;
+                    grid_->data(static_cast<int>(RadiationVar::FRZ), i, j, k) = 0.0;
+                }
+            }
+        }
     }
 
     std::array<int,  3> ncells_;
     std::array<Real, 3> lo_, hi_;
     int nghost_;
     std::unique_ptr<GridBlock> grid_, rhs_;
-    std::unique_ptr<M1Solver>  m1_;
+    std::unique_ptr<M1Transport>  m1_;
 };
 
 // ===========================================================================
@@ -60,8 +71,10 @@ protected:
 // exceptions when presented with a standard uniform, isotropic field.
 // ===========================================================================
 TEST_F(M1SmokeTest, RHSDoesNotCrash) {
-    EXPECT_NO_THROW(m1_->computeRHS(*grid_, *rhs_))
-        << "M1Solver::computeRHS threw on a uniform isotropic radiation field.";
+    GridBlock spacetime(0, 0, ncells_, lo_, hi_, nghost_, NUM_SPACETIME_VARS);
+    GridBlock hydro(1, 0, ncells_, lo_, hi_, nghost_, NUM_PRIMITIVE_VARS);
+    EXPECT_NO_THROW(m1_->computeRHS(spacetime, hydro, *grid_, *rhs_))
+        << "M1Transport::computeRHS threw on a uniform isotropic radiation field.";
 }
 
 // ===========================================================================
@@ -70,34 +83,38 @@ TEST_F(M1SmokeTest, RHSDoesNotCrash) {
 // If ξ = |F|/(c E) = 1, then the Eddington factor f_Edd must exactly equal 1.
 // ===========================================================================
 TEST_F(M1SmokeTest, EddingtonThinLimit) {
-    Real f = M1Solver::eddingtonFactor(1.0);
-    EXPECT_NEAR(f, 1.0, 1.0e-10)
-        << "Eddington factor at ξ=1 (free-streaming) should be 1.0, got " << f;
+    std::array<Real, SYM_TENSOR_COMPS> Pij;
+    // Free streaming: F = E. For F along x, P_xx should be E.
+    m1_->eddingtonTensor(1.0, 1.0, 0.0, 0.0, Pij);
+    EXPECT_NEAR(Pij[0], 1.0, 1.0e-10) << "P_xx in free-streaming limit should be 1.0";
 }
 
 // ===========================================================================
 // === TEST CASE T3: Diffusion Limit ===
 // Verifies the Minerbo closure correctly recovers the optically thick limit.
-// If ξ = 0, the field is isotropic, and f_Edd must exactly equal 1/3.
+// If ξ = 0, the field is isotropic, and P_xx must exactly equal 1/3 E.
 // ===========================================================================
 TEST_F(M1SmokeTest, EddingtonThickLimit) {
-    Real f = M1Solver::eddingtonFactor(0.0);
-    EXPECT_NEAR(f, 1.0 / 3.0, 1.0e-10)
-        << "Eddington factor at ξ=0 (diffusion limit) should be 1/3, got " << f;
+    std::array<Real, SYM_TENSOR_COMPS> Pij;
+    // Diffusion: F = 0. P_ij = 1/3 E δ_ij
+    m1_->eddingtonTensor(1.0, 0.0, 0.0, 0.0, Pij);
+    EXPECT_NEAR(Pij[0], 1.0 / 3.0, 1.0e-10) << "P_xx in diffusion limit should be 1/3";
 }
 
 // ===========================================================================
 // === TEST CASE T4: Physical Boundedness ===
-// Exhaustively verifies that the variable Eddington factor remains strictly
-// physically bounded within [1/3, 1] for arbitrary reduced flux ξ ∈ [0, 1].
+// Exhaustively verifies that the Eddington tensor principal component P_xx
+// remains strictly physically bounded within [1/3, 1] for arbitrary reduced flux ξ ∈ [0, 1].
 // ===========================================================================
 TEST_F(M1SmokeTest, EddingtonBounded) {
+    std::array<Real, SYM_TENSOR_COMPS> Pij;
     for (int n = 0; n <= 100; ++n) {
         Real xi = static_cast<Real>(n) / 100.0;
-        Real f  = M1Solver::eddingtonFactor(xi);
-        EXPECT_GE(f, 1.0 / 3.0 - 1.0e-12)
-            << "f_Edd below 1/3 at xi=" << xi << ": " << f;
-        EXPECT_LE(f, 1.0 + 1.0e-12)
-            << "f_Edd above 1.0 at xi=" << xi << ": " << f;
+        m1_->eddingtonTensor(1.0, xi, 0.0, 0.0, Pij);
+        Real Pxx = Pij[0];
+        EXPECT_GE(Pxx, 1.0 / 3.0 - 1.0e-12)
+            << "P_xx below 1/3 at xi=" << xi << ": " << Pxx;
+        EXPECT_LE(Pxx, 1.0 + 1.0e-12)
+            << "P_xx above 1.0 at xi=" << xi << ": " << Pxx;
     }
 }

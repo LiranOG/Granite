@@ -40,19 +40,21 @@ protected:
         grid_ = std::make_unique<GridBlock>(
             0, 0, ncells_, lo_, hi_, nghost_, NUM_SPACETIME_VARS);
 
-        BrillLindquistParams bl_params;
-        bl_params.n_bh    = 1;
-        bl_params.mass[0] = mass_;
-        bl_params.pos[0]  = {0.0, 0.0, 0.0};
+        std::vector<BlackHoleParams> bhs;
+        BlackHoleParams bh;
+        bh.mass = mass_;
+        bh.position = {0.0, 0.0, 0.0};
+        bh.momentum = {0.0, 0.0, 0.0};
+        bh.spin = {0.0, 0.0, 0.0};
+        bhs.push_back(bh);
 
-        BrillLindquistInitialData bl_solver(bl_params);
-        bl_solver.initialize(*grid_);
+        BrillLindquist bl_solver(bhs);
+        bl_solver.apply(*grid_);
 
-        finder_params_.r_init      = 3.0 * mass_;
-        finder_params_.n_theta     = 12;
-        finder_params_.n_phi       = 24;
-        finder_params_.max_iter    = 50;
-        finder_params_.convergence = 1.0e-4;
+        finder_params_.initial_guess_radius = 3.0 * mass_;
+        finder_params_.angular_resolution   = 24;
+        finder_params_.max_iterations       = 50;
+        finder_params_.tolerance            = 1.0e-4;
     }
 
     std::array<int,  3> ncells_;
@@ -60,7 +62,7 @@ protected:
     int    nghost_;
     Real   mass_;
     std::unique_ptr<GridBlock> grid_;
-    HorizonFinderParams finder_params_;
+    HorizonParams finder_params_;
 };
 
 // ===========================================================================
@@ -69,10 +71,11 @@ protected:
 // exits without throwing an exception when presented with standard BL data.
 // ===========================================================================
 TEST_F(SchwarzschildHorizonTest, FinderDoesNotCrash) {
-    HorizonFinder finder(finder_params_);
-    HorizonResult result;
-    EXPECT_NO_THROW(result = finder.find(*grid_))
-        << "HorizonFinder::find threw on Schwarzschild BL data.";
+    ApparentHorizonFinder finder(finder_params_);
+    std::optional<HorizonData> result;
+    std::array<Real, DIM> center = {0.0, 0.0, 0.0};
+    EXPECT_NO_THROW(result = finder.findHorizon(*grid_, center))
+        << "ApparentHorizonFinder::findHorizon threw on Schwarzschild BL data.";
 }
 
 // ===========================================================================
@@ -82,13 +85,14 @@ TEST_F(SchwarzschildHorizonTest, FinderDoesNotCrash) {
 // in isotropic Brill-Lindquist coordinates (±25% coarse grid tolerance).
 // ===========================================================================
 TEST_F(SchwarzschildHorizonTest, HorizonRadiusWithinBounds) {
-    HorizonFinder finder(finder_params_);
-    HorizonResult result = finder.find(*grid_);
+    ApparentHorizonFinder finder(finder_params_);
+    std::array<Real, DIM> center = {0.0, 0.0, 0.0};
+    std::optional<HorizonData> result = finder.findHorizon(*grid_, center);
 
-    ASSERT_TRUE(result.found)
+    ASSERT_TRUE(result.has_value())
         << "HorizonFinder did not find a horizon on a Schwarzschild puncture.";
 
-    Real R = result.mean_radius;
+    Real R = std::sqrt(result->area / (4.0 * constants::PI));
     EXPECT_GE(R, 0.75 * 2.0 * mass_) << "Horizon radius too small: " << R;
     EXPECT_LE(R, 1.25 * 2.0 * mass_) << "Horizon radius too large: " << R;
 }
@@ -99,11 +103,12 @@ TEST_F(SchwarzschildHorizonTest, HorizonRadiusWithinBounds) {
 // horizon proper area approximates the ADM mass M (±30% coarse grid tolerance).
 // ===========================================================================
 TEST_F(SchwarzschildHorizonTest, HorizonMassConsistency) {
-    HorizonFinder finder(finder_params_);
-    HorizonResult result = finder.find(*grid_);
-    ASSERT_TRUE(result.found);
+    ApparentHorizonFinder finder(finder_params_);
+    std::array<Real, DIM> center = {0.0, 0.0, 0.0};
+    std::optional<HorizonData> result = finder.findHorizon(*grid_, center);
+    ASSERT_TRUE(result.has_value());
 
-    Real M_irr = std::sqrt(result.area / (16.0 * M_PI));
+    Real M_irr = result->irreducible_mass;
     EXPECT_GE(M_irr, 0.70 * mass_) << "M_irr too small: " << M_irr;
     EXPECT_LE(M_irr, 1.30 * mass_) << "M_irr too large: " << M_irr;
 }
