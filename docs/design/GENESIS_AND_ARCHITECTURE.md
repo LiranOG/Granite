@@ -79,7 +79,7 @@ After reading the theory, open the kinematic engines from the Suite's [`02_Kinem
 
 2. **`ENAE_7_Septad/SYNAPSE_Framework.html`** — Step through the merger cascade. Watch spin accumulate across merger steps. Confirm the running efficiency amplification.
 
-3. **`ENAE_8_Octad/VORTEX/VORTEX_ETERNITY.html`** — The production-grade 3D engine. Configure a multi-body scenario, run the simulation, observe gravitational lensing, hear gravitational wave sonification.
+3. **`ENAE_8_Octad/VORTEX/VORTEX_ETERNITY.html`** — The fully operational WebGL 3D engine. Configure a multi-body scenario, run the simulation, observe gravitational lensing, hear gravitational wave sonification.
 
 4. **`ENAE_8_Octad/SECOND_HALF/NEXUS.html`** — Visualize the 4-phase NEXUS cascade with energy budget breakdowns.
 
