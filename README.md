@@ -60,7 +60,7 @@ Designed from the ground up to model extreme astrophysical events — such as th
 - [⚠️ Known Limitations](#️-known-limitations-v067)
 - [📋 Versioning Policy](#-versioning-policy-pre-100)
 - [🤝 Open for Collaboration](#-open-for-collaboration)
-- [🛠️ Contributing](#-contributing)
+- [🛠️ Contributing](#%EF%B8%8F-contributing)
 - [📚 Documentation](#-documentation)
 - [🗂 The Genesis Archive: Background & Motivation](#-the-genesis-archive-background--motivation)
 - [🌀 VORTEX: The Interactive WebGL Simulator](#-vortex-the-interactive-webgl-simulator)
