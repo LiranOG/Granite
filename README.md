@@ -60,7 +60,7 @@ Designed from the ground up to model extreme astrophysical events — such as th
 - [⚠️ Known Limitations](#️-known-limitations-v067)
 - [📋 Versioning Policy](#-versioning-policy-pre-100)
 - [🤝 Open for Collaboration](#-open-for-collaboration)
-- [🤝 Contributing](#-contributing)
+- [🛠️ Contributing](#-contributing)
 - [📚 Documentation](#-documentation)
 - [🗂 The Genesis Archive: Background & Motivation](#-the-genesis-archive-background--motivation)
 - [🌀 VORTEX: The Interactive WebGL Simulator](#-vortex-the-interactive-webgl-simulator)
@@ -386,7 +386,7 @@ If you're interested — open a GitHub Discussion or email `scliran9@gmail.com`.
 
 ---
 
-## 🤝 Contributing
+## 🛠️ Contributing
 
 Contributions from the scientific and open-source communities are welcome. Please read [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md) and adhere to [`.github/CODE_OF_CONDUCT.md`](.github/CODE_OF_CONDUCT.md).
 
