@@ -13,8 +13,11 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",
     "sphinx.ext.intersphinx",
+    "sphinxcontrib.bibtex",
     "breathe",  # C++ API from Doxygen
 ]
+
+bibtex_bibfiles = ['citation.bib']
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
