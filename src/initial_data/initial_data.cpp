@@ -761,9 +761,9 @@ void TwoPuncturesBBH::generate(GridBlock& grid) const {
         Kij[0] = cP * (2.0 * P[0] * nnx - (1.0 - nnx * nnx) * Pn); // xx
         Kij[1] = cP * (2.0 * P[1] * nny - (1.0 - nny * nny) * Pn); // yy
         Kij[2] = cP * (2.0 * P[2] * nnz - (1.0 - nnz * nnz) * Pn); // zz
-        Kij[3] = cP * (P[0] * nny + P[1] * nnx + nnx * nny * Pn);   // xy
-        Kij[4] = cP * (P[0] * nnz + P[2] * nnx + nnx * nnz * Pn);   // xz
-        Kij[5] = cP * (P[1] * nnz + P[2] * nny + nny * nnz * Pn);   // yz
+        Kij[3] = cP * (P[0] * nny + P[1] * nnx + nnx * nny * Pn);  // xy
+        Kij[4] = cP * (P[0] * nnz + P[2] * nnx + nnx * nnz * Pn);  // xz
+        Kij[5] = cP * (P[1] * nnz + P[2] * nny + nny * nnz * Pn);  // yz
 
         Real cS = 3.0 / (2.0 * r3);
         Kij[0] += cS * (2.0 * nnx * Sn_x);
