@@ -331,7 +331,7 @@ Scientific integrity demands transparency. These limitations are known, document
 | M1 radiation built but not wired into RK3 loop | Radiation not active in production runs | 🔄 Active | v0.7 |
 | `alpha_center` reads from AMR level 0, not finest level near puncture | Misleading lapse diagnostic | 📋 Known | v0.7 |
 | GTX 1050 Ti not viable for FP64 GPU compute | GPU path requires H100-class hardware | 📋 Known | Post GPU porting |
-| macOS / Windows native unsupported | Limits accessibility | 📋 Planned | v0.8+ |
+| Native Windows unsupported; macOS Homebrew experimental (not CI-gated) | Limits CI coverage; macOS issues cannot be caught automatically | 📋 Tracked | v0.8+ |
 | Tangential BY momenta required for inspiral p_t ≈ ±0.0954 per BH (quasi-circular, d = 10 M) | Zero momenta → head-on, not inspiral | 📝 Documented | User parameter |
 
 > Full debug context: [`docs/diagnostic_handbook.md`](./docs/diagnostic_handbook.md)

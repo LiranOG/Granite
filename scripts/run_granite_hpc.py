@@ -1,47 +1,50 @@
 #!/usr/bin/env python3
 # =============================================================================
-#  run_granite.py — GRANITE HPC Launch Wrapper
+#  run_granite_hpc.py — GRANITE HPC Launch Wrapper
 # =============================================================================
 #
-#  Author  : GRANITE Development Team
-#  Version : 1.0.0
-#  License : GPL-3.0 (Granite engine) / MIT (this wrapper)
+#  Author  : Liran M. Schwartz
+#  Version : 0.6.7  (tracks engine version)
+#  License : GPL-3.0 (GRANITE engine) / MIT (this wrapper)
 #
 #  Purpose
 #  -------
-#  A production-grade, idempotent launcher that wraps the GRANITE binary for
-#  deployment on institutional supercomputers.  It provides:
+#  HPC launch wrapper for the GRANITE binary. Provides MPI integration,
+#  optional NUMA binding, AMR subcycling telemetry, and UTF-8 locale
+#  hardening for non-standard cluster images.
 #
-#  1. Manual NUMA/MPI/OpenMP overrides  — HPC administrators can bypass
-#     automated hardware detection entirely and exert total control over
-#     process topology.
+#  Current status: designed for cluster deployment, tested on desktop only.
+#  Cluster-scale validation is a v0.7+ target.
 #
-#  2. AMR subcycling telemetry          — Structured per-rank log of
+#  Features
+#  --------
+#  1. Manual NUMA / MPI / OpenMP overrides — bypass auto-detection and
+#     control process topology explicitly (useful on NUMA-aware nodes).
+#
+#  2. AMR subcycling telemetry — structured per-rank JSONL log of
 #     parallel communication overhead during Adaptive Mesh Refinement,
-#     suitable for scaling analysis on distributed-memory systems.
+#     for future scaling analysis on distributed-memory systems.
 #
-#  3. UTF-8 / locale hardening          — Pins the subprocess environment
-#     to en_US.UTF-8 to prevent byte-encoding issues on non-standard HPC
-#     node images.
+#  3. UTF-8 / locale hardening — pins the subprocess environment to
+#     en_US.UTF-8 to prevent byte-encoding issues on non-standard images.
 #
-#  4. MPI launch integration            — If --mpi-ranks > 1 is requested,
-#     the binary is automatically wrapped with `mpirun` (or the scheduler-
-#     provided launcher).
+#  4. MPI launch integration — if --mpi-ranks > 1, the binary is
+#     automatically wrapped with `mpirun` (or a custom scheduler launcher).
 #
 #  Usage (examples)
 #  ----------------
 #  # Minimal run (auto-detect everything):
-#  python run_granite.py build/bin/granite_main benchmarks/B2_eq/params.yaml
+#  python run_granite_hpc.py build/bin/granite_main benchmarks/B2_eq/params.yaml
 #
-#  # Full manual override (for HPC admins):
-#  python run_granite.py build/bin/granite_main benchmarks/B2_eq/params.yaml \
+#  # Manual thread + rank override:
+#  python run_granite_hpc.py build/bin/granite_main benchmarks/B2_eq/params.yaml \
 #      --omp-threads 32           \
 #      --mpi-ranks 128            \
 #      --disable-numa-bind        \
 #      --amr-telemetry-file /scratch/$USER/amr_scaling.log
 #
 #  # Use a custom MPI launcher (e.g., srun on SLURM):
-#  python run_granite.py build/bin/granite_main benchmarks/B2_eq/params.yaml \
+#  python run_granite_hpc.py build/bin/granite_main benchmarks/B2_eq/params.yaml \
 #      --mpi-ranks 256            \
 #      --mpi-launcher srun        \
 #      --mpi-extra-args "--ntasks-per-node=4 --cpus-per-task=8"
