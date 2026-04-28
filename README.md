@@ -39,7 +39,7 @@ Designed from the ground up to model extreme astrophysical events — such as th
 > - **Recoil velocity** (`computeRecoilVelocity`) throws `std::runtime_error` — not yet implemented.
 > - **AMR reflux correction** at coarse-fine interfaces: known accuracy limitation.
 > - **Unit tests cover all major physics modules** (107 tests across 20 suites). Only `postprocess` lacks dedicated unit tests.
-> - **Native Windows / macOS** unsupported; Linux and WSL2 only.
+> - **Native Windows** unsupported; use WSL2. **macOS** is experimentally supported via Homebrew (community-tested, not CI-gated).
 >
 > See [Known Limitations](#️-known-limitations-v067) for the full table.
 
@@ -148,7 +148,7 @@ All results are from **production runs on a single desktop workstation** (Intel 
 ## 🚀 Quick Start Guide
 
 > [!NOTE]
-> **OS Requirement:** GRANITE is currently optimized exclusively for **Linux** and **WSL2**. Native Windows and macOS are strictly unsupported.
+> **OS Requirement:** GRANITE is developed and CI-tested on **Linux** and **WSL2**. Native Windows is unsupported. macOS via Homebrew is experimentally supported — community-tested, not covered by CI.
 > *Hitting a wall?* See [**INSTALL.md**](./docs/INSTALL.md) for step-by-step guides and exhaustive troubleshooting.
 
 ### Step 1 — Clone the Repository
@@ -183,7 +183,11 @@ module load mpi/openmpi-x86_64
 python3 scripts/run_granite.py build
 ```
 
-#### 🍎 macOS — Homebrew
+#### 🍎 macOS — Homebrew (experimental, community-tested)
+
+> [!NOTE]
+> macOS is not covered by CI. These instructions have been community-tested on Apple Silicon (M1/M2) and Intel Macs. Report issues via GitHub.
+
 ```bash
 brew install cmake hdf5 open-mpi yaml-cpp
 python3 scripts/run_granite.py build
@@ -511,7 +515,7 @@ If you use GRANITE in academic research, teaching, or scientific software, pleas
 
 ```bibtex
 @software{granite2026,
-  author    = {LiranOG},
+  author    = {Schwartz, Liran M.},
   title     = {{GRANITE}: General-Relativistic Adaptive N-body Integrated
                Tool for Extreme Astrophysics},
   year      = {2026},

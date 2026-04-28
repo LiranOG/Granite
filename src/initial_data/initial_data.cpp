@@ -406,7 +406,8 @@ std::array<Real, DIM> BowenYorkPuncture::admAngularMomentum() const {
 }
 
 // ===========================================================================
-// Superposed Kerr-Schild (stub)
+// Superposed Kerr-Schild — analytic superposition of individual Kerr-Schild
+// metrics (Matzner et al. 1999); conformal factor extracted from det(g_ij).
 // ===========================================================================
 
 SuperposedKerrSchild::SuperposedKerrSchild(const std::vector<BlackHoleParams>& bhs) : bhs_(bhs) {}
@@ -723,7 +724,8 @@ void StellarInitialData::addMagneticField(GridBlock& hydro_grid, const StarParam
 }
 
 // ===========================================================================
-// TwoPunctures spectral solving (stub)
+// TwoPunctures — Bowen-York extrinsic curvature + SOR / PETSc SNES Hamiltonian
+// constraint solve for the conformal factor correction u(r) (Brandt & Brügmann 1997).
 // ===========================================================================
 
 TwoPuncturesBBH::TwoPuncturesBBH(const TwoPuncturesParams& params) : params_(params) {}
@@ -746,30 +748,30 @@ void TwoPuncturesBBH::generate(GridBlock& grid) const {
         Real r = std::sqrt(r2);
         Real r3 = r2 * r;
 
-        Real nx = rx / r, ny = ry / r, nz = rz / r;
-        Real Pn = P[0] * nx + P[1] * ny + P[2] * nz;
+        Real nnx = rx / r, nny = ry / r, nnz = rz / r; // unit normal; distinct from outer nx/ny/nz
+        Real Pn = P[0] * nnx + P[1] * nny + P[2] * nnz;
 
-        Real Sn_x = S[1] * nz - S[2] * ny;
-        Real Sn_y = S[2] * nx - S[0] * nz;
-        Real Sn_z = S[0] * ny - S[1] * nx;
+        Real Sn_x = S[1] * nnz - S[2] * nny;
+        Real Sn_y = S[2] * nnx - S[0] * nnz;
+        Real Sn_z = S[0] * nny - S[1] * nnx;
 
         std::array<Real, 6> Kij = {0}; // xx, yy, zz, xy, xz, yz
 
         Real cP = 3.0 / (2.0 * r2);
-        Kij[0] = cP * (2.0 * P[0] * nx - (1.0 - nx * nx) * Pn); // xx
-        Kij[1] = cP * (2.0 * P[1] * ny - (1.0 - ny * ny) * Pn); // yy
-        Kij[2] = cP * (2.0 * P[2] * nz - (1.0 - nz * nz) * Pn); // zz
-        Kij[3] = cP * (P[0] * ny + P[1] * nx + nx * ny * Pn);   // xy
-        Kij[4] = cP * (P[0] * nz + P[2] * nx + nx * nz * Pn);   // xz
-        Kij[5] = cP * (P[1] * nz + P[2] * ny + ny * nz * Pn);   // yz
+        Kij[0] = cP * (2.0 * P[0] * nnx - (1.0 - nnx * nnx) * Pn); // xx
+        Kij[1] = cP * (2.0 * P[1] * nny - (1.0 - nny * nny) * Pn); // yy
+        Kij[2] = cP * (2.0 * P[2] * nnz - (1.0 - nnz * nnz) * Pn); // zz
+        Kij[3] = cP * (P[0] * nny + P[1] * nnx + nnx * nny * Pn);   // xy
+        Kij[4] = cP * (P[0] * nnz + P[2] * nnx + nnx * nnz * Pn);   // xz
+        Kij[5] = cP * (P[1] * nnz + P[2] * nny + nny * nnz * Pn);   // yz
 
         Real cS = 3.0 / (2.0 * r3);
-        Kij[0] += cS * (2.0 * nx * Sn_x);
-        Kij[1] += cS * (2.0 * ny * Sn_y);
-        Kij[2] += cS * (2.0 * nz * Sn_z);
-        Kij[3] += cS * (nx * Sn_y + ny * Sn_x);
-        Kij[4] += cS * (nx * Sn_z + nz * Sn_x);
-        Kij[5] += cS * (ny * Sn_z + nz * Sn_y);
+        Kij[0] += cS * (2.0 * nnx * Sn_x);
+        Kij[1] += cS * (2.0 * nny * Sn_y);
+        Kij[2] += cS * (2.0 * nnz * Sn_z);
+        Kij[3] += cS * (nnx * Sn_y + nny * Sn_x);
+        Kij[4] += cS * (nnx * Sn_z + nnz * Sn_x);
+        Kij[5] += cS * (nny * Sn_z + nnz * Sn_y);
 
         return Kij;
     };
