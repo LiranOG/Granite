@@ -321,5 +321,5 @@ py -3.11 scripts\run_granite.py run --benchmark B2_eq
 
 ---
 
-*For Linux/macOS deployment, see [`DEPLOYMENT_AND_PERFORMANCE.md`](DEPLOYMENT_AND_PERFORMANCE.md).*  
-*For full installation details, see [`docs/INSTALL.md`](docs/INSTALL.md).*
+*For Linux/macOS deployment, see [`DEPLOYMENT_AND_PERFORMANCE.md`](../user_guide/DEPLOYMENT_AND_PERFORMANCE.md).*  
+*For full installation details, see [`docs/INSTALL.md`](Installation.md).*

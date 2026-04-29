@@ -116,7 +116,7 @@ No single existing open-source code simultaneously handles all of these capabili
 > [!NOTE]
 > 💡 **Deep-Dive Architectural Analysis & Full Comparison**
 > 
-> The table above provides only a high-level overview. For an exhaustive, source-cited capability breakdown against *Einstein Toolkit, GRChombo, SpECTRE, and AthenaK*, please refer to the **[Detailed Comparison & Architecture Guide](docs/COMPARISON.md)**. 
+> The table above provides only a high-level overview. For an exhaustive, source-cited capability breakdown against *Einstein Toolkit, GRChombo, SpECTRE, and AthenaK*, please refer to the **[Detailed Comparison & Architecture Guide](docs/developer_guide/COMPARISON.md)**. 
 ---
 
 ## 📊 Benchmark Results
@@ -149,7 +149,7 @@ All results are from **production runs on a single desktop workstation** (Intel 
 
 > [!NOTE]
 > **OS Requirement:** GRANITE is developed and CI-tested on **Linux** and **WSL2**. Native Windows is unsupported. macOS via Homebrew is experimentally supported — community-tested, not covered by CI.
-> *Hitting a wall?* See [**INSTALL.md**](./docs/INSTALL.md) for step-by-step guides and exhaustive troubleshooting.
+> *Hitting a wall?* See [**INSTALL.md**](./docs/getting_started/Installation.md) for step-by-step guides and exhaustive troubleshooting.
 
 ### Step 1 — Clone the Repository
 ```bash
@@ -213,83 +213,75 @@ python3 scripts/health_check.py
 
 ### Step 4 — Run the Unit Tests
 
-#### 🪟 Windows — PowerShell / CMD
-```powershell
-.\build\bin\Release\granite_tests.exe
-# or: cd build && ctest --output-on-failure && cd ..
-```
-
-#### 🐧 Linux / 💎 WSL2 / 🍎 macOS
+#### C++ physics suite
 ```bash
 build/bin/granite_tests
 # or: cd build && ctest --output-on-failure && cd ..
 ```
+Expected: `[  PASSED  ] 107 tests.` (20 suites — CCZ4, GRMHD, AMR, horizon, M1, HDF5 I/O)
 
-Expected output: `[  PASSED  ] 107 tests.` (107 tests from 20 test suites — covers CCZ4, GRMHD, AMR, horizon finder, M1 radiation, HDF5 I/O, initial data, and grid kernels)
+#### Python analysis suite
+```bash
+source .venv/bin/activate   # if not already active
+python -m pytest tests/python -v
+```
+Expected: `X passed` — 0 failures, 0 errors.
 
 ---
 
 ### Step 5 — Run the Developer Benchmark
 
 > [!NOTE]
-> The analytical scripts have been migrated into the `granite_analysis` package.
-> **First-time setup (Linux / WSL2 / macOS):** Modern Ubuntu/Debian systems enforce PEP 668
-> and block system-wide `pip install`. Use a virtual environment:
+> The analytical scripts live in the `granite_analysis` Python package.
+> **One-time setup (Linux / WSL2 / macOS):**
 > ```bash
-> python3 -m venv .venv          # create venv once (gitignored)
-> source .venv/bin/activate      # activate — do this every new terminal session
-> pip install -e .[dev]   # install the package in editable mode
+> python3 -m venv .venv          # create venv (gitignored)
+> source .venv/bin/activate      # activate — repeat each new terminal
+> pip install -e .[dev]          # install package + dev tools
 > ```
-> **Windows (PowerShell / Conda):** If using Conda, activate your environment first. Otherwise:
+> **Windows (PowerShell):**
 > ```powershell
 > python -m venv .venv
 > .venv\Scripts\Activate.ps1
 > pip install -e .[dev]
 > ```
 
-#### 🪟 Windows (PowerShell / CMD / Conda)
-```powershell
-# Integrated dev pipeline (build → run → dashboard in one command)
-python scripts/run_granite.py dev
-
-# Or invoke the dashboard directly on a log file or live stdin
-python -m granite_analysis.cli.dev_benchmark
-python -m granite_analysis.cli.dev_benchmark --quiet --json results.json
-```
-
-#### 🐧 Linux / 💎 WSL2 / 🍎 macOS
 ```bash
-# Integrated dev pipeline (build → run → dashboard in one command)
+# 1. Integrated pipeline — build → run → live rich dashboard
 python3 scripts/run_granite.py dev
 
-# Or invoke the dashboard directly on a log file or live stdin
-python3 -m granite_analysis.cli.dev_benchmark
-python3 -m granite_analysis.cli.dev_benchmark --quiet --json results.json
-
-# Watch mode — auto-rebuilds and restarts on any src/ change
+# 2. Watch mode — auto-rebuild + restart on any src/ change
 python3 scripts/run_granite.py dev --watch
+
+# 3. Direct CLI on a log file
+python3 -m granite_analysis.cli.dev_benchmark run.log
+python3 -m granite_analysis.cli.dev_benchmark run.log --benchmark B2_eq --quiet --json results.json --csv results.csv
+
+# 4. Live pipe from the engine
+build/bin/granite_main benchmarks/single_puncture/params.yaml \
+    | python3 -m granite_analysis.cli.sim_tracker --json run.json
 ```
 
 ---
 
 ### Step 6 — Run a Full Simulation
 
-#### 🪟 Windows (PowerShell / CMD / Conda)
-```powershell
-python scripts/run_granite.py run --benchmark gauge_wave
-python scripts/run_granite.py run --benchmark single_puncture
-python scripts/run_granite.py run --benchmark B2_eq
-```
-
-#### 🐧 Linux / 💎 WSL2 / 🍎 macOS
 ```bash
+# Run a named benchmark (pipes engine output to sim_tracker automatically)
 python3 scripts/run_granite.py run --benchmark gauge_wave
 python3 scripts/run_granite.py run --benchmark single_puncture
 python3 scripts/run_granite.py run --benchmark B2_eq
+
+# Or pipe the engine manually and export telemetry
+build/bin/granite_main benchmarks/B2_eq/params.yaml \
+    | python3 -m granite_analysis.cli.sim_tracker \
+        --json telemetry.json \
+        --csv  telemetry.csv
 ```
 
 > [!IMPORTANT]
-> Always run `health_check.py` before `B2_eq`. See [`docs/DEPLOYMENT_AND_PERFORMANCE.md`](./docs/DEPLOYMENT_AND_PERFORMANCE.md).
+> Always run `python3 scripts/health_check.py` before `B2_eq`.
+> See [`docs/user_guide/DEPLOYMENT_AND_PERFORMANCE.md`](./docs/user_guide/DEPLOYMENT_AND_PERFORMANCE.md).
 
 **What healthy output looks like:**
 ```
@@ -301,10 +293,31 @@ python3 scripts/run_granite.py run --benchmark B2_eq
 - `‖H‖₂ < 1.0` through `t = 6M` — constraints satisfied ✓
 - NaN Forensics: "No NaN events detected" ✓
 
-Logs saved to `dev_logs/dev_benchmark_<timestamp>.log`. Export telemetry with `--json out.json` or `--csv out.csv`.
+Export telemetry at any time with `--json out.json` or `--csv out.csv`.
+
+---
+
+### Step 7 — HPC / SLURM Deployment
+
+```bash
+# Generate a SLURM submission script (created at jobs/submit_granite.sbatch)
+python3 scripts/run_granite_hpc.py \
+    build/bin/granite_main \
+    benchmarks/B2_eq/params.yaml \
+    --slurm \
+    --mpi-ranks 256 \
+    --omp-threads 16
+
+# Submit on the cluster
+sbatch jobs/submit_granite.sbatch
+```
+
+The generated script automatically pipes the engine output through
+`granite_analysis.cli.sim_tracker` for real-time telemetry on the cluster.
 
 > [!IMPORTANT]
-> Complete A-to-Z setup, dependencies, and full Q&A troubleshooting: [**INSTALL.md**](./docs/INSTALL.md)
+> Complete A-to-Z setup, dependencies, and full Q&A troubleshooting:
+> [**docs/getting_started/Installation.md**](./docs/getting_started/Installation.md)
 
 ---
 
@@ -327,7 +340,7 @@ GRANITE/
 ```
 
 > For a complete file-by-file inventory with line counts, module descriptions,
-> and subsystem notes, see [`docs/DEVELOPER_GUIDE.md`](./docs/DEVELOPER_GUIDE.md).
+> and subsystem notes, see [`docs/DEVELOPER_GUIDE.md`](./docs/developer_guide/DEVELOPER_GUIDE.md).
 
 ---
 
@@ -359,7 +372,7 @@ Scientific integrity demands transparency. These limitations are known, document
 | Native Windows unsupported; macOS Homebrew experimental (not CI-gated) | Limits CI coverage; macOS issues cannot be caught automatically | 📋 Tracked | v0.8+ |
 | Tangential BY momenta required for inspiral p_t ≈ ±0.0954 per BH (quasi-circular, d = 10 M) | Zero momenta → head-on, not inspiral | 📝 Documented | User parameter |
 
-> Full debug context: [`docs/diagnostic_handbook.md`](./docs/diagnostic_handbook.md)
+> Full debug context: [`docs/diagnostic_handbook.md`](./docs/user_guide/diagnostic_handbook.md)
 
 ---
 
@@ -444,14 +457,14 @@ No contribution requires understanding the whole codebase. The modules are delib
 
 | Document | Description |
 |---|---|
-| [`docs/DEVELOPER_GUIDE.md`](./docs/DEVELOPER_GUIDE.md) | **Complete Developer Reference** — architecture, all 22 CCZ4 variables, physics formulations, data structures, coding standards, testing workflow, and HPC guidelines. |
-| [`docs/BENCHMARKS.md`](./docs/BENCHMARKS.md) | **Full Benchmark Report** — raw telemetry tables, constraint norm time series, resolution convergence, and hardware profiles for all production runs. |
-| [`docs/SCIENCE.md`](./docs/SCIENCE.md) | **Science & Physics Reference** — governing equations, B5\_star scenario, GRANITE's place in the NR landscape, and multi-messenger astrophysics context. |
-| [`docs/COMPARISON.md`](./docs/COMPARISON.md) | **Code Comparison** — source-cited, per-feature comparison against Einstein Toolkit, GRChombo, SpECTRE, and AthenaK. |
-| [`docs/FAQ.md`](./docs/FAQ.md) | **Frequently Asked Questions** — science, engineering, HPC, and contribution questions answered in depth. |
-| [`docs/v0.6.5_master_dictionary.md`](./docs/v0.6.5_master_dictionary.md) | **Exhaustive Technical Reference** — every CLI flag, YAML parameter, C++ constant, CMake option, and all Stability Patch forensic records. |
-| [`docs/diagnostic_handbook.md`](./docs/diagnostic_handbook.md) | **Diagnostic Handbook** — lapse lifecycle, ‖H‖₂ interpretation, NaN forensics, and the Health Check Checklist. |
-| [`docs/INSTALL.md`](./docs/INSTALL.md) | **Complete Installation Guide** — per-terminal dependency setup, troubleshooting Q&A, and build verification. |
+| [`docs/DEVELOPER_GUIDE.md`](./docs/developer_guide/DEVELOPER_GUIDE.md) | **Complete Developer Reference** — architecture, all 22 CCZ4 variables, physics formulations, data structures, coding standards, testing workflow, and HPC guidelines. |
+| [`docs/BENCHMARKS.md`](./docs/user_guide/BENCHMARKS.md) | **Full Benchmark Report** — raw telemetry tables, constraint norm time series, resolution convergence, and hardware profiles for all production runs. |
+| [`docs/SCIENCE.md`](./docs/theory/SCIENCE.md) | **Science & Physics Reference** — governing equations, B5\_star scenario, GRANITE's place in the NR landscape, and multi-messenger astrophysics context. |
+| [`docs/developer_guide/COMPARISON.md`](./docs/developer_guide/COMPARISON.md) | **Code Comparison** — source-cited, per-feature comparison against Einstein Toolkit, GRChombo, SpECTRE, and AthenaK. |
+| [`docs/FAQ.md`](./docs/user_guide/FAQ.md) | **Frequently Asked Questions** — science, engineering, HPC, and contribution questions answered in depth. |
+| [`docs/v0.6.5_master_dictionary.md`](./docs/developer_guide/v0.6.5_master_dictionary.md) | **Exhaustive Technical Reference** — every CLI flag, YAML parameter, C++ constant, CMake option, and all Stability Patch forensic records. |
+| [`docs/diagnostic_handbook.md`](./docs/user_guide/diagnostic_handbook.md) | **Diagnostic Handbook** — lapse lifecycle, ‖H‖₂ interpretation, NaN forensics, and the Health Check Checklist. |
+| [`docs/INSTALL.md`](./docs/getting_started/Installation.md) | **Complete Installation Guide** — per-terminal dependency setup, troubleshooting Q&A, and build verification. |
 | [`docs/paper/granite_preprint_v067.tex`](./docs/paper/granite_preprint_v067.tex) | **Technical Paper (Draft)** — Full formalism, CCZ4/GRMHD/VORTEX description, and validated benchmarks. In preparation for *Physical Review D*. ([compiled PDF](./docs/paper/granite_preprint_v067.pdf)) |
 
 ---
@@ -568,7 +581,7 @@ To those who will read a formula in `ccz4.cpp` and say "wait, shouldn't that sig
 
 This project exists because the science demands it. It will reach its potential because the community makes it.
 
-I have written a **[Personal Note to the Community](docs/PERSONAL_NOTE.md)** explaining exactly why GRANITE was built and the philosophy behind it. If you share this obsession with the cosmos, I invite you to read it.
+I have written a **[Personal Note to the Community](docs/design/PERSONAL_NOTE.md)** explaining exactly why GRANITE was built and the philosophy behind it. If you share this obsession with the cosmos, I invite you to read it.
 
 
 **Welcome aboard. Let's simulate the universe — together.**

@@ -33,7 +33,7 @@ A: Both CCZ4 and BSSN are conformal decompositions of the Einstein equations tha
 
 **Q: What is the B5\_star scenario and why is it the flagship?**
 
-A: B5\_star is a configuration of five 10⁸ M☉ supermassive black holes in a pentagon + two central ultra-massive stars. It represents a scenario that is physically plausible in dense galactic nuclei and utterly beyond the capability of any existing NR code to simulate at full physics fidelity. No other code couples CCZ4 spacetime evolution, full GRMHD, and M1 radiation transport in a single framework that can handle N > 2 simultaneous mergers. See [`docs/SCIENCE.md`](./SCIENCE.md) for the full scientific context.
+A: B5\_star is a configuration of five 10⁸ M☉ supermassive black holes in a pentagon + two central ultra-massive stars. It represents a scenario that is physically plausible in dense galactic nuclei and utterly beyond the capability of any existing NR code to simulate at full physics fidelity. No other code couples CCZ4 spacetime evolution, full GRMHD, and M1 radiation transport in a single framework that can handle N > 2 simultaneous mergers. See [`docs/SCIENCE.md`](../theory/SCIENCE.md) for the full scientific context.
 
 **Q: Can GRANITE be used for neutron star mergers?**
 
@@ -57,7 +57,7 @@ A: The core issue is the MPI + OpenMP + HDF5 dependency stack. On Linux, these a
 
 **Q: My build fails with a HDF5 linking error. What should I do?**
 
-A: The most common cause is a mismatch between the HDF5 version used for compilation and the one detected by CMake. Ensure you install the parallel HDF5 variant: `sudo apt install libhdf5-openmpi-dev` (not `libhdf5-dev`, which is the serial version). Then rebuild from scratch: `rm -rf build/ && python3 scripts/run_granite.py build --release`. See [`docs/INSTALL.md`](./INSTALL.md) for the full troubleshooting Q&A.
+A: The most common cause is a mismatch between the HDF5 version used for compilation and the one detected by CMake. Ensure you install the parallel HDF5 variant: `sudo apt install libhdf5-openmpi-dev` (not `libhdf5-dev`, which is the serial version). Then rebuild from scratch: `rm -rf build/ && python3 scripts/run_granite.py build --release`. See [`docs/INSTALL.md`](../getting_started/Installation.md) for the full troubleshooting Q&A.
 
 **Q: The health check reports fewer OpenMP threads than my CPU has cores. What's wrong?**
 
@@ -149,7 +149,7 @@ A: Open a GitHub Issue using the bug report template. Include: (1) your OS and c
 
 **Q: I want to add a new physics module. Where do I start?**
 
-A: Read the [Developer Guide](./DEVELOPER_GUIDE.md) sections on architecture and module coupling. Then open a GitHub Discussion with an [RFC] prefix describing your proposed module. This ensures alignment before you invest significant development time. The key constraint is that new modules must maintain the clean subsystem separation: new matter modules must communicate with spacetime only through `GRMetric3`, not by directly accessing CCZ4 internal variables.
+A: Read the [Developer Guide](../developer_guide/DEVELOPER_GUIDE.md) sections on architecture and module coupling. Then open a GitHub Discussion with an [RFC] prefix describing your proposed module. This ensures alignment before you invest significant development time. The key constraint is that new modules must maintain the clean subsystem separation: new matter modules must communicate with spacetime only through `GRMetric3`, not by directly accessing CCZ4 internal variables.
 
 **Q: Do I need to understand all of the codebase to contribute?**
 
@@ -165,7 +165,7 @@ A: Yes. All contributors are listed in `AUTHORS.md` and acknowledged in every re
 
 **Q: How does GRANITE compare to the Einstein Toolkit?**
 
-A: The Einstein Toolkit is the most mature and community-tested NR code in existence, with a thorn ecosystem covering almost every NR scenario. GRANITE's advantages are: a clean, modern C++17 single codebase (no legacy Fortran), a real-time Python telemetry dashboard, and explicit support for N > 2 simultaneous BH mergers. GRANITE's disadvantages are: smaller community, less validation history, and no current GPU support. They are complementary, not competitive. See [`docs/COMPARISON.md`](./COMPARISON.md) for the full analysis.
+A: The Einstein Toolkit is the most mature and community-tested NR code in existence, with a thorn ecosystem covering almost every NR scenario. GRANITE's advantages are: a clean, modern C++17 single codebase (no legacy Fortran), a real-time Python telemetry dashboard, and explicit support for N > 2 simultaneous BH mergers. GRANITE's disadvantages are: smaller community, less validation history, and no current GPU support. They are complementary, not competitive. See [`docs/COMPARISON.md`](../developer_guide/COMPARISON.md) for the full analysis.
 
 **Q: Should I use GRANITE or SpECTRE for BBH waveform production?**
 
@@ -197,9 +197,9 @@ A: A technical paper describing GRANITE's mathematical formalism, CCZ4/GRMHD/VOR
 implementation, and validated benchmarks is in preparation for submission to
 *Physical Review D*. The current draft (1,709 lines of LaTeX with 13 publication-
 quality figures) is available in the repository at
-[`docs/paper/granite_preprint_v067.tex`](./paper/granite_preprint_v067.tex)
-([compiled PDF](./paper/granite_preprint_v067.pdf)).
-For software citation, use the BibTeX entry in [`docs/citation.bib`](./citation.bib)
+[`docs/paper/granite_preprint_v067.tex`](../paper/granite_preprint_v067.tex)
+([compiled PDF](../paper/granite_preprint_v067.pdf)).
+For software citation, use the BibTeX entry in [`docs/citation.bib`](../citation.bib)
 or the machine-readable `CITATION.cff` at the repository root.
 
 ---

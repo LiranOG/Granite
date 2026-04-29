@@ -251,7 +251,7 @@ amr:
 > [!NOTE]
 > Publication-quality figures for all benchmarks on this page, generated from
 > real devlog data, are available in
-> [`docs/paper/figures/`](./paper/figures/).                                               
+> [`docs/paper/figures/`](../paper/figures/).                                               
 > See `docs/paper/figures/generate_figures.py` to reproduce any figure.
 
 ---

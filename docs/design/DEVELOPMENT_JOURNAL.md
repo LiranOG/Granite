@@ -2,7 +2,7 @@
 
 > **Archive notice:** This file is the granular commit-level engineering log for the GRANITE project.
 > It is **not** the user-facing changelog. For the standards-compliant version summary, see
-> [`CHANGELOG.md`](../CHANGELOG.md) at the repository root.
+> [`CHANGELOG.md`](../../CHANGELOG.md) at the repository root.
 >
 > This journal spans all development phases from initial repository creation (2026-03-27) through
 > v0.6.7 (2026-04-27). Each section corresponds to a major engineering session and contains

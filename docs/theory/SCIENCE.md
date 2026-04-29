@@ -2,7 +2,7 @@
 
 **Version:** v0.6.7 (current) | **April 27, 2026**
 
-> This document explains the physical and mathematical foundations of GRANITE: what it simulates, why it matters, and which governing equations it implements. For implementation details, see [`DEVELOPER_GUIDE.md`](./DEVELOPER_GUIDE.md).
+> This document explains the physical and mathematical foundations of GRANITE: what it simulates, why it matters, and which governing equations it implements. For implementation details, see [`DEVELOPER_GUIDE.md`](../developer_guide/DEVELOPER_GUIDE.md).
 
 ---
 
