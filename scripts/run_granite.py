@@ -474,6 +474,23 @@ def cmd_dev(args) -> None:
             sys.exit(0)
 
 
+def cmd_docs(args) -> None:
+    docs_src = Path("docs")
+    docs_out = Path("docs/_build/html")
+    sphinx = shutil.which("sphinx-build")
+    if not sphinx:
+        log.error(
+            "sphinx-build not found. Install docs dependencies: "
+            "pip install -e .[docs]"
+        )
+        sys.exit(1)
+    _run([sphinx, str(docs_src), str(docs_out), "-b", "html"])
+    log.info("Docs built → %s/index.html", docs_out)
+    if getattr(args, "open", False):
+        import webbrowser
+        webbrowser.open((docs_out / "index.html").as_uri())
+
+
 # ---------------------------------------------------------------------------
 # Argument parser
 # ---------------------------------------------------------------------------
@@ -545,6 +562,11 @@ def _build_parser() -> argparse.ArgumentParser:
     pd.add_argument("--watch", action="store_true",
                     help="Watch src/ and include/ for changes, automatically rebuild and restart")
 
+    # ── docs ──────────────────────────────────────────────────────────────
+    pdoc = subs.add_parser("docs", help="Build Sphinx HTML documentation")
+    pdoc.add_argument("--open", action="store_true",
+                      help="Open the built docs in the default browser after building")
+
     return root
 
 
@@ -569,6 +591,7 @@ def main() -> None:
         "clean":  cmd_clean,
         "format": cmd_format,
         "dev":    cmd_dev,
+        "docs":   cmd_docs,
     }[args.command](args)
 
 

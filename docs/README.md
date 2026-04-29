@@ -62,4 +62,10 @@ docs/
 ```
 
 > [!IMPORTANT]
-> **Documentation Builds:** To build the HTML documentation, you must run `python3 scripts/run_granite.py docs`. Ensure you have Sphinx and the `furo` theme installed via `pip install -r python/requirements.txt`.
+> **Documentation Builds:** To build the HTML documentation, run:
+> ```bash
+> pip install -e .[docs]          # install Sphinx + furo (one-time)
+> python3 scripts/run_granite.py docs          # build HTML
+> python3 scripts/run_granite.py docs --open  # build and open in browser
+> ```
+> Output is written to `docs/_build/html/index.html`.
