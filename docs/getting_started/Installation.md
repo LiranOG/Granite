@@ -306,7 +306,7 @@ cd ..   # ← IMPORTANT: return to project root before the next step!
 ```
 
 > [!IMPORTANT]
-> If you used `cd build && ctest`, you **must** run `cd ..` to return to the project root before continuing. All subsequent commands (`scripts/dev_benchmark.py`, `run_granite.py`) must be run from the project root — not from inside `build/`.
+> If you used `cd build && ctest`, you **must** run `cd ..` to return to the project root before continuing. All subsequent commands (`granite_analysis.cli.dev_benchmark`, `run_granite.py`) must be run from the project root — not from inside `build/`.
 
 If any test fails, check the error message carefully — the test name tells you which physics module is affected.
 
@@ -319,9 +319,25 @@ If any test fails, check the error message carefully — the test name tells you
 > ```bash
 > cd ..   # or: cd ~/Granite  (use your actual project path)
 > ```
-> Confirm you are in the right place: `ls scripts/dev_benchmark.py` should show the file.
+> Confirm you are in the right place: `ls python/granite_analysis/` should show the package directory.
 
-The `scripts/dev_benchmark.py` script is the **primary validation tool** for the full engine. It runs the `single_puncture` benchmark and provides real-time diagnostics that go far beyond a simple pass/fail:
+> [!NOTE]
+> **First-time setup — virtual environment required on modern Linux/WSL2:**
+> Ubuntu 22.04+ and Debian 12+ enforce [PEP 668](https://peps.python.org/pep-0668/) which
+> blocks system-wide `pip install`. You **must** use a virtual environment:
+> ```bash
+> # Run once from the project root
+> python3 -m venv .venv
+> source .venv/bin/activate      # activate every new terminal session
+> pip install -e .[dev]
+>
+> # Verify the install worked
+> python -m granite_analysis.cli.dev_benchmark --help
+> ```
+> The `.venv/` directory is already listed in `.gitignore` — it will not be committed.
+> **Windows (Conda):** activate your Conda environment first, then `pip install -e .[dev]`.
+
+The `granite_analysis` package is the **primary validation tool** for the full engine. Invoke it via the integrated dev pipeline or directly:
 
 | Diagnostic | What it measures | Healthy range |
 |:---|:---|:---|
@@ -336,13 +352,20 @@ The `scripts/dev_benchmark.py` script is the **primary validation tool** for the
 > **Important:** Run this from the **project root directory** . `cd ~/Granite` before running if you are not already there.
 
 ```bash
-# Standard run — 10-step summary every 0.625M of simulation time
-python3 scripts/dev_benchmark.py
+# Integrated pipeline — builds, runs, and streams to the live dashboard
+python3 scripts/run_granite.py dev
 
-# Verbose mode — step-by-step NaN detection and propagation tracking
-python3 scripts/dev_benchmark.py --verbose
+# Direct invocation — pipe an existing log or stream live from the engine
+python3 -m granite_analysis.cli.dev_benchmark
 
-# Press Ctrl+C at any time to get a full summary of results so far
+# Export telemetry to structured files
+python3 -m granite_analysis.cli.dev_benchmark --json results.json --csv results.csv
+
+# Suppress terminal output (CI/scripted mode)
+python3 -m granite_analysis.cli.dev_benchmark --quiet --json results.json
+
+# Watch mode — auto-rebuild and restart on any src/ change
+python3 scripts/run_granite.py dev --watch
 ```
 
 **Healthy output reference:**
@@ -372,8 +395,9 @@ A simulation reaching `step=80` with `‖H‖₂ < 1.0` and `α_center` recoveri
 **If the benchmark crashes immediately (step < 10 with NaN):**
 
 ```bash
-# Run in verbose mode to see exactly which variable goes NaN first
-python3 scripts/dev_benchmark.py --verbose
+# Run with verbose NaN forensics (pipe from the engine or from a log file)
+python3 -m granite_analysis.cli.dev_benchmark --quiet
+python3 -m granite_analysis.cli.sim_tracker my_run.log
 ```
 
 The NaN forensics report will show:
@@ -388,6 +412,11 @@ This tells you which physics module or numerical scheme is responsible.
 All benchmark runs are automatically logged to:
 ```
 dev_logs/dev_benchmark_YYYYMMDD_HHMMSS.log
+```
+
+Export structured telemetry directly from the CLI:
+```bash
+python3 -m granite_analysis.cli.dev_benchmark --json results.json --csv results.csv
 ```
 
 These logs contain the complete step-by-step output and the final summary table — useful for comparing results across code changes.

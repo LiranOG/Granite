@@ -261,15 +261,21 @@ GRANITE/
 │       ├── gw.py                       # GW strain extraction: Ψ₄ time integration, fixed-frequency filter (506 ln).
 │       └── plotting.py                 # Matplotlib helpers: constraint plots, lapse evolution, GW waveforms (155 ln).
 │
-├── 📁 scripts/                         # Python build/run wrappers and live diagnostics toolchain.
-│   ├── run_granite.py                  # Unified CLI: build / run / clean / format subcommands (261 ln).
-│   ├── run_granite_hpc.py              # HPC launch wrapper: NUMA overrides, MPI ranks, AMR telemetry export (457 ln).
-│   ├── health_check.py                 # Pre-flight verifier: Release flags, OMP core count, memory, HDF5 (290 ln).
-│   ├── sim_tracker.py                  # Context-aware live dashboard: real-time ‖H‖₂, lapse, phase,        (1,060 ln)
-│   │                                   # throughput, ETA, constraint alerts, NaN forensics, full summary.
-│   ├── dev_benchmark.py                # Forensic diagnostic runner: NaN propagation + constraint tracking (636 ln).
-│   ├── dev_stability_test.py           # Extended stability sweep across configurable t-target values (259 ln).
+├── 📁 scripts/                         # Python build/run orchestration wrappers.
+│   ├── run_granite.py                  # Unified CLI: build / run / clean / format / dev subcommands.
+│   │                                   # 'dev' subcommand: build → run → stream to granite_analysis dashboard.
+│   │                                   # 'dev --watch': auto-rebuild and restart on src/ changes.
+│   ├── run_granite_hpc.py              # HPC launch wrapper: NUMA overrides, MPI ranks, AMR telemetry,
+│   │                                   # --slurm flag generates and submits sbatch scripts piped to sim_tracker.
+│   ├── health_check.py                 # Pre-flight verifier: Release flags, OMP core count, memory, HDF5.
 │   └── setup_windows.ps1               # One-click Windows dependency installer (vcpkg + HDF5 + MPI).
+│
+│   ⚠ NOTE: sim_tracker.py, dev_benchmark.py, and dev_stability_test.py have been permanently removed.
+│     Their logic is now in the `granite_analysis` package (python/granite_analysis/cli/).
+│     Invoke via:
+│       python3 -m granite_analysis.cli.sim_tracker [logfile]
+│       python3 -m granite_analysis.cli.dev_benchmark [logfile] [--json out.json] [--csv out.csv]
+│       python3 scripts/run_granite.py dev [--watch]
 │
 ├── 📁 runs/                            # ⚠ gitignored — job scripts and parameter-scan configurations.
 │
@@ -965,7 +971,11 @@ ctest --test-dir build --output-on-failure
 A full end-to-end correctness and performance benchmark runs in under 5 minutes on a typical development machine (Intel i5-8400 class):
 
 ```bash
-python3 scripts/dev_benchmark.py
+# Integrated pipeline
+python3 scripts/run_granite.py dev
+
+# Or direct invocation on a log / stdin
+python3 -m granite_analysis.cli.dev_benchmark
 ```
 
 The benchmark runs a 128³ single-puncture stability test and a short equal-mass BBH evolution, reporting constraint norms and timing. This must pass before any PR.
@@ -1039,8 +1049,8 @@ python3 scripts/run_granite.py format
 | Category | Location | Run Command |
 |---|---|---|
 | Unit tests | `tests/` | `ctest --test-dir build` |
-| Integration tests | `scripts/dev_benchmark.py` | `python3 scripts/dev_benchmark.py` |
-| Stability tests | `scripts/dev_stability_test.py` | Automated pass/fail with physics criteria |
+| Integration tests | `granite_analysis.cli.dev_benchmark` | `python3 -m granite_analysis.cli.dev_benchmark` |
+| Dev pipeline | `scripts/run_granite.py dev` | `python3 scripts/run_granite.py dev [--watch]` |
 | Validation | Comparison vs. analytic / SXS | `python3 python/granite_analysis/validate.py` |
 
 ### 16.3 Adding Tests
@@ -1085,7 +1095,8 @@ Before opening any pull request:
 ```
 [ ] Full test suite passes in Release mode: python3 scripts/run_granite.py build --tests
 [ ] health_check.py passes: python3 scripts/health_check.py
-[ ] dev_benchmark.py passes in <5 minutes
+[ ] Dev pipeline passes in <5 minutes: python3 scripts/run_granite.py dev
+[ ] granite_analysis package imports cleanly: python3 -m granite_analysis.cli.dev_benchmark --help
 [ ] CHANGELOG.md updated under ## [Unreleased]
 [ ] New physics: reference paper cited in comment (author year, journal)
 [ ] No regression in constraint norm growth rate vs. baseline

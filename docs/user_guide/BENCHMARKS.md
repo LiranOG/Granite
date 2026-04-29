@@ -332,7 +332,10 @@ python3 scripts/run_granite.py run --benchmark B2_eq
 python3 scripts/run_granite.py run --benchmark B2_eq
 ```
 
-Diagnostic output is automatically saved to `dev_logs/sim_tracker_<timestamp>.log` and includes full step-by-step constraint norms, α\_center values, AMR block counts, and NaN forensics.
+Diagnostic output is automatically captured by `granite_analysis.cli.sim_tracker` and includes full step-by-step constraint norms, α\_center values, AMR block counts, and NaN forensics. Export with:
+```bash
+python3 -m granite_analysis.cli.sim_tracker run.log --json run_telemetry.json --csv run_telemetry.csv
+```
 
 ---
 

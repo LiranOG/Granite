@@ -324,6 +324,46 @@ def run(args: argparse.Namespace) -> int:
 
     log.info("Command: %s", " ".join(cmd))
 
+    if getattr(args, "slurm", False):
+        log.info("Generating SLURM submission script...")
+        jobs_dir = Path("jobs")
+        jobs_dir.mkdir(exist_ok=True)
+        script_path = jobs_dir / "submit_granite.sbatch"
+        nodes = max(1, args.mpi_ranks // 32)
+        omp = args.omp_threads or 1
+        
+        env_lines = []
+        for k, v in env.items():
+            if k in ("OMP_NUM_THREADS", "OMP_PROC_BIND", "GOMP_SPINCOUNT", "LANG", "LC_ALL"):
+                env_lines.append(f"export {k}={v}")
+                
+        cmd_str = " ".join(cmd)
+        content = f"""#!/bin/bash
+#SBATCH --job-name=granite_sim
+#SBATCH --nodes={nodes}
+#SBATCH --ntasks={args.mpi_ranks}
+#SBATCH --cpus-per-task={omp}
+#SBATCH --time=24:00:00
+#SBATCH --output=granite_sim_%j.log
+#SBATCH --error=granite_sim_%j.log
+
+{"\n".join(env_lines)}
+
+export PYTHONPATH="$(pwd)/python:$PYTHONPATH"
+
+{cmd_str} | python -m granite_analysis.cli.sim_tracker
+"""
+        script_path.write_text(content, encoding="utf-8")
+        log.info(f"SLURM script generated at {script_path.absolute()}")
+        log.info("Submitting via sbatch...")
+        try:
+            ret = subprocess.run(["sbatch", str(script_path)])
+            return ret.returncode
+        except FileNotFoundError:
+            log.warning("'sbatch' not found — script generated but NOT submitted.")
+            log.info("To submit manually on the cluster, run:  sbatch %s", script_path)
+            return 0
+
     # ── Launch ─────────────────────────────────────────────────────────
     try:
         proc = subprocess.Popen(
@@ -442,6 +482,11 @@ examples:
                           "wall time, MPI rank, AMR level, sync duration, and "
                           "block count. Ideal for post-run scaling analysis.")
 
+    # SLURM
+    s = p.add_argument_group("SLURM Integration")
+    s.add_argument("--slurm", action="store_true",
+                   help="Generate a SLURM .sbatch script and submit it, piping output to sim_tracker.")
+
     return p
 
 
@@ -449,7 +494,7 @@ def main() -> None:
     parser = _build_parser()
     args   = parser.parse_args()
 
-    if not Path(args.binary).exists():
+    if not getattr(args, "slurm", False) and not Path(args.binary).exists():
         log.error("Binary does not exist: %s", args.binary)
         sys.exit(1)
 

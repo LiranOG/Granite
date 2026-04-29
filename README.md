@@ -231,18 +231,43 @@ Expected output: `[  PASSED  ] 107 tests.` (107 tests from 20 test suites — co
 
 ### Step 5 — Run the Developer Benchmark
 
+> [!NOTE]
+> The analytical scripts have been migrated into the `granite_analysis` package.
+> **First-time setup (Linux / WSL2 / macOS):** Modern Ubuntu/Debian systems enforce PEP 668
+> and block system-wide `pip install`. Use a virtual environment:
+> ```bash
+> python3 -m venv .venv          # create venv once (gitignored)
+> source .venv/bin/activate      # activate — do this every new terminal session
+> pip install -e .[dev]   # install the package in editable mode
+> ```
+> **Windows (PowerShell / Conda):** If using Conda, activate your environment first. Otherwise:
+> ```powershell
+> python -m venv .venv
+> .venv\Scripts\Activate.ps1
+> pip install -e .[dev]
+> ```
+
 #### 🪟 Windows (PowerShell / CMD / Conda)
 ```powershell
-python scripts/dev_benchmark.py
-python scripts/dev_benchmark.py --verbose
-python scripts/dev_stability_test.py --t-target 50
+# Integrated dev pipeline (build → run → dashboard in one command)
+python scripts/run_granite.py dev
+
+# Or invoke the dashboard directly on a log file or live stdin
+python -m granite_analysis.cli.dev_benchmark
+python -m granite_analysis.cli.dev_benchmark --quiet --json results.json
 ```
 
 #### 🐧 Linux / 💎 WSL2 / 🍎 macOS
 ```bash
-python3 scripts/dev_benchmark.py
-python3 scripts/dev_benchmark.py --verbose
-python3 scripts/dev_stability_test.py --t-target 50
+# Integrated dev pipeline (build → run → dashboard in one command)
+python3 scripts/run_granite.py dev
+
+# Or invoke the dashboard directly on a log file or live stdin
+python3 -m granite_analysis.cli.dev_benchmark
+python3 -m granite_analysis.cli.dev_benchmark --quiet --json results.json
+
+# Watch mode — auto-rebuilds and restarts on any src/ change
+python3 scripts/run_granite.py dev --watch
 ```
 
 ---
@@ -276,7 +301,7 @@ python3 scripts/run_granite.py run --benchmark B2_eq
 - `‖H‖₂ < 1.0` through `t = 6M` — constraints satisfied ✓
 - NaN Forensics: "No NaN events detected" ✓
 
-Logs saved to `dev_logs/dev_benchmark_<timestamp>.log`.
+Logs saved to `dev_logs/dev_benchmark_<timestamp>.log`. Export telemetry with `--json out.json` or `--csv out.csv`.
 
 > [!IMPORTANT]
 > Complete A-to-Z setup, dependencies, and full Q&A troubleshooting: [**INSTALL.md**](./docs/INSTALL.md)

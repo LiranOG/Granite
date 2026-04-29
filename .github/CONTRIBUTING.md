@@ -89,8 +89,9 @@ python3 scripts/health_check.py
 build/bin/granite_tests
 # Expected: [  PASSED  ] 92 tests.
 
-# 7. Run the developer benchmark
-python3 scripts/dev_benchmark.py
+# 7. Install the analysis package and run the developer benchmark
+pip install -e ./python[dev]
+python3 scripts/run_granite.py dev
 ```
 
 For Windows (WSL2), Fedora/RHEL, macOS, and HPC cluster setup, see
@@ -517,7 +518,7 @@ Use GitHub Issues with the appropriate label:
 
 - Fix a documentation error or improve an explanation in `docs/`
 - Add a unit test for an untested code path
-- Improve the error messages in the constraint alert system in `sim_tracker.py`
+- Improve the error messages and phase classification logic in `granite_analysis/utils/ui.py`
 - Translate a `docs/` page or write a tutorial for a specific use case
 - Run `B2_eq` on your hardware and report the benchmark numbers via a GitHub Issue
 

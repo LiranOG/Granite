@@ -77,11 +77,13 @@ This Python script performs a post-build forensic analysis:
 
 Once correctly built, simulate anywhere exactly the same way:
 
-| Goal | Command (Bash - Linux/Mac) | Command (PowerShell - Windows) |
+| Goal | Command (Bash — Linux/Mac) | Command (PowerShell — Windows) |
 | --- | --- | --- |
-| **Diagnostic Mode (Dev)** | `python3 scripts/dev_benchmark.py` | `python scripts/dev_benchmark.py` |
-| **Live Tracking (Verbose)**| `python3 scripts/dev_benchmark.py --verbose` | `python scripts/dev_benchmark.py --verbose` |
-| **Long-Term Run (50M)** | `python3 scripts/dev_stability_test.py` | `python scripts/dev_stability_test.py` |
+| **Integrated Dev Pipeline** | `python3 scripts/run_granite.py dev` | `python scripts/run_granite.py dev` |
+| **Live Dashboard (stdin)** | `python3 -m granite_analysis.cli.dev_benchmark` | `python -m granite_analysis.cli.dev_benchmark` |
+| **Sim Tracker (log file)** | `python3 -m granite_analysis.cli.sim_tracker run.log` | `python -m granite_analysis.cli.sim_tracker run.log` |
+| **Export Telemetry (JSON)** | `python3 -m granite_analysis.cli.dev_benchmark --json out.json` | `python -m granite_analysis.cli.dev_benchmark --json out.json` |
+| **Watch Mode (auto-rebuild)** | `python3 scripts/run_granite.py dev --watch` | `python scripts/run_granite.py dev --watch` |
 | **Clean Output** | `python3 scripts/run_granite.py clean` | `python scripts/run_granite.py clean` |
 
 ---

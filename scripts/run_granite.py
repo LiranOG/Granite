@@ -1,36 +1,31 @@
 #!/usr/bin/env python3
 """
-GRANITE HPC Orchestration Tool
---------------------------------
-Enterprise-grade CLI wrapper for building, running, testing, and formatting
-the GRANITE numerical relativity engine.
+GRANITE Developer Workflow Tool
+---------------------------------
+A professional CLI for the day-to-day development cycle of the GRANITE engine.
+Covers the full loop: build → run → test → clean → format.
 
-Features:
-  - MPI-aware simulation launcher with graceful Ctrl+C / zombie prevention
-  - Structured colour-coded logging (INFO / WARNING / ERROR)
-  - Version-aware preflight dependency validation
-  - Full CMake flag passthrough
-  - OMP / environment variable injection
-  - --dry-run and --verbose global flags
-  - clang-format-18 targeting
-  - ctest integration
+For HPC cluster deployments (MPI ranks, NUMA binding, AMR telemetry),
+use scripts/run_granite_hpc.py instead.
 
 Usage:
   python scripts/run_granite.py [--verbose] [--dry-run] <command> [options]
 
 Commands:
-  build   [--build-type TYPE] [--cmake-flag K=V ...]
-  run     --benchmark NAME [--mpi-ranks N] [--omp-threads N] [--env K=V ...]
-  test    [--timeout S] [--filter REGEX]
-  clean   [--build-dir PATH]
-  format  [--check-only]
+  build   [--build-type TYPE] [--flag K=V ...]   Configure & compile with CMake
+  run     --benchmark NAME [--omp-threads N]      Run a simulation locally
+  test    [--filter REGEX] [--timeout S]          Run ctest
+  clean   [--build-dir PATH]                      Remove build artifacts
+  format  [--check]                               Auto-format with clang-format-18
 """
+
+from __future__ import annotations
 
 import argparse
 import logging
 import os
-import platform
 import re
+import shlex
 import shutil
 import signal
 import subprocess
@@ -39,271 +34,203 @@ from pathlib import Path
 from typing import Optional
 
 # ---------------------------------------------------------------------------
-# Colour-coded logging
+# Colour-coded logging  (degrades gracefully on non-TTY / CI pipes)
 # ---------------------------------------------------------------------------
-_RESET  = "\033[0m"
-_BOLD   = "\033[1m"
-_RED    = "\033[31m"
-_GREEN  = "\033[32m"
-_YELLOW = "\033[33m"
-_CYAN   = "\033[36m"
-_GREY   = "\033[90m"
+_IS_TTY = sys.stderr.isatty()
 
-_LEVEL_COLOURS = {
-    logging.DEBUG:    _GREY,
-    logging.INFO:     _GREEN,
-    logging.WARNING:  _YELLOW,
-    logging.ERROR:    _RED,
-    logging.CRITICAL: _RED + _BOLD,
+_C = {
+    "reset":  "\033[0m"  if _IS_TTY else "",
+    "bold":   "\033[1m"  if _IS_TTY else "",
+    "grey":   "\033[90m" if _IS_TTY else "",
+    "green":  "\033[32m" if _IS_TTY else "",
+    "yellow": "\033[33m" if _IS_TTY else "",
+    "red":    "\033[31m" if _IS_TTY else "",
+    "cyan":   "\033[36m" if _IS_TTY else "",
+}
+
+_LEVEL_COLOUR = {
+    logging.DEBUG:    _C["grey"],
+    logging.INFO:     _C["green"],
+    logging.WARNING:  _C["yellow"],
+    logging.ERROR:    _C["red"],
+    logging.CRITICAL: _C["red"] + _C["bold"],
 }
 
 
-class _ColourFormatter(logging.Formatter):
-    """Applies ANSI colour codes to log level names; degrades gracefully on
-    non-TTY streams (CI pipes, SLURM logs)."""
-
-    _USE_COLOUR = sys.stderr.isatty()
-
+class _Formatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
-        ts      = self.formatTime(record, "%H:%M:%S")
-        level   = record.levelname.ljust(8)
-        message = record.getMessage()
-
-        if self._USE_COLOUR:
-            colour = _LEVEL_COLOURS.get(record.levelno, "")
-            level_str  = f"{colour}{_BOLD}{level}{_RESET}"
-            prefix_str = f"{_GREY}{ts}{_RESET}"
-            tag_str    = f"{_CYAN}[GRANITE]{_RESET}"
-        else:
-            level_str  = level
-            prefix_str = ts
-            tag_str    = "[GRANITE]"
-
-        return f"{prefix_str} {level_str} {tag_str} {message}"
+        ts    = self.formatTime(record, "%H:%M:%S")
+        lvl   = record.levelname.ljust(8)
+        msg   = record.getMessage()
+        col   = _LEVEL_COLOUR.get(record.levelno, "")
+        tag   = f"{_C['cyan']}[granite]{_C['reset']}"
+        return (
+            f"{_C['grey']}{ts}{_C['reset']} "
+            f"{col}{_C['bold']}{lvl}{_C['reset']} "
+            f"{tag} {msg}"
+        )
 
 
-def _configure_logging(verbose: bool) -> None:
-    handler = logging.StreamHandler(sys.stderr)
-    handler.setFormatter(_ColourFormatter())
+def _setup_logging(verbose: bool) -> None:
+    h = logging.StreamHandler(sys.stderr)
+    h.setFormatter(_Formatter())
     root = logging.getLogger()
-    root.addHandler(handler)
+    root.handlers.clear()
+    root.addHandler(h)
     root.setLevel(logging.DEBUG if verbose else logging.INFO)
 
 
 log = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Global dry-run flag (set after arg parsing)
+# Global flags (set once in main())
 # ---------------------------------------------------------------------------
-_DRY_RUN = False
-
+DRY_RUN = False
 
 # ---------------------------------------------------------------------------
-# Physical core detection
+# Physical-core auto-detection for OMP_NUM_THREADS
 # ---------------------------------------------------------------------------
 _FALLBACK_CORES = 4
 
 
-def _detect_physical_cores() -> tuple[int, str]:
-    """Return (physical_core_count, method) — never raises."""
+def _physical_cores() -> tuple[int, str]:
+    """Return (count, method_description) — never raises."""
 
+    # Method 1: psutil — most accurate (physical only, cross-platform)
     try:
         import psutil
-        cores = psutil.cpu_count(logical=False)
-        if cores and cores > 0:
-            return cores, "psutil"
+        n = psutil.cpu_count(logical=False)
+        if n and n > 0:
+            return n, "psutil"
     except ImportError:
         pass
 
-    try:
-        cores = os.cpu_count(logical=False)  # type: ignore[call-arg]
-        if cores and cores > 0:
-            return cores, "os.cpu_count(logical=False)"
-    except TypeError:
-        pass
+    # Method 2: os.cpu_count() — returns logical cores, still beats the
+    # hardcoded fallback on any reasonably modern machine.
+    n = os.cpu_count()
+    if n and n > 0:
+        return n, "os.cpu_count [logical]"
 
+    # Method 3: platform-native query (no bash required)
     try:
-        plat = sys.platform
-        if plat == "win32":
-            r = subprocess.run(
-                ["powershell", "-Command",
-                 "(Get-CimInstance Win32_Processor | Measure-Object -Property NumberOfCores -Sum).Sum"],
-                capture_output=True, text=True, timeout=5,
-            )
-            cores = int(r.stdout.strip())
-        elif plat == "darwin":
-            r = subprocess.run(
-                ["sysctl", "-n", "hw.physicalcpu"],
-                capture_output=True, text=True, timeout=5,
-            )
-            cores = int(r.stdout.strip())
+        if sys.platform == "darwin":
+            r = subprocess.run(["sysctl", "-n", "hw.physicalcpu"],
+                               capture_output=True, text=True, timeout=5)
+            n = int(r.stdout.strip())
+            if n > 0:
+                return n, "sysctl"
         else:
-            r = subprocess.run(
-                ["bash", "-c", "grep '^core id' /proc/cpuinfo | sort -u | wc -l"],
-                capture_output=True, text=True, timeout=5,
-            )
-            cores = int(r.stdout.strip())
-
-        if cores and cores > 0:
-            return cores, f"shell({plat})"
+            # Read /proc/cpuinfo directly — no bash, no grep, no wc.
+            cpuinfo = Path("/proc/cpuinfo")
+            if cpuinfo.exists():
+                ids = {line.split(":")[1].strip()
+                       for line in cpuinfo.read_text(errors="replace").splitlines()
+                       if line.startswith("core id")}
+                n = len(ids)
+                if n > 0:
+                    return n, "/proc/cpuinfo"
     except Exception:
         pass
 
     return _FALLBACK_CORES, "fallback"
 
 
-def _inject_omp(env: dict, omp_threads: Optional[int]) -> dict:
-    """Inject OMP_NUM_THREADS / OMP_PROC_BIND / OMP_PLACES into env."""
-    if omp_threads is not None:
-        env["OMP_NUM_THREADS"] = str(omp_threads)
-        log.info("OMP_NUM_THREADS forced to %d via --omp-threads", omp_threads)
+def _apply_omp(env: dict, forced: Optional[int]) -> dict:
+    if forced is not None:
+        env["OMP_NUM_THREADS"] = str(forced)
+        log.info("OMP_NUM_THREADS = %d  (--omp-threads)", forced)
     elif "OMP_NUM_THREADS" not in env:
-        cores, method = _detect_physical_cores()
-        env["OMP_NUM_THREADS"] = str(cores)
-        env.setdefault("OMP_PROC_BIND", "true")
+        n, method = _physical_cores()
+        env["OMP_NUM_THREADS"] = str(n)
+        env.setdefault("OMP_PROC_BIND", "close")
         env.setdefault("OMP_PLACES",    "cores")
-        suffix = "  ⚠ detection failed — fallback" if "fallback" in method else f"  [{method}]"
-        log.info("[HPC] Auto-set OMP_NUM_THREADS=%d%s", cores, suffix)
-        log.info("[HPC] OMP_PROC_BIND=true  |  OMP_PLACES=cores")
+        log.info("OMP_NUM_THREADS = %d  (auto-detected via %s)", n, method)
     else:
-        log.info("[HPC] OMP_NUM_THREADS already set to %s — skipping auto-config",
-                 env["OMP_NUM_THREADS"])
+        log.debug("OMP_NUM_THREADS = %s  (inherited)", env["OMP_NUM_THREADS"])
     return env
 
 
 # ---------------------------------------------------------------------------
-# Preflight: version-aware dependency validation
+# Lightweight dependency checks
 # ---------------------------------------------------------------------------
-_MIN_CMAKE = (3, 18)
-_MIN_GCC   = (11, 0)
-_MIN_CLANG = (14, 0)
-
-
-def _parse_semver(raw: str) -> tuple[int, ...]:
-    """Extract leading integers from a version string."""
-    parts = re.findall(r"\d+", raw)
-    return tuple(int(p) for p in parts[:3]) if parts else (0,)
-
-
-def _check_tool(name: str, version_flag: str = "--version") -> Optional[str]:
-    """Return raw version output, or None if the tool is absent."""
-    exe = shutil.which(name)
-    if exe is None:
-        return None
-    try:
-        r = subprocess.run([name, version_flag], capture_output=True, text=True, timeout=10)
-        return (r.stdout + r.stderr).strip().splitlines()[0]
-    except Exception:
-        return None
-
-
-def _require_tool_version(name: str, raw: Optional[str],
-                          minimum: tuple[int, ...], label: str) -> None:
-    if raw is None:
-        log.error("PREFLIGHT FAIL: '%s' not found in PATH. %s", name, label)
+def _need(cmd: str, hint: str = "") -> str:
+    """Return the full path to *cmd*, or exit with a clear message."""
+    path = shutil.which(cmd)
+    if path is None:
+        log.error("'%s' not found in PATH.%s", cmd, f"  {hint}" if hint else "")
         sys.exit(2)
-    got = _parse_semver(raw)
-    if got < minimum:
-        min_str = ".".join(str(x) for x in minimum)
-        got_str = ".".join(str(x) for x in got)
-        log.error("PREFLIGHT FAIL: %s requires >= %s, found %s", name, min_str, got_str)
-        sys.exit(2)
-    log.debug("PREFLIGHT OK: %s  [%s]", name, raw.split("\n")[0][:80])
+    return path
 
 
-def preflight_build() -> None:
-    """Validate cmake and a usable C++ compiler before attempting a build."""
-    log.info("Running preflight checks …")
-
-    cmake_raw = _check_tool("cmake")
-    _require_tool_version("cmake", cmake_raw, _MIN_CMAKE,
-                          "Download from https://cmake.org/download/")
-
-    # Accept gcc-12 / g++-12 or any gcc/g++
-    for gcc in ("gcc-12", "gcc"):
-        raw = _check_tool(gcc)
-        if raw is not None:
-            _require_tool_version(gcc, raw, _MIN_GCC, "Install GCC >= 11")
-            break
-    else:
-        # Try clang
-        for clang in ("clang-18", "clang-14", "clang"):
-            raw = _check_tool(clang)
-            if raw is not None:
-                _require_tool_version(clang, raw, _MIN_CLANG, "Install Clang >= 14")
-                break
-        else:
-            log.error("PREFLIGHT FAIL: No usable C++ compiler found (gcc >= 11 or clang >= 14)")
-            sys.exit(2)
-
-    log.info("Preflight checks passed.")
+def _cmake_path() -> str:
+    return _need("cmake", "Install CMake >= 3.18 from https://cmake.org/download/")
 
 
-def preflight_run(mpi_ranks: int) -> None:
-    """Validate MPI launcher availability when --mpi-ranks > 1."""
-    if mpi_ranks > 1:
-        for launcher in ("mpiexec", "mpirun", "srun"):
-            if shutil.which(launcher) is not None:
-                log.debug("MPI launcher: %s", launcher)
-                return
-        log.error(
-            "PREFLIGHT FAIL: --mpi-ranks=%d requested but no MPI launcher "
-            "(mpiexec/mpirun/srun) found in PATH.", mpi_ranks
-        )
-        sys.exit(2)
+def _ctest_path() -> str:
+    # ctest ships with cmake
+    return _need("ctest", "ctest is bundled with CMake — reinstall CMake.")
 
 
-# ---------------------------------------------------------------------------
-# Safe subprocess execution (Tier A)
-# ---------------------------------------------------------------------------
-_active_proc: Optional[subprocess.Popen] = None
-
-
-def _sigint_handler(signum, frame):
-    """Gracefully terminate the active child process on Ctrl+C.
-
-    Prevents MPI zombie ranks on shared HPC clusters.
-    """
-    if _active_proc is not None:
-        log.warning("KeyboardInterrupt received — terminating child process (PID %d) …",
-                    _active_proc.pid)
+def _clang_format_path() -> str:
+    """Prefer clang-format-18; warn if a different version is found."""
+    for name in ("clang-format-18", "clang-format"):
+        p = shutil.which(name)
+        if p is None:
+            continue
         try:
-            _active_proc.terminate()
-            _active_proc.wait(timeout=5)
+            raw = subprocess.check_output([p, "--version"],
+                                          stderr=subprocess.STDOUT, text=True)
+            ver_match = re.search(r"(\d+)\.\d+", raw)
+            ver_major = int(ver_match.group(1)) if ver_match else 0
+            if ver_major != 18:
+                log.warning(
+                    "Found clang-format version %d — project targets 18. "
+                    "Output may diverge from CI.", ver_major
+                )
+        except Exception:
+            pass
+        return p
+    log.error("clang-format not found. Install clang-format-18.")
+    sys.exit(2)
+
+
+# ---------------------------------------------------------------------------
+# Safe subprocess runner with Ctrl+C handling
+# ---------------------------------------------------------------------------
+_proc: Optional[subprocess.Popen] = None
+
+
+def _sigint(_sig, _frame):
+    """Kill the active child on Ctrl+C to avoid dangling processes."""
+    global _proc
+    if _proc is not None:
+        log.warning("Interrupted — terminating child process (PID %d)…", _proc.pid)
+        try:
+            _proc.terminate()
+            _proc.wait(timeout=5)
         except subprocess.TimeoutExpired:
-            log.warning("Child did not exit in 5 s — sending SIGKILL.")
-            _active_proc.kill()
-            _active_proc.wait()
-        except Exception as exc:
-            log.error("Error during child termination: %s", exc)
-    log.error("Interrupted by user.")
-    sys.exit(130)  # Standard SIGINT exit code
+            _proc.kill()
+            _proc.wait()
+    log.error("Aborted by user.")
+    sys.exit(130)
 
 
-def _run(cmd: list[str], env: Optional[dict] = None,
-         cwd: Optional[Path] = None) -> int:
-    """Execute *cmd*, wiring Ctrl+C → graceful teardown.
-
-    In --dry-run mode the command is logged but never executed.
-    Returns the child process exit code.
-    """
-    global _active_proc
-
-    cmd_str = " ".join(str(c) for c in cmd)
-    if _DRY_RUN:
-        log.info("[DRY-RUN] Would execute: %s", cmd_str)
+def run(cmd: list[str], env: Optional[dict] = None,
+        cwd: Optional[Path] = None) -> int:
+    """Execute *cmd*, propagating its exit code.  Respects DRY_RUN."""
+    global _proc
+    display = shlex.join(str(c) for c in cmd)
+    if DRY_RUN:
+        log.info("[dry-run] %s", display)
         return 0
-
-    log.debug("Executing: %s", cmd_str)
-
-    old_handler = signal.signal(signal.SIGINT, _sigint_handler)
+    log.debug("$ %s", display)
+    prev = signal.signal(signal.SIGINT, _sigint)
     try:
-        _active_proc = subprocess.Popen(cmd, env=env, cwd=cwd)
-        rc = _active_proc.wait()
-        return rc
+        _proc = subprocess.Popen(cmd, env=env, cwd=cwd)
+        return _proc.wait()
     finally:
-        _active_proc = None
-        signal.signal(signal.SIGINT, old_handler)
+        _proc = None
+        signal.signal(signal.SIGINT, prev)
 
 
 # ---------------------------------------------------------------------------
@@ -311,125 +238,98 @@ def _run(cmd: list[str], env: Optional[dict] = None,
 # ---------------------------------------------------------------------------
 
 def cmd_build(args) -> None:
-    preflight_build()
-
+    cmake = _cmake_path()
     build_dir = Path(args.build_dir)
-    build_dir.mkdir(exist_ok=True)
+    build_dir.mkdir(parents=True, exist_ok=True)
 
     build_type = args.build_type
-    log.info("Configuring CMake [%s] …", build_type)
+    log.info("Configuring  [%s]  →  %s/", build_type, build_dir)
 
-    config_cmd = [
-        "cmake", "-B", str(build_dir), "-S", ".",
-        f"-DCMAKE_BUILD_TYPE={build_type}",
-    ]
+    config = [cmake, "-B", str(build_dir), "-S", ".",
+               f"-DCMAKE_BUILD_TYPE={build_type}"]
 
-    # Passthrough custom -D flags
-    for flag in (args.cmake_flag or []):
-        if not flag.startswith("-D"):
-            flag = f"-D{flag}"
-        config_cmd.append(flag)
-        log.debug("CMake flag: %s", flag)
+    for flag in args.flag or []:
+        config.append(f"-D{flag}" if not flag.startswith("-D") else flag)
+        log.debug("  cmake flag: %s", flag)
 
-    rc = _run(config_cmd)
+    rc = run(config)
     if rc != 0:
         log.error("CMake configuration failed (exit %d).", rc)
         sys.exit(rc)
 
-    log.info("Building project …")
-    build_cmd = ["cmake", "--build", str(build_dir), f"-j{os.cpu_count() or 4}"]
-    rc = _run(build_cmd)
+    jobs = str(os.cpu_count() or 4)
+    log.info("Compiling  (-j%s)…", jobs)
+    rc = run([cmake, "--build", str(build_dir), f"-j{jobs}"])
     if rc != 0:
-        log.error("Build failed (exit %d).", rc)
+        log.error("Compilation failed (exit %d).", rc)
         sys.exit(rc)
 
-    log.info("Build successful.")
+    log.info("Build complete.")
 
 
 def cmd_run(args) -> None:
-    mpi_ranks = args.mpi_ranks
-    preflight_run(mpi_ranks)
-
-    # --- Locate binary ---
     build_dir = Path(args.build_dir)
     suffix    = ".exe" if sys.platform == "win32" else ""
     candidates = [
-        build_dir / "bin" / f"granite_main{suffix}",
+        build_dir / "bin"     / f"granite_main{suffix}",
         build_dir / "bin" / "Release" / f"granite_main{suffix}",
         build_dir / "Release" / f"granite_main{suffix}",
-        build_dir / f"granite_main{suffix}",
+        build_dir             / f"granite_main{suffix}",
     ]
     exe = next((c for c in candidates if c.exists()), None)
     if exe is None:
-        log.error("Executable not found. Searched: %s",
-                  ", ".join(str(c) for c in candidates))
-        log.error("Run 'build' first.")
+        log.error("Executable not found. Searched:\n  %s",
+                  "\n  ".join(str(c) for c in candidates))
+        log.error("Did you run 'build' first?")
         sys.exit(1)
 
-    # --- Locate benchmark / param file ---
     benchmark_dir = Path("benchmarks") / args.benchmark
     param_file    = benchmark_dir / "params.yaml"
 
     if not benchmark_dir.exists():
-        log.error("Benchmark directory '%s' not found.", benchmark_dir)
+        log.error("Benchmark directory not found: %s", benchmark_dir)
         sys.exit(1)
-
     if not param_file.exists():
-        log.warning("Param file '%s' not found — running with compiled defaults.", param_file)
+        log.warning("params.yaml not found in %s — running with compiled defaults.",
+                    benchmark_dir)
 
     sim_cmd = [str(exe)]
     if param_file.exists():
         sim_cmd.append(str(param_file))
 
-    # --- MPI prefix ---
-    if mpi_ranks > 1:
-        launcher = next(
-            (x for x in ("mpiexec", "mpirun", "srun") if shutil.which(x)),
-            None,
-        )
-        sim_cmd = [launcher, "-np", str(mpi_ranks)] + sim_cmd
-        log.info("[MPI] Launching %d ranks via %s", mpi_ranks, launcher)
+    env = _apply_omp(os.environ.copy(), args.omp_threads)
 
-    # --- Environment ---
-    sim_env = os.environ.copy()
-
-    # Passthrough --env K=V pairs
-    for kv in (args.env or []):
-        if "=" not in kv:
-            log.warning("--env '%s' ignored — expected KEY=VALUE format.", kv)
-            continue
-        k, v = kv.split("=", 1)
-        sim_env[k] = v
-        log.debug("ENV inject: %s=%s", k, v)
-
-    sim_env = _inject_omp(sim_env, args.omp_threads)
-
-    log.info("Launching simulation: %s", " ".join(sim_cmd))
-    rc = _run(sim_cmd, env=sim_env)
+    log.info("Launching  %s  [OMP_NUM_THREADS=%s]",
+             " ".join(sim_cmd), env.get("OMP_NUM_THREADS", "?"))
+    rc = run(sim_cmd, env=env)
     if rc != 0:
         log.error("Simulation exited with code %d.", rc)
     sys.exit(rc)
 
 
 def cmd_test(args) -> None:
+    ctest    = _ctest_path()
     build_dir = Path(args.build_dir)
+
     if not (build_dir / "CTestTestfile.cmake").exists():
-        log.error("CTest files not found in '%s'. Run 'build' first.", build_dir)
+        log.error("No CTest files in '%s'. Run 'build' with tests enabled first.",
+                  build_dir)
         sys.exit(1)
 
     ctest_cmd = [
-        "ctest",
+        ctest,
         "--test-dir", str(build_dir),
         "--output-on-failure",
-        f"--timeout", str(args.timeout),
+        "--timeout",  str(args.timeout),
     ]
     if args.filter:
         ctest_cmd += ["-R", args.filter]
 
-    log.info("Running test suite …")
-    rc = _run(ctest_cmd)
+    log.info("Running test suite%s…",
+             f"  [filter: {args.filter}]" if args.filter else "")
+    rc = run(ctest_cmd)
     if rc != 0:
-        log.error("Tests failed (ctest exit %d).", rc)
+        log.error("Tests FAILED (ctest exit %d).", rc)
     else:
         log.info("All tests passed.")
     sys.exit(rc)
@@ -438,182 +338,238 @@ def cmd_test(args) -> None:
 def cmd_clean(args) -> None:
     build_dir = Path(args.build_dir)
     if not build_dir.exists():
-        log.info("Nothing to clean (directory '%s' does not exist).", build_dir)
+        log.info("Nothing to clean ('%s' does not exist).", build_dir)
         return
-
-    if _DRY_RUN:
-        log.info("[DRY-RUN] Would remove: %s", build_dir)
+    if DRY_RUN:
+        log.info("[dry-run] Would remove: %s", build_dir)
         return
-
-    log.info("Removing '%s' …", build_dir)
+    log.info("Removing %s/…", build_dir)
     try:
         shutil.rmtree(build_dir)
-        log.info("Clean successful.")
-    except PermissionError as exc:
-        log.error("Permission denied while removing '%s': %s", build_dir, exc)
-        log.error("On NFS/shared mounts, manual removal may be required.")
+        log.info("Clean complete.")
+    except PermissionError as e:
+        log.error("Permission denied: %s", e)
         sys.exit(1)
-    except OSError as exc:
-        log.error("Failed to remove '%s': %s", build_dir, exc)
+    except OSError as e:
+        log.error("Could not remove '%s': %s", build_dir, e)
         sys.exit(1)
 
 
 def cmd_format(args) -> None:
-    # Prefer clang-format-18; fall back to clang-format
-    formatter = None
-    for candidate in ("clang-format-18", "clang-format"):
-        if shutil.which(candidate) is not None:
-            formatter = candidate
-            break
+    formatter = _clang_format_path()
 
-    if formatter is None:
-        log.error("clang-format not found. Install clang-format-18.")
-        sys.exit(2)
-
-    # Warn if we're not on version 18
-    raw = _check_tool(formatter)
-    ver = _parse_semver(raw or "")
-    if ver and ver[0] != 18:
-        log.warning(
-            "Found %s version %s — project targets version 18. "
-            "Formatting may differ from CI.", formatter, ".".join(str(x) for x in ver[:2])
-        )
-
-    extensions     = ["*.cpp", "*.hpp", "*.c", "*.h"]
-    dirs_to_format = [Path("src"), Path("include"), Path("tests")]
-
-    files = [
+    sources = [
         f
-        for d in dirs_to_format if d.exists()
-        for ext in extensions
+        for d in (Path("src"), Path("include"), Path("tests"))
+        if d.exists()
+        for ext in ("*.cpp", "*.hpp", "*.c", "*.h")
         for f in d.rglob(ext)
     ]
 
-    if not files:
-        log.warning("No source files found to format.")
+    if not sources:
+        log.warning("No source files found.")
         return
 
-    mode = "--dry-run --Werror" if args.check_only else "-i"
-    log.info("%s %d files with %s …",
-             "Checking" if args.check_only else "Formatting", len(files), formatter)
+    action = "Checking" if args.check else "Formatting"
+    log.info("%s %d file(s) with %s…", action, len(sources),
+             Path(formatter).name)
 
-    flags = ["--dry-run", "--Werror"] if args.check_only else ["-i"]
-    failed = []
-    for f in files:
-        rc = _run([formatter] + flags + [str(f)])
-        if rc != 0:
-            failed.append(f)
+    flags = ["--dry-run", "--Werror"] if args.check else ["-i"]
 
-    if args.check_only and failed:
-        log.error("%d file(s) need formatting:", len(failed))
-        for f in failed:
+    # Pass all files in one subprocess call — ~10x faster than per-file loop.
+    # xargs-style: if the arg list exceeds ARG_MAX we chunk it.
+    _MAX_BATCH = 200
+    failed_files: list[Path] = []
+    for i in range(0, len(sources), _MAX_BATCH):
+        batch = sources[i : i + _MAX_BATCH]
+        rc    = run([formatter] + flags + [str(f) for f in batch])
+        if rc != 0 and args.check:
+            # Re-run individually to identify which files failed.
+            failed_files += [f for f in batch
+                             if run([formatter] + flags + [str(f)]) != 0]
+    bad = failed_files
+
+    if args.check and bad:
+        log.error("%d file(s) need formatting:", len(bad))
+        for f in bad:
             log.error("  %s", f)
         sys.exit(1)
-    elif not args.check_only:
-        log.info("Formatted %d file(s).", len(files))
+    elif not args.check:
+        log.info("Formatted %d file(s).", len(sources))
+
+
+def cmd_dev(args) -> None:
+    import time
+    def get_latest_mtime() -> float:
+        mtime = 0.0
+        for d in (Path("src"), Path("include")):
+            if d.exists():
+                for ext in ("*.cpp", "*.hpp", "*.c", "*.h"):
+                    for f in d.rglob(ext):
+                        mtime = max(mtime, f.stat().st_mtime)
+        return mtime
+
+    def run_pipeline() -> tuple[subprocess.Popen, subprocess.Popen]:
+        # Always build first
+        build_args = argparse.Namespace(build_dir="build", build_type="Release", flag=[])
+        try:
+            cmd_build(build_args)
+        except SystemExit as e:
+            if e.code != 0:
+                log.error("Build failed, waiting for changes...")
+                return None, None
+
+        suffix = ".exe" if sys.platform == "win32" else ""
+        candidates = [
+            Path("build/bin") / f"granite_main{suffix}",
+            Path("build/bin/Release") / f"granite_main{suffix}",
+            Path("build/Release") / f"granite_main{suffix}",
+            Path("build") / f"granite_main{suffix}",
+        ]
+        exe = next((c for c in candidates if c.exists()), None)
+        if not exe:
+            log.error("Executable not found after build!")
+            sys.exit(1)
+
+        param_file = Path("benchmarks") / "single_puncture" / "params.yaml"
+        sim_cmd = [str(exe)]
+        if param_file.exists():
+            sim_cmd.append(str(param_file))
+
+        env = _apply_omp(os.environ.copy(), None)
+        env["PYTHONPATH"] = str(Path("python").absolute())
+        
+        log.info("Launching dev pipeline...")
+        sim_proc = subprocess.Popen(sim_cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        dev_proc = subprocess.Popen([sys.executable, "-m", "granite_analysis.cli.dev_benchmark"], stdin=sim_proc.stdout, env=env)
+        return sim_proc, dev_proc
+
+    sim_proc, dev_proc = run_pipeline()
+
+    if args.watch:
+        last_mtime = get_latest_mtime()
+        try:
+            while True:
+                time.sleep(1.0)
+                current_mtime = get_latest_mtime()
+                if current_mtime > last_mtime:
+                    log.info("Source change detected. Recompiling and restarting...")
+                    if sim_proc: sim_proc.terminate()
+                    if dev_proc: dev_proc.terminate()
+                    if sim_proc: sim_proc.wait()
+                    if dev_proc: dev_proc.wait()
+                    last_mtime = current_mtime
+                    sim_proc, dev_proc = run_pipeline()
+        except KeyboardInterrupt:
+            if sim_proc: sim_proc.terminate()
+            if dev_proc: dev_proc.terminate()
+            sys.exit(0)
+    else:
+        try:
+            if dev_proc: dev_proc.wait()
+            if sim_proc: sim_proc.wait()
+        except KeyboardInterrupt:
+            if sim_proc: sim_proc.terminate()
+            if dev_proc: dev_proc.terminate()
+            sys.exit(0)
+
+
+# ---------------------------------------------------------------------------
+# Argument parser
+# ---------------------------------------------------------------------------
+def _build_parser() -> argparse.ArgumentParser:
+    root = argparse.ArgumentParser(
+        prog="run_granite.py",
+        description="GRANITE developer workflow tool  "
+                    "(HPC/cluster deployments -> run_granite_hpc.py)",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "examples:\n"
+            "  python scripts/run_granite.py build\n"
+            "  python scripts/run_granite.py build --build-type Debug --flag GRANITE_ENABLE_TESTS=ON\n"
+            "  python scripts/run_granite.py run --benchmark single_puncture\n"
+            "  python scripts/run_granite.py test --filter smoke\n"
+            "  python scripts/run_granite.py clean\n"
+            "  python scripts/run_granite.py format\n"
+            "  python scripts/run_granite.py format --check\n"
+            "  python scripts/run_granite.py --dry-run build\n"
+        ),
+    )
+    root.add_argument("--verbose", "-v", action="store_true",
+                      help="Show DEBUG-level log messages")
+    root.add_argument("--dry-run", "-n", action="store_true",
+                      help="Print commands without executing them")
+
+    subs = root.add_subparsers(dest="command", metavar="<command>")
+    subs.required = True
+
+    # ── build ─────────────────────────────────────────────────────────────
+    pb = subs.add_parser("build", help="Configure and compile with CMake")
+    pb.add_argument("--build-dir",   default="build",   metavar="PATH",
+                    help="Build directory (default: build/)")
+    pb.add_argument("--build-type",  default="Release",
+                    choices=["Debug", "Release", "RelWithDebInfo", "MinSizeRel"],
+                    help="CMake build type (default: Release)")
+    pb.add_argument("--flag", action="append", metavar="KEY=VALUE",
+                    help="Pass -DKEY=VALUE to CMake (repeatable). "
+                         "E.g. --flag GRANITE_ENABLE_TESTS=ON")
+
+    # ── run ───────────────────────────────────────────────────────────────
+    pr = subs.add_parser("run", help="Run a simulation benchmark locally")
+    pr.add_argument("--build-dir",   default="build",   metavar="PATH")
+    pr.add_argument("--benchmark",   required=True,     metavar="NAME",
+                    help="Benchmark directory under benchmarks/ "
+                         "(e.g. single_puncture, B2_eq)")
+    pr.add_argument("--omp-threads", type=int, default=None, metavar="N",
+                    help="Force OMP_NUM_THREADS (default: auto-detect cores)")
+
+    # ── test ──────────────────────────────────────────────────────────────
+    pt = subs.add_parser("test", help="Run the test suite via ctest")
+    pt.add_argument("--build-dir",  default="build",  metavar="PATH")
+    pt.add_argument("--filter",     default=None,     metavar="REGEX",
+                    help="Run only tests matching this regex (-R)")
+    pt.add_argument("--timeout",    type=int, default=120, metavar="S",
+                    help="Per-test timeout in seconds (default: 120)")
+
+    # ── clean ─────────────────────────────────────────────────────────────
+    pc = subs.add_parser("clean", help="Remove build artifacts")
+    pc.add_argument("--build-dir",  default="build",  metavar="PATH")
+
+    # ── format ────────────────────────────────────────────────────────────
+    pf = subs.add_parser("format", help="Format C++ sources with clang-format-18")
+    pf.add_argument("--check", action="store_true",
+                    help="Check only — exit non-zero if any file needs reformatting")
+
+    # ── dev ───────────────────────────────────────────────────────────────
+    pd = subs.add_parser("dev", help="Run the default benchmark and pipe to dev_benchmark")
+    pd.add_argument("--watch", action="store_true",
+                    help="Watch src/ and include/ for changes, automatically rebuild and restart")
+
+    return root
 
 
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
-def _add_common_args(parser: argparse.ArgumentParser) -> None:
-    """Add --build-dir to subparsers that need it."""
-    parser.add_argument(
-        "--build-dir", default="build", metavar="PATH",
-        help="CMake build directory (default: build/)"
-    )
-
-
 def main() -> None:
-    # ---- Top-level parser ----
-    root = argparse.ArgumentParser(
-        prog="run_granite.py",
-        description="GRANITE HPC Orchestration Tool",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog=(
-            "Examples:\n"
-            "  python scripts/run_granite.py build\n"
-            "  python scripts/run_granite.py build --cmake-flag GRANITE_ENABLE_MPI=ON\n"
-            "  python scripts/run_granite.py run --benchmark B2_eq --mpi-ranks 4\n"
-            "  python scripts/run_granite.py run --benchmark single_puncture --omp-threads 8\n"
-            "  python scripts/run_granite.py run --benchmark B2_eq --env HDF5_USE_FILE_LOCKING=FALSE\n"
-            "  python scripts/run_granite.py test --filter smoke\n"
-            "  python scripts/run_granite.py clean\n"
-            "  python scripts/run_granite.py format\n"
-            "  python scripts/run_granite.py --dry-run build\n"
-        )
-    )
-    root.add_argument("--verbose", "-v", action="store_true",
-                      help="Enable DEBUG-level logging")
-    root.add_argument("--dry-run", "-n", action="store_true",
-                      help="Print commands without executing them")
+    parser = _build_parser()
+    args   = parser.parse_args()
 
-    subs = root.add_subparsers(dest="command", metavar="<command>")
+    _setup_logging(args.verbose)
 
-    # ---- build ----
-    p_build = subs.add_parser("build", help="Configure and compile with CMake")
-    _add_common_args(p_build)
-    p_build.add_argument("--build-type", default="Release",
-                         choices=["Debug", "Release", "RelWithDebInfo", "MinSizeRel"],
-                         help="CMake build type (default: Release)")
-    p_build.add_argument("--cmake-flag", action="append", metavar="KEY=VALUE",
-                         help="Pass a -D flag to CMake (repeatable). "
-                              "E.g. --cmake-flag GRANITE_ENABLE_MPI=ON")
+    global DRY_RUN
+    DRY_RUN = args.dry_run
+    if DRY_RUN:
+        log.info("[dry-run] Commands will be printed, not executed.")
 
-    # ---- run ----
-    p_run = subs.add_parser("run", help="Launch a GRANITE simulation")
-    _add_common_args(p_run)
-    p_run.add_argument("--benchmark", required=True, metavar="NAME",
-                       help="Benchmark directory name (e.g. B2_eq, single_puncture)")
-    p_run.add_argument("--mpi-ranks", type=int, default=1, metavar="N",
-                       help="Number of MPI ranks (default: 1 — no MPI launcher)")
-    p_run.add_argument("--omp-threads", type=int, default=None, metavar="N",
-                       help="Force OMP_NUM_THREADS (default: auto-detect physical cores)")
-    p_run.add_argument("--env", action="append", metavar="KEY=VALUE",
-                       help="Inject an environment variable (repeatable). "
-                            "E.g. --env HDF5_USE_FILE_LOCKING=FALSE")
-
-    # ---- test ----
-    p_test = subs.add_parser("test", help="Run the test suite via ctest")
-    _add_common_args(p_test)
-    p_test.add_argument("--timeout", type=int, default=120, metavar="S",
-                        help="Per-test timeout in seconds (default: 120)")
-    p_test.add_argument("--filter", default=None, metavar="REGEX",
-                        help="Only run tests matching this regex (passed to ctest -R)")
-
-    # ---- clean ----
-    p_clean = subs.add_parser("clean", help="Remove build artifacts")
-    _add_common_args(p_clean)
-
-    # ---- format ----
-    p_fmt = subs.add_parser("format", help="Format C++ sources with clang-format-18")
-    p_fmt.add_argument("--check-only", action="store_true",
-                       help="Check formatting without modifying files (exits non-zero if needed)")
-
-    args = root.parse_args()
-
-    # Apply globals
-    _configure_logging(args.verbose)
-
-    global _DRY_RUN
-    _DRY_RUN = args.dry_run
-    if _DRY_RUN:
-        log.info("[DRY-RUN] No commands will be executed.")
-
-    # Dispatch
-    dispatch = {
+    {
         "build":  cmd_build,
         "run":    cmd_run,
         "test":   cmd_test,
         "clean":  cmd_clean,
         "format": cmd_format,
-    }
-
-    if args.command not in dispatch:
-        root.print_help()
-        sys.exit(0)
-
-    dispatch[args.command](args)
+        "dev":    cmd_dev,
+    }[args.command](args)
 
 
 if __name__ == "__main__":

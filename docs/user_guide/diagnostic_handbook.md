@@ -4,7 +4,7 @@
 
 > This handbook explains how to interpret GRANITE's real-time telemetry output,
 > diagnose common failure modes, and distinguish physics problems from numerical
-> artefacts. It is the primary reference for `sim_tracker.py` output and the
+> artefacts. It is the primary reference for `granite_analysis.cli.sim_tracker` output and the
 > pre-flight `health_check.py` report.
 
 ---
@@ -24,8 +24,14 @@
 
 ## 1. Primary Health Indicators
 
-The `sim_tracker.py` dashboard reports the following diagnostic quantities at
+The `granite_analysis.cli.sim_tracker` dashboard reports the following diagnostic quantities at
 every output step. Each field has a defined healthy range and labelled status.
+
+Invoke via:
+```bash
+python3 -m granite_analysis.cli.sim_tracker [logfile]  # from a log file
+python3 scripts/run_granite.py dev                      # live integrated pipeline
+```
 
 | Field | Physical meaning | Status labels |
 |---|---|---|

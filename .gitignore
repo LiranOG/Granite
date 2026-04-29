@@ -38,11 +38,13 @@ _deps/
 dev_logs/
 output/
 runs/
+jobs/
 *.h5
 *.dat
 gw_extraction.dat
 timeseries.h5
 *.log
+*.sbatch
 cppcheck_output.txt
 coverage.info
 coverage/
