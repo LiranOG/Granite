@@ -1,23 +1,107 @@
 # GRANITE Development Journal
 
-> **Archive notice:** This file is the granular commit-level engineering log for the GRANITE project.
-> It is **not** the user-facing changelog. For the standards-compliant version summary, see
+> **Archive notice:** This is my personal engineering log for GRANITE — granular, commit-level notes
+> on every architectural decision, dead-end, and hard-won fix across the project's lifespan.
+> It is **not** a user-facing changelog. For the standards-compliant release summary, see
 > [`CHANGELOG.md`](../../CHANGELOG.md) at the repository root.
 >
-> This journal spans all development phases from initial repository creation (2026-03-27) through
-> v0.6.7 (2026-04-27). Each section corresponds to a major engineering session and contains
-> exhaustive technical detail (rationale, test evidence, parameter choices, and rejected alternatives)
-> that would be inappropriate in a user-facing changelog but invaluable for forensic debugging,
-> scientific reproducibility, and future contributor onboarding.
+> The journal covers all development from the initial repository commit (2026-03-27) through
+> the current release (v0.6.7.2, 2026-04-30). Each section is a narrative of what I was
+> actually thinking and why — the rationale behind parameter choices, rejected alternatives,
+> and the exact failure modes that forced each fix. Future contributors and collaborators
+> should find this more useful than a dry commit log.
 
 ---
 
 
+## [v0.6.7.2] — CLI Hardening, `docs` Subcommand & Documentation Integrity Sweep (2026-04-30)
+
+### Overview
+
+After pushing the v0.6.7.1 release seal, I went back to actually *run* the CLI end-to-end on a fresh log file and immediately caught three things that should have been caught earlier: a version string in `src/main.cpp` still reading `"0.6.5"`, two CLI tools that spewed raw Python tracebacks at the user when a logfile path was wrong, and a third that did the same when the `--json` output directory didn’t exist. None of these were regressions — they were always like that, predating the `granite_analysis` refactor. But now that the package has a proper CLI surface, they’re inexcusable.
+
+I also did a full link audit across the repository and found 25 broken relative links, all stemming from the same root cause: when I reorganized `docs/` into subdirectories (`developer_guide/`, `user_guide/`, `theory/`, `getting_started/`, `design/`), I didn’t update the old flat-path links in the README and peer documents. And finally, I rewrote the Quick Start Guide to properly document how `granite_analysis` is actually used today — with correct commands, real examples, and a new Step 7 covering the HPC pipeline.
+
+---
+
+### 1. Engine Version Mismatch: `src/main.cpp` Banner
+
+The Python package version has been `0.6.7` since the v0.6.7 release. But `src/main.cpp` line 717 still printed `GRANITE v0.6.5` at startup. I noticed this when running the engine and piping its output through `sim_tracker` — the banner line was clearly wrong.
+
+The fix was trivial — one string literal change — but the mismatch is worth documenting because it’s a category of error that’s easy to miss: the C++ binary and the Python orchestration layer are versioned independently, and there’s no automated check that keeps them in sync. I should add a CI check for this in v0.7.
+
+A full rebuild is required for the fix to take effect in the binary. The Python layer was already correct; only the engine banner needed updating.
+
+---
+
+### 2. CLI Exit Hardening: `FileNotFoundError` Leakage
+
+Three separate callsites were letting Python’s default exception handler print a raw traceback to the terminal:
+
+**Case A — `sim_tracker.py` and `dev_benchmark.py`, logfile open:**
+When a user passes a logfile path that doesn’t exist, `args.logfile.open("r")` raised `FileNotFoundError` and Python printed a full traceback. From the user’s perspective, the tool just exploded with internal implementation details. Fix: wrap the `open()` call in a `try/except FileNotFoundError` and call `sys.exit()` with a clear error string.
+
+**Case B — `runners.py`, JSON/CSV output write:**
+When `--json /tmp/nonexistent_dir/out.json` is passed, the directory doesn’t exist, and `json_path.open("w")` raised `FileNotFoundError`. Same problem, same fix. I applied it to both the JSON and CSV write paths in the same block.
+
+The correct message format is:
+```
+ERROR: log file not found: /tmp/does_not_exist.log
+ERROR: --json directory does not exist: /tmp/nonexistent_dir
+```
+Exit code 1 in both cases. The previous behavior was exit code 1 too (uncaught exception), but with 20 lines of traceback polluting the terminal.
+
+I verified all three cases manually after the fix:
+- Missing logfile → clean error, exit 1 ✔
+- Bad `--json` directory → clean error, exit 1 ✔
+- Bad `--csv` directory → clean error, exit 1 ✔
+
+---
+
+### 3. `run_granite.py docs` Subcommand
+
+`docs/README.md` has always said to run `python3 scripts/run_granite.py docs` to build the Sphinx documentation. That command didn’t exist — `docs` was not a registered subcommand. I added it.
+
+The implementation is straightforward: `shutil.which("sphinx-build")` to check availability, then `_run([sphinx, "docs/", "docs/_build/html", "-b", "html"])`. If Sphinx isn’t installed, it exits with `ERROR: sphinx-build not found. Install docs dependencies: pip install -e .[docs]`. The `--open` flag calls `webbrowser.open()` on the built `index.html` for convenience.
+
+I also fixed `docs/README.md`’s install instruction, which referenced `pip install -r python/requirements.txt` (a file that didn’t exist and wouldn’t have installed Sphinx anyway). The correct incantation is `pip install -e .[docs]`, which pulls Sphinx, furo, and breathe from `pyproject.toml`.
+
+While I was at it, I created `python/requirements.txt` as a flat dependency file for environments (some CI images, Docker containers) that don’t support PEP 517 editable installs.
+
+---
+
+### 4. Repository-Wide Link Audit: 25 Broken Links
+
+I wrote a small Python audit script (`check_links.py`) that walks `README.md` and all `docs/**/*.md` files, extracts every relative Markdown link, and checks whether the target path exists on disk. Result: **25 broken links, 24 valid**.
+
+All 25 broken links shared the same root cause: I reorganized `docs/` into subdirectories months ago but never updated the referring documents. Old flat paths like `./docs/INSTALL.md` and `./docs/COMPARISON.md` no longer exist — the files are at `./docs/getting_started/Installation.md` and `./docs/developer_guide/COMPARISON.md`.
+
+I wrote a second script (`fix_links.py`) to apply all 25 substitutions in one pass and re-ran `check_links.py` to verify: **0 broken, 49 valid**.
+
+Affected files: `README.md`, `docs/design/DEVELOPMENT_JOURNAL.md`, `docs/getting_started/WINDOWS_README.md`, `docs/theory/SCIENCE.md`, `docs/user_guide/BENCHMARKS.md`, `docs/user_guide/FAQ.md`.
+
+Cleaned up both scripts afterward — they’re not needed in the repository itself.
+
+---
+
+### 5. Quick Start Guide Rewrite
+
+The existing Quick Start Guide was written during the v0.6.5 era, when `sim_tracker.py` and `dev_benchmark.py` were standalone scripts in `scripts/`. After the `granite_analysis` refactor, the correct invocation is `python3 -m granite_analysis.cli.sim_tracker`, not `python3 scripts/sim_tracker.py`. The guide had never been updated.
+
+Key changes:
+- **Step 4:** Added `pytest tests/python -v` as an explicit step. The Python test suite exists; there’s no reason not to run it.
+- **Step 5:** Replaced the OS-split blocks with a single numbered use-case list. The four canonical ways to use `dev_benchmark` are: (1) integrated pipeline via `run_granite.py dev`, (2) watch mode, (3) direct CLI on a log file with full flag matrix, (4) live pipe from the engine binary.
+- **Step 6:** Added the explicit engine→`sim_tracker` pipe pattern with JSON/CSV export, which is the primary production workflow.
+- **Step 7 (new):** Documents `run_granite_hpc.py` with SLURM generation flags and the `jobs/` output path. This workflow existed but was completely absent from the user-facing documentation.
+- Fixed a stale link to `docs/INSTALL.md` — the file is at `docs/getting_started/Installation.md`.
+
+---
+
 ## [v0.6.7.1] — Full Audit Completion, CI/CD Stabilization & Release Seal (2026-04-27)
 
-### Summary
+### Overview
 
-This session completed 7 major workstreams across 16+ commits: (1) documentation professional polish (emoji cleanup, anti-truncation sweep, version sync), (2) git history disaster recovery after an accidental `--force` push, (3) GitHub Linguist language statistics override, (4) `include/README.md` creation, (5) four rounds of surgical C++ smoke test API repair to achieve 100% CI pass, (6) a repository-wide identity purge from "GRANITE Collaboration" to "Liran M. Schwartz" with full voice realignment, and (7) a final documentation coherence sweep synchronizing all test counts to 107 tests across 20 suites.
+A marathon engineering day covering seven distinct workstreams: cleaning up documentation tone and formatting across the whole repository, recovering from an accidental `git push --force` that overwrote 214 commits of history, enforcing C++ language dominance in GitHub’s linguist statistics, writing the `include/README.md` that had always been missing, four rounds of iterative API repair to get the new smoke tests compiling and passing in CI, a full identity purge replacing every instance of “GRANITE Collaboration” with my actual name, and a final coherence sweep to synchronize all test counts across the documentation.
 
 ---
 

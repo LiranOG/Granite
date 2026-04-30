@@ -21,6 +21,40 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ---
 
+## [v0.6.7.2] — 2026-04-30
+
+### Summary
+
+Post-release hardening of the `granite_analysis` CLI layer. Closes a version mismatch in the C++ engine banner that had gone unnoticed since the v0.6.5→v0.6.7 transition, eliminates all raw exception leakage from the CLI exit paths, extends `run_granite.py` with a `docs` build subcommand, and repairs 25 broken relative links found during a full-repository documentation audit. The Quick Start Guide was overhauled to accurately reflect the current `granite_analysis` package architecture, including a new Step 7 covering HPC/SLURM deployment.
+
+### Added
+- **`run_granite.py docs` subcommand:** Invokes `sphinx-build` against `docs/` and writes HTML output to `docs/_build/html/`. Accepts `--open` to launch the result in the default browser after building. Emits a clean, actionable error message if Sphinx is not installed (`sphinx-build not found — pip install -e .[docs]`) rather than propagating a raw `FileNotFoundError`.
+- **`python/requirements.txt`:** Flat dependency manifest (NumPy ≥1.24, SciPy ≥1.10, h5py ≥3.8, Matplotlib ≥3.7, Rich ≥13.0) for deployment environments that do not support PEP 517 editable installs. Canonical development install path remains `pip install -e .[dev]` from the repository root.
+- **Quick Start — Step 7 (HPC/SLURM Deployment):** New section documenting `run_granite_hpc.py` with `--slurm`, `--mpi-ranks`, and `--omp-threads` flags, the `jobs/submit_granite.sbatch` output path, and the live `sim_tracker` telemetry pipe.
+- **Python test suite in Step 4:** Added `pytest tests/python -v` as an explicit post-build verification step alongside the C++ `granite_tests` binary.
+
+### Fixed
+- **C++ engine version banner:** `src/main.cpp` banner string corrected from `"0.6.5"` to `"0.6.7"`. The mismatch was caught during a live benchmark run when the engine stdout diverged from parser expectations.
+- **`sim_tracker.py` / `dev_benchmark.py` — missing logfile:** Raw `FileNotFoundError` traceback replaced with `sys.exit(f"ERROR: log file not found: {args.logfile}")` and exit code 1. Applied symmetrically to both CLI entry points.
+- **`runners.py` — bad `--json` / `--csv` output directory:** Raw `FileNotFoundError` on output-file write replaced with `sys.exit(f"ERROR: --json/--csv directory does not exist: {path.parent}")` and exit code 1.
+- **25 broken relative links (repository-wide):** Full audit across `README.md` and all `docs/` Markdown files. All flat-directory references corrected to actual subdirectory paths:
+  - `./docs/INSTALL.md` → `./docs/getting_started/Installation.md`
+  - `./docs/DEVELOPER_GUIDE.md` → `./docs/developer_guide/DEVELOPER_GUIDE.md`
+  - `./docs/COMPARISON.md` → `./docs/developer_guide/COMPARISON.md`
+  - `./docs/BENCHMARKS.md` → `./docs/user_guide/BENCHMARKS.md`
+  - `./docs/SCIENCE.md` → `./docs/theory/SCIENCE.md`
+  - `./docs/FAQ.md` → `./docs/user_guide/FAQ.md`
+  - `./docs/diagnostic_handbook.md` → `./docs/user_guide/diagnostic_handbook.md`
+  - `./docs/v0.6.5_master_dictionary.md` → `./docs/developer_guide/v0.6.5_master_dictionary.md`
+  - `docs/PERSONAL_NOTE.md` → `docs/design/PERSONAL_NOTE.md`
+  - Cross-document links in `WINDOWS_README.md`, `SCIENCE.md`, `BENCHMARKS.md`, `FAQ.md`, `DEVELOPMENT_JOURNAL.md`
+
+### Changed
+- **Quick Start Guide (Steps 4–6):** Consolidated OS-split command blocks into unified cross-platform bash examples. Step 5 restructured as a numbered use-case list: (1) integrated pipeline via `run_granite.py dev`, (2) watch mode, (3) direct CLI on a log file with full flag matrix, (4) live engine→`sim_tracker` pipe. Step 6 includes explicit `--json`/`--csv` telemetry export.
+- **`docs/README.md` — Documentation Builds:** Corrected stale reference from `pip install -r python/requirements.txt` to `pip install -e .[docs]` and updated the build command to the new `run_granite.py docs` subcommand.
+
+---
+
 ## [v0.6.7] — 2026-04-27
 
 ### Summary
