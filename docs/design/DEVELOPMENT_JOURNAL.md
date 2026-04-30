@@ -97,6 +97,115 @@ Key changes:
 
 ---
 
+## [v0.6.7] — `granite_analysis` Python Package Architecture (2026-04-27)
+
+### Overview
+
+This section documents the main architectural work of the v0.6.7 release: the complete decomposition of the monolithic `scripts/sim_tracker.py` and `scripts/dev_benchmark.py` into the `granite_analysis` Python package. This was the largest single engineering effort in the release cycle.
+
+The motivation was straightforward. After formalizing the `docs/` directory structure and adding the HPC orchestration layer, the old `scripts/` telemetry tools were inconsistent with everything else. Both were ~600-line procedural scripts that shared zero code — the NaN forensic analysis and lapse phase classification were copy-pasted across both files. Running either one required being in the right directory or adding a `sys.path` hack. They had no type annotations and no unit tests.
+
+---
+
+### 1. Design Decisions
+
+**One package or two?** One. Both tools consume the same telemetry format and produce the same output shapes. Two packages would just relocate the duplication.
+
+**Where does parsing logic live?** In `core/parsers.py`, as pure functions with no state. `parse_telemetry_line(line: str) -> Optional[TelemetryEvent]` is the entire public parsing API — trivially unit-testable without any fake engine.
+
+**How are events represented?** As `@dataclass(frozen=True)` instances. Dicts have no type safety. Namedtuples are untyped by default. Frozen dataclasses give `mypy`-verifiable field access, enforced immutability, and clean `__repr__` for debugging.
+
+**Where does the event loop live?** In `core/runners.py`, shared by both CLI entry points. The loop accepts any `Iterable[str]`, so stdin, a log file, and a test mock are identical from the loop's perspective.
+
+---
+
+### 2. `core/models.py` — The Type Layer
+
+13 `@dataclass(frozen=True)` event types covering every observable in GRANITE's log output:
+
+**Primary telemetry events:**
+- `SimulationStep(step, t, alpha_center, ham_l2, blocks)` — the main per-step output. `alpha_center` and `ham_l2` are `Optional[float]` because the engine emits `nan` when the simulation is unhealthy. `blocks` is `Optional[int]` because not all configurations report AMR block counts.
+- `NanEvent(step, var_type, var_id, i, j, k, value)` — NaN detection. `var_type` is `"ST"` (spacetime) or `"HY"` (hydro); `i/j/k` are the grid coordinates of the first infected cell.
+- `CflEvent(cfl_value, step)` — CFL guard or warning event.
+
+**Run metadata (parsed from the engine startup banner):**
+- `VersionInfo(version)`, `IdTypeInfo(id_type)`, `TFinalInfo(t_final)`, `GridParams(dx, dt)`, `NCellsInfo(nx, ny, nz)`, `PunctureData(puncture_id, x, y, z)`
+
+**Lifecycle events:**
+- `CheckpointEvent(t)`, `DiagnosticEvent(system, status)`
+
+The `TelemetryEvent` type alias in `parsers.py` is `Union[SimulationStep, NanEvent, CflEvent, ...]` over all 13 — this is the declared return type of `parse_telemetry_line()`.
+
+---
+
+### 3. `core/parsers.py` — The Parsing Layer
+
+12 pre-compiled `re.compile()` patterns at module level. Compiled once at import time; each call to `parse_telemetry_line()` runs at most 12 `.search()` calls per line, short-circuiting on the first match:
+
+```python
+_RE_STEP = re.compile(
+    r"step=(\d+)\s+t=[\d.eE+\-]+\s+"
+    r"α_center=([\d.eE+\-naninf]+)\s+"
+    r"(?:‖|\|+)H(?:‖|\|+)[₂2]=([\d.eE+\-naninf]+)"
+    r"(?:.*?\[Blocks:\s*(\d+)\])?"
+)
+```
+
+`_safe_float()` was the single most important helper. The engine can emit `nan`, `inf`, `-nan`, or truncated floats when the simulation is in a bad state — all must be handled without crashing the parser:
+
+```python
+def _safe_float(s: str) -> Optional[float]:
+    try:
+        v = float(s)
+        return v if math.isfinite(v) else None
+    except ValueError:
+        return None
+```
+
+Non-finite values return `None` so the caller can treat them as missing data rather than crash.
+
+---
+
+### 4. `core/runners.py` — The Orchestration Layer
+
+The old scripts each had a ~150-line dispatch loop. Every change had to be made in two files. `run_telemetry_loop()` centralises that:
+
+```python
+def run_telemetry_loop(
+    input_stream: Iterable[str],
+    ui: GraniteUI,
+    is_quiet: bool,
+    json_path: Optional[Path],
+    csv_path: Optional[Path],
+) -> None:
+```
+
+`input_stream` accepts `sys.stdin`, an open file handle, or a `list[str]` from a test. `KeyboardInterrupt` is caught inside the loop for a clean exit on Ctrl+C. JSON and CSV export run after the loop completes, each wrapped in `try/except FileNotFoundError` to produce clean user-facing error messages instead of tracebacks.
+
+---
+
+### 5. CLI Entry Points — `cli/sim_tracker.py` and `cli/dev_benchmark.py`
+
+Each is under 50 lines — pure argparse wiring followed by a call to `run_telemetry_loop()`. The critical design choice in `sim_tracker`: when no `logfile` argument is given, the stream defaults to `sys.stdin`. This enables the live pipe pattern that is the primary production workflow:
+
+```bash
+./build/bin/granite_main params.yaml | python3 -m granite_analysis.cli.sim_tracker
+```
+
+No additional code is needed — the stdin fallback is a natural consequence of `args.logfile` being `None` when omitted.
+
+---
+
+### 6. `pyproject.toml` — PEP 517/668 Compliance
+
+Before the refactor, using these tools from a different directory required `sys.path.insert(0, ...)` hacks. `pyproject.toml` eliminates that. After `pip install -e .[dev]`, `granite_analysis` is importable from anywhere in the active venv. Runtime deps (`numpy ≥1.24`, `scipy ≥1.10`, `h5py ≥3.8`, `matplotlib ≥3.7`, `rich ≥13.0`, `pyyaml`) and dev extras (`pytest`, `sphinx`, `furo`, `breathe`) are declared declaratively — no implicit environment assumptions.
+
+`python/requirements.txt` was added separately as a flat manifest for CI image environments and Docker containers that build with `pip install -r requirements.txt` rather than editable installs.
+
+**Old scripts permanently deleted:** `scripts/sim_tracker.py`, `scripts/dev_benchmark.py`, `scripts/dev_stability_test.py`. All code referencing these paths must migrate to `granite_analysis`.
+
+---
+
 ## [v0.6.7.1] — Full Audit Completion, CI/CD Stabilization & Release Seal (2026-04-27)
 
 ### Overview

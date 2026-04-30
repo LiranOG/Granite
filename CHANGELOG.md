@@ -59,7 +59,30 @@ Post-release hardening of the `granite_analysis` CLI layer. Closes a version mis
 
 ### Summary
 
-The **Repository Seal** release. Completes the full 4-phase architectural audit of GRANITE, finalizes the VORTEX WebGL engine to Gold Master quality, and achieves a 100% clean CI/CD build (107 tests, 20 suites, zero errors, zero warnings) after a marathon 8-hour engineering session resolving API regressions, CI pipeline instability, documentation drift, and an identity attribution error across 37 files.
+The **Repository Seal** release. Completes the full 4-phase architectural audit of GRANITE, finalizes the VORTEX WebGL engine to Gold Master quality, and achieves a 100% clean CI/CD build (107 tests, 20 suites, zero errors, zero warnings). The release also includes the **complete overhaul of the Python analysis layer**: the monolithic `scripts/sim_tracker.py` and `scripts/dev_benchmark.py` were decomposed into the typed, installable `granite_analysis` package.
+
+### Architecture — `granite_analysis` Package Overhaul
+
+The primary engineering effort of the v0.6.7 cycle. The old `scripts/` telemetry tools were procedural monoliths that shared no code, relied on `sys.path` insertion, and had no type safety. The refactor replaced them entirely with a four-layer, PEP 517-compliant package:
+
+- **`python/granite_analysis/core/models.py` — Typed Event Layer:**
+  13 `@dataclass(frozen=True)` classes covering every observable in GRANITE's log output:
+  `SimulationStep` (step, t, α_center, ‖H‖₂, blocks), `NanEvent` (step, var_type, var_id, grid coords i/j/k, value), `CflEvent`, `CheckpointEvent`, `DiagnosticEvent`, `PunctureData`, `GridParams` (dx, dt), `NCellsInfo` (nx/ny/nz), `VersionInfo`, `IdTypeInfo`, `TFinalInfo`.
+  Frozen dataclasses enforce immutability through the entire processing pipeline.
+
+- **`python/granite_analysis/core/parsers.py` — Stateless Parsing Layer:**
+  12 pre-compiled `re.compile()` patterns. Public API: `parse_telemetry_line(line: str) -> Optional[TelemetryEvent]` — pure function, no state, one line in / one typed event out. Companion `parse_telemetry_file(path: Path) -> Iterator[TelemetryEvent]` for lazy file reading. `_safe_float()` converts engine numerics safely, handling `nan`, `inf`, truncated values, and partial log lines without raising.
+
+- **`python/granite_analysis/core/runners.py` — Shared Orchestration Layer:**
+  `run_telemetry_loop(input_stream, ui, is_quiet, json_path, csv_path)` — the single event loop used by both CLIs. Accepts any `Iterable[str]` (stdin pipe, log file, or test mock). Accumulates `SimulationStep` records and writes JSON/CSV on completion. Centralising this eliminated complete code duplication that existed between the two old monolithic scripts.
+
+- **`python/granite_analysis/cli/sim_tracker.py` / `dev_benchmark.py` — Thin CLI Layer:**
+  Pure argparse entry points, each under 50 lines. `sim_tracker` accepts an optional positional `logfile` and falls back to `sys.stdin` for live pipe mode. `dev_benchmark` adds `--benchmark` for named benchmark selection. Both delegate immediately to `run_telemetry_loop()`.
+
+- **`pyproject.toml` — PEP 517 / PEP 668 Compliance:**
+  Installable via `pip install -e .[dev]` from the repository root. Declares runtime deps (`numpy ≥1.24`, `scipy ≥1.10`, `h5py ≥3.8`, `matplotlib ≥3.7`, `rich ≥13.0`, `pyyaml`) and dev extras (`pytest`, `sphinx`, `furo`, `breathe`) declaratively. No `sys.path` hacking.
+
+**Old scripts permanently removed:** `scripts/sim_tracker.py`, `scripts/dev_benchmark.py`, `scripts/dev_stability_test.py`.
 
 ### Added
 - **C++ Smoke Tests — 4 new suites (92 → 107 tests):** `AMRSmokeTest` (5 tests, `test_amr_basic.cpp`), `SchwarzschildHorizonTest` (3 tests, `test_schwarzschild_horizon.cpp`), `M1SmokeTest` (4 tests, `test_m1_diffusion.cpp`), `HDF5RoundtripTest` (3 tests, `test_hdf5_roundtrip.cpp`). All API-synchronized against the actual GRANITE core headers.
