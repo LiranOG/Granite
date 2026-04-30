@@ -97,7 +97,7 @@ Key changes:
 
 ---
 
-## [v0.6.7] — `granite_analysis` Python Package Architecture (2026-04-27)
+## [v0.6.7.2] — `granite_analysis` Python Package Architecture (2026-04-30)
 
 ### Overview
 
