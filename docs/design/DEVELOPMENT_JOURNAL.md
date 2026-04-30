@@ -13,14 +13,15 @@
 
 ---
 
-
-## [v0.6.7.2] — CLI Hardening, `docs` Subcommand & Documentation Integrity Sweep (2026-04-30)
+## [v0.6.7.2] — `granite_analysis` Package Overhaul, CLI Hardening & Documentation Integrity Sweep (2026-04-30)
 
 ### Overview
 
-After pushing the v0.6.7.1 release seal, I went back to actually *run* the CLI end-to-end on a fresh log file and immediately caught three things that should have been caught earlier: a version string in `src/main.cpp` still reading `"0.6.5"`, two CLI tools that spewed raw Python tracebacks at the user when a logfile path was wrong, and a third that did the same when the `--json` output directory didn’t exist. None of these were regressions — they were always like that, predating the `granite_analysis` refactor. But now that the package has a proper CLI surface, they’re inexcusable.
+The main work of this release was the **complete decomposition of the Python analysis tools** into the `granite_analysis` package — a four-layer architecture separating typed data models, stateless regex parsers, a shared telemetry loop, and thin CLI entry points. The old monolithic scripts are gone.
 
-I also did a full link audit across the repository and found 25 broken relative links, all stemming from the same root cause: when I reorganized `docs/` into subdirectories (`developer_guide/`, `user_guide/`, `theory/`, `getting_started/`, `design/`), I didn’t update the old flat-path links in the README and peer documents. And finally, I rewrote the Quick Start Guide to properly document how `granite_analysis` is actually used today — with correct commands, real examples, and a new Step 7 covering the HPC pipeline.
+Alongside the refactor, I went back to actually *run* the CLI end-to-end on a fresh log file and caught three things that should have been caught earlier: a version string in `src/main.cpp` still reading `"0.6.5"`, two CLI tools that spewed raw Python tracebacks when a logfile path was wrong, and a third that did the same when the `--json` output directory didn't exist. None of these were regressions — they were always like that. But now that the package has a proper CLI surface, they're inexcusable.
+
+I also did a full link audit across the repository and found 25 broken relative links, all stemming from the same root cause: when I reorganized `docs/` into subdirectories (`developer_guide/`, `user_guide/`, `theory/`, `getting_started/`, `design/`), I didn't update the old flat-path links in the README and peer documents. And finally, I rewrote the Quick Start Guide to properly document how `granite_analysis` is actually used today — with correct commands, real examples, and a new Step 7 covering the HPC pipeline.
 
 ---
 
@@ -97,11 +98,9 @@ Key changes:
 
 ---
 
-## [v0.6.7.2] — `granite_analysis` Python Package Architecture (2026-04-30)
+### `granite_analysis` Python Package Architecture
 
-### Overview
-
-This section documents the main architectural work of the v0.6.7 release: the complete decomposition of the monolithic `scripts/sim_tracker.py` and `scripts/dev_benchmark.py` into the `granite_analysis` Python package. This was the largest single engineering effort in the release cycle.
+This was the largest single piece of engineering in the v0.6.7.2 cycle: the complete decomposition of the monolithic `scripts/sim_tracker.py` and `scripts/dev_benchmark.py` into the `granite_analysis` Python package.
 
 The motivation was straightforward. After formalizing the `docs/` directory structure and adding the HPC orchestration layer, the old `scripts/` telemetry tools were inconsistent with everything else. Both were ~600-line procedural scripts that shared zero code — the NaN forensic analysis and lapse phase classification were copy-pasted across both files. Running either one required being in the right directory or adding a `sys.path` hack. They had no type annotations and no unit tests.
 
