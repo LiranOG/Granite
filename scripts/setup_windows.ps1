@@ -56,7 +56,7 @@ function Write-Section { param([string]$title)
 # ─── Banner ───────────────────────────────────────────────────────────────────
 Write-Host ""
 Write-Host "╔══════════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
-Write-Host "║    GRANITE HPC Windows Deployment Suite   v0.6.0            ║" -ForegroundColor Cyan
+Write-Host "║    GRANITE HPC Windows Deployment Suite                     ║" -ForegroundColor Cyan
 Write-Host "║    GRMHD/CCZ4 Engine  ·  MSVC Release  ·  AVX2 + LLVM-OMP  ║" -ForegroundColor Cyan
 Write-Host "╚══════════════════════════════════════════════════════════════╝" -ForegroundColor Cyan
 Write-Host ""
