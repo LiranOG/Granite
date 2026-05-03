@@ -95,7 +95,7 @@ python3 scripts/run_granite.py dev
 ```
 
 For Windows (WSL2), Fedora/RHEL, macOS, and HPC cluster setup, see
-[`docs/INSTALL.md`](docs/INSTALL.md) for platform-specific instructions.
+[`Installation.md`](https://github.com/LiranOG/Granite-NR/blob/main/docs/getting_started/Installation.md) for platform-specific instructions.
 
 ---
 
