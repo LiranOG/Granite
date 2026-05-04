@@ -1,15 +1,18 @@
 # GRANITE Development Journal
 
-> **Archive notice:** This is my personal engineering log for GRANITE — granular, commit-level notes
-> on every architectural decision, dead-end, and hard-won fix across the project's lifespan.
-> It is **not** a user-facing changelog. For the standards-compliant release summary, see
-> [`CHANGELOG.md`](../../CHANGELOG.md) at the repository root.
->
+ **Archive notice:** This is my personal engineering log for GRANITE — granular, commit-level notes
+ on every architectural decision, dead-end, and hard-won fix across the project's lifespan.
+ It is **not** a user-facing changelog. For the standards-compliant release summary, see
+ [`CHANGELOG.md`](../../CHANGELOG.md) at the repository root.
+
 > The journal covers all development from the initial repository commit (2026-03-27) through
 > the current release (v0.6.7.2, 2026-04-30). Each section is a narrative of what I was
 > actually thinking and why — the rationale behind parameter choices, rejected alternatives,
 > and the exact failure modes that forced each fix. Future contributors and collaborators
 > should find this more useful than a dry commit log.
+
+>[!NOTE]
+>A one-time accidental force push during the v0.6.x restructuring rewrote part of the public branch history. This may make the GitHub commit timeline appear discontinuous compared with the amount of work represented in the current tree. No current source files are intentionally omitted; the repository is being stabilized around the present `main` branch, with documentation, benchmark schemas, and validation notes being synchronized against the current codebase.
 
 ---
 
@@ -205,7 +208,7 @@ Before the refactor, using these tools from a different directory required `sys.
 
 ---
 
-## [v0.6.7.1] — Full Audit Completion, CI/CD Stabilization & Release Seal (2026-04-27)
+## [v0.6.7.0] — Full Audit Completion, CI/CD Stabilization & Release Seal (2026-04-27)
 
 ### Overview
 
@@ -354,7 +357,7 @@ Updated `README.md` (status badge, known limitations, expected output, repo stru
 ---
 
 
-## [v0.6.7.0] — VORTEX Gold Master Polish & Cinematic Systems (2026-04-15)
+## [v0.6.6.5] — VORTEX Gold Master Polish & Cinematic Systems (2026-04-15)
 
 ### Summary
 
@@ -426,7 +429,7 @@ This release delivers the **Gold Master** cinematic and sensory feature set for 
 
 ---
 
-## [v0.6.7.0] — VORTEX Sim-OS Audit, Research-Grade Visuals & FWM Hardening (2026-04-14)
+## [v0.6.6.5] — VORTEX Sim-OS Audit, Research-Grade Visuals & FWM Hardening (2026-04-14)
 
 ### Summary
 
