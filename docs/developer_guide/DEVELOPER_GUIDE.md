@@ -913,8 +913,8 @@ This loop order is fixed (bug H3) and must not be changed.
 ### 13.2 One-Command Bootstrap
 
 ```bash
-git clone https://github.com/LiranOG/Granite.git
-cd Granite
+git clone https://github.com/LiranOG/Granite-NR.git
+cd Granite-NR
 python3 scripts/run_granite.py setup --all
 ```
 
