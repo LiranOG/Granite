@@ -410,6 +410,25 @@ GRANITE uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). During 
 | `v0.7.0` | Q2 2026 | 🔄 Planned | GPU CUDA kernels, checkpoint-restart, full dynamic AMR, M1 wired into RK3 |
 | `v1.0.0` | Q1 2027 | 🎯 Target | B5_star production run, full community release, GitHub Releases activated |
 
+### A Note on Solo Development & Community Readiness
+
+GRANITE is the work of a single developer, and that is visible in places. Some
+standard open-source conventions — structured branch trees, formal PR workflows,
+and contributor scaffolding — have been deliberately deferred while the physics
+engine was being built from the ground up. The intended contribution model is
+documented in [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md); closing
+the gap between that documentation and the current repository state is an
+explicit `v0.7.0` target.
+
+By `v0.7.0`, the repository will be fully structured for community contribution —
+branch discipline, PR conventions, issue templates, and a workflow that makes it
+straightforward to engage at any level. The timeline is honest: one person, a large
+scope, no fixed date. But when it ships, GRANITE will be genuinely ready for
+collaboration in a way it has not been before.
+
+Until then — the engine is real, the physics is sound, and every contribution,
+however small, is taken seriously.
+
 ### What GitHub Tags Mean
 
 - **Git tags** (e.g. `v0.6.7`) mark verified, stable integration points. CI is green; all tests pass.
