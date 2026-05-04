@@ -201,15 +201,33 @@ _proc: Optional[subprocess.Popen] = None
 
 
 def _sigint(_sig, _frame):
-    """Kill the active child on Ctrl+C to avoid dangling processes."""
+    """Kill the active child process group on Ctrl+C.
+
+    Two key fixes vs. the naive approach:
+    1. signal.SIG_IGN is installed immediately so repeated Ctrl+C presses
+       cannot re-enter this handler or spam EINTR into _proc.wait(), which
+       would prevent the 5-second timeout from ever expiring.
+    2. os.killpg() targets the child's entire process group rather than just
+       the direct child PID, so grandchildren (e.g. piped analysis tools)
+       are also reaped cleanly.
+    """
     global _proc
+    signal.signal(signal.SIGINT, signal.SIG_IGN)   # block re-entry
     if _proc is not None:
-        log.warning("Interrupted — terminating child process (PID %d)…", _proc.pid)
+        pid = _proc.pid
+        log.warning("Interrupted — terminating child process group (PID %d)…", pid)
         try:
-            _proc.terminate()
+            os.killpg(os.getpgid(pid), signal.SIGTERM)
+        except (ProcessLookupError, PermissionError, OSError):
+            pass  # already dead
+        try:
             _proc.wait(timeout=5)
         except subprocess.TimeoutExpired:
-            _proc.kill()
+            log.warning("Child did not exit cleanly — sending SIGKILL…")
+            try:
+                os.killpg(os.getpgid(pid), signal.SIGKILL)
+            except (ProcessLookupError, PermissionError, OSError):
+                pass
             _proc.wait()
     log.error("Aborted by user.")
     sys.exit(130)
@@ -226,7 +244,8 @@ def run(cmd: list[str], env: Optional[dict] = None,
     log.debug("$ %s", display)
     prev = signal.signal(signal.SIGINT, _sigint)
     try:
-        _proc = subprocess.Popen(cmd, env=env, cwd=cwd)
+        _proc = subprocess.Popen(cmd, env=env, cwd=cwd,
+                                 start_new_session=True)  # own pgid → Ctrl+C reaches Python only
         return _proc.wait()
     finally:
         _proc = None
