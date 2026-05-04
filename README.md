@@ -537,6 +537,12 @@ The Wiki covers, in full technical detail:
 
 ## 🗂 The Genesis Archive: Background & Motivation
 
+> [!NOTE]
+> The archived notes are **personal theoretical exploration, not peer-reviewed results.**
+> They provide context for architectural decisions, but should not be read as predictions the
+> engine is validated against. Formal validation follows the standard NR protocol: benchmarks
+> against known analytic solutions and comparison against the SXS catalog (v0.9 target).
+
 The C++ engine in this repository was preceded by a series of personal research notes
 exploring the physics of multi-BH merger scenarios. These notes motivated the key
 architectural choices:
@@ -551,11 +557,6 @@ Every major architectural decision in GRANITE traces to a specific physical requ
 These choices are grounded in established NR literature. The personal research notes that
 preceded the code are archived separately for transparency at
 **[GRANITE-Astrophysics-Suite](https://github.com/LiranOG/GRANITE-Astrophysics-Suite)**.
-
-> **Note:** The archived notes are **personal theoretical exploration, not peer-reviewed results.**
-> They provide context for architectural decisions, but should not be read as predictions the
-> engine is validated against. Formal validation follows the standard NR protocol: benchmarks
-> against known analytic solutions and comparison against the SXS catalog (v0.9 target).
 
 > *For the derivation archive and interactive kinematic simulations:*
 > **[→ GRANITE-Astrophysics-Suite](https://github.com/LiranOG/GRANITE-Astrophysics-Suite)**
