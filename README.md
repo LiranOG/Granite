@@ -160,8 +160,8 @@ All results are from **production runs on a single desktop workstation** (Intel 
 
 ### Step 1 — Clone the Repository
 ```bash
-git clone https://github.com/LiranOG/Granite.git
-cd Granite
+git clone https://github.com/LiranOG/Granite-NR.git
+cd Granite-NR
 ```
  
 ### Step 2 — Install Dependencies & Build
