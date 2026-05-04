@@ -46,10 +46,10 @@ Read the rest of this guide for manual control or troubleshooting.
 
 ```powershell
 # Clone Granite and vcpkg as siblings (recommended layout)
-git clone https://github.com/LiranOG/Granite.git
+git clone https://github.com/LiranOG/Granite-NR.git
 git clone https://github.com/microsoft/vcpkg.git     # will sit next to Granite\
 
-cd Granite
+cd Granite-NR
 ```
 
 ---
