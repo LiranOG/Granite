@@ -107,7 +107,7 @@ The **Repository Seal** release. Completes the full 4-phase architectural audit 
 
 ---
 
-## [v0.6.6] — 2026-04-15
+## [v0.6.6.5] — 2026-04-15
 
 ### Summary
 
