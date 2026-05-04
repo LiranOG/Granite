@@ -11,7 +11,7 @@
 | **License** | GPL-3.0 (see `LICENSE`) |
 | **Repository** | https://github.com/LiranOG/Granite |
 | **Language** | C++17 + MPI + OpenMP (CUDA/HIP roadmap in progress) |
-| **Test Suite** | 92 tests, 100% pass rate (GoogleTest) |
+| **Test Suite** | 107 tests, 100% pass rate (GoogleTest) |
 | **Status** | Active development — binary black hole production runs operational |
 
 ---
