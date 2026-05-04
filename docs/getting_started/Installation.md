@@ -70,8 +70,8 @@ sudo apt install -y git python3 python3-pip build-essential cmake \
 
 **Step 3: Clone & Build**
 ```bash
-git clone https://github.com/LiranOG/Granite.git
-cd Granite
+git clone https://github.com/LiranOG/Granite-NR.git
+cd Granite-NR
 python3 scripts/run_granite.py build
 ```
 
@@ -104,8 +104,8 @@ conda install -c conda-forge cmake hdf5 openmpi yaml-cpp git
 
 **Step 3: Clone & Build**
 ```bash
-git clone https://github.com/LiranOG/Granite.git
-cd Granite
+git clone https://github.com/LiranOG/Granite-NR.git
+cd Granite-NR
 python scripts/run_granite.py build
 ```
 
@@ -148,8 +148,8 @@ cd ..
 
 **Step 6: Clone & Build** (in PowerShell or CMD)
 ```powershell
-git clone https://github.com/LiranOG/Granite.git
-cd Granite
+git clone https://github.com/LiranOG/Granite-NR.git
+cd Granite-NR
 # Tell CMake where vcpkg is located so it finds the packages natively
 cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE="../vcpkg/scripts/buildsystems/vcpkg.cmake" -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release
@@ -177,8 +177,8 @@ sudo apt install -y git python3 python3-pip build-essential cmake \
 
 **Step 2: Clone & Build**
 ```bash
-git clone https://github.com/LiranOG/Granite.git
-cd Granite
+git clone https://github.com/LiranOG/Granite-NR.git
+cd Granite-NR
 python3 scripts/run_granite.py build
 ```
 
@@ -204,8 +204,8 @@ module load mpi/openmpi-x86_64
 
 **Step 3: Clone & Build**
 ```bash
-git clone https://github.com/LiranOG/Granite.git
-cd Granite
+git clone https://github.com/LiranOG/Granite-NR.git
+cd Granite-NR
 python3 scripts/run_granite.py build
 ```
 
@@ -239,8 +239,8 @@ brew install git python3 cmake hdf5 open-mpi yaml-cpp
 
 **Step 3: Clone & Build**
 ```bash
-git clone https://github.com/LiranOG/Granite.git
-cd Granite
+git clone https://github.com/LiranOG/Granite-NR.git
+cd Granite-NR
 python3 scripts/run_granite.py build
 ```
 
@@ -448,9 +448,9 @@ These logs contain the complete step-by-step output and the final summary table 
 **Reason**: The repository URL is wrong. The original README had an outdated URL.
 **Solution**: Always use the exact command:
 ```bash
-git clone https://github.com/LiranOG/Granite.git
+git clone https://github.com/LiranOG/Granite-NR.git
 ```
-Do not change the username (`LiranOG`) or the repository name (`Granite`). Case matters.
+Do not change the username (`LiranOG`) or the repository name (`Granite-NR`). Case matters.
 
 ---
 
