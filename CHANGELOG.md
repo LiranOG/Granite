@@ -132,7 +132,7 @@ VORTEX engine polished to **Gold Master** with cinematic, audio, and analytical 
 
 ---
 
-## [v0.6.5] — 2026-04-12
+## [v0.6.6] — 2026-04-12
 
 ### Summary
 
