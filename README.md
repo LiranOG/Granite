@@ -146,11 +146,18 @@ All results are from **production runs on a single desktop workstation** (Intel 
 ---
 
 ## 🚀 Quick Start Guide
- 
+
+> [!WARNING]
+> **v0.6.7 — Active Stabilization in Progress**
+>
+> A recent structural reorganisation of the `scripts/` directory introduced several integration issues that are currently being triaged and resolved. Some CLI workflows, Python analysis tools, and virtual-environment setup steps may behave unexpectedly until the patch is complete. All core physics (C++ engine, unit tests, simulation runs) is unaffected — 107/107 tests pass clean.
+>
+> Fixes are being pushed continuously. If something doesn't work as documented, check [`CHANGELOG.md`](./CHANGELOG.md) for the latest patch status or open an [issue](https://github.com/LiranOG/Granite/issues).
+
 > [!NOTE]
 > **OS Requirement:** GRANITE is developed and CI-tested on **Linux** and **WSL2**. Native Windows is unsupported. macOS via Homebrew is experimentally supported — community-tested, not covered by CI.
 > *Hitting a wall?* See [**INSTALL.md**](./docs/getting_started/Installation.md) for step-by-step guides and exhaustive troubleshooting.
- 
+
 ### Step 1 — Clone the Repository
 ```bash
 git clone https://github.com/LiranOG/Granite.git
