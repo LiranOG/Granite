@@ -21,7 +21,7 @@
 
 </div>
 
-> **Status: 🟢 v0.6.7 (active development)** — CCZ4 + full GRMHD + fully dynamic Berger-Oliger AMR, moving-puncture gauge, HDF5 checkpoint write, VORTEX Frontend. 107 unit tests across 20 test suites covering all physics modules: CCZ4, GRMHD, AMR, horizon finder, M1 radiation, HDF5 I/O, initial data, and grid kernels. `single_puncture` + `B2_eq` validated **stable** through t = 500 M (early inspiral phase; full merger run is a v0.8 target).
+> **Status: 🟢 v0.6.7.2 (active development)** — CCZ4 + full GRMHD + fully dynamic Berger-Oliger AMR, moving-puncture gauge, HDF5 checkpoint write, VORTEX Frontend. 107 unit tests across 20 test suites covering all physics modules: CCZ4, GRMHD, AMR, horizon finder, M1 radiation, HDF5 I/O, initial data, and grid kernels. `single_puncture` + `B2_eq` validated **stable** through t = 500 M (early inspiral phase; full merger run is a v0.8 target).
 
 GRANITE is a high-performance, next-generation numerical relativity and General-Relativistic Magnetohydrodynamics (GRMHD) engine.
 Designed from the ground up to model extreme astrophysical events — such as the inspiral and merger of multiple Supermassive Black Holes (SMBHs) interacting with dense stellar environments and accretion discs — GRANITE brings state-of-the-art multi-scale physics into a cohesive, open-source framework.
@@ -93,7 +93,7 @@ No single existing open-source code simultaneously handles all of these capabili
 
 ### Summary Comparison
 
-| Capability | Einstein Toolkit | GRChombo | SpECTRE | AthenaK | **GRANITE v0.6.7** |
+| Capability | Einstein Toolkit | GRChombo | SpECTRE | AthenaK | **GRANITE v0.6.7.2** |
 |---|:---:|:---:|:---:|:---:|:---:|
 | CCZ4 formulation | ✅ | ✅ | ✅ | ❌ | ✅ |
 | Full GRMHD (Valencia) | ✅ | ✅ | 🔶 | ✅ | ✅ |
@@ -148,7 +148,7 @@ All results are from **production runs on a single desktop workstation** (Intel 
 ## 🚀 Quick Start Guide
 
 > [!WARNING]
-> **v0.6.7 — Active Stabilization in Progress**
+> **v0.6.7.2 — Active Stabilization in Progress**
 >
 > A recent structural reorganisation of the `scripts/` directory introduced several integration issues that are currently being triaged and resolved. Some CLI workflows, Python analysis tools, and virtual-environment setup steps may behave unexpectedly until the patch is complete. All core physics (C++ engine, unit tests, simulation runs) is unaffected — 107/107 tests pass clean.
 >
@@ -406,7 +406,7 @@ GRANITE uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). During 
 | `v0.6.5.4` | 2026-04-10 | ✅ | GitHub Wiki launch — 17 technical pages, ~18,000 words |
 | `v0.6.5.5` | 2026-04-11 | ✅ | `README.md` overhaul — benchmarks, roadmap, competitor matrix |
 | `v0.6.6` | 2026-04-12–15 | ✅ | VORTEX WebGL engine + Gold Master cinematic & analytical systems |
-| **`v0.6.7`** | **2026-04-27** | ✅ **Current** | **107 tests / 20 suites — 100% CI clean. Full repo seal.** |
+| **`v0.6.7.2`** | **2026-04-27** | ✅ **Current** | **107 tests / 20 suites — 100% CI clean. Full repo seal.** |
 | `v0.7.0` | Q2 2026 | 🔄 Planned | GPU CUDA kernels, checkpoint-restart, full dynamic AMR, M1 wired into RK3 |
 | `v1.0.0` | Q1 2027 | 🎯 Target | B5_star production run, full community release, GitHub Releases activated |
 
@@ -592,7 +592,7 @@ If you use GRANITE in academic research, teaching, or scientific software, pleas
   title     = {{GRANITE}: General-Relativistic Adaptive N-body Integrated
                Tool for Extreme Astrophysics},
   year      = {2026},
-  version   = {v0.6.7},
+  version   = {v0.6.7.2},
   url       = {https://github.com/LiranOG/Granite},
   note      = {CCZ4 + GRMHD + AMR engine for multi-body black hole merger simulations}
 }
