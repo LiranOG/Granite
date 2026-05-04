@@ -221,7 +221,7 @@ def _sigint(_sig, _frame):
         except (ProcessLookupError, PermissionError, OSError):
             pass  # already dead
         try:
-            _proc.wait(timeout=5)
+            _proc.wait(timeout=1)
         except subprocess.TimeoutExpired:
             log.warning("Child did not exit cleanly — sending SIGKILL…")
             try:
