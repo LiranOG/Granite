@@ -287,7 +287,7 @@ python scripts/health_check.py
 ```
 *(On WSL2/macOS/Ubuntu use `python3`)*
 
-### Step 2 — Unit Test Suite (92 tests)
+### Step 2 — Unit Test Suite (107 tests)
 
 ```bash
 # Option A — run directly from the project root (recommended)
@@ -301,8 +301,9 @@ cd ..   # ← IMPORTANT: return to project root before the next step!
 
 **Expected output:**
 ```
-[==========] 92 tests from 16 test suites ran.
-[  PASSED  ] 92 tests.
+[==========] 107 tests from 20 test suites ran.
+[  PASSED  ] 105 tests.
+[  SKIPPED ] 2 tests.
 ```
 
 > [!IMPORTANT]
@@ -327,6 +328,7 @@ If any test fails, check the error message carefully — the test name tells you
 > blocks system-wide `pip install`. You **must** use a virtual environment:
 > ```bash
 > # Run once from the project root
+> sudo apt install python3.12-venv   # Ubuntu 24.04 / WSL2 / Debian — required
 > python3 -m venv .venv
 > source .venv/bin/activate      # activate every new terminal session
 > pip install -e .[dev]
