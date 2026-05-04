@@ -146,35 +146,35 @@ All results are from **production runs on a single desktop workstation** (Intel 
 ---
 
 ## 🚀 Quick Start Guide
-
+ 
 > [!NOTE]
 > **OS Requirement:** GRANITE is developed and CI-tested on **Linux** and **WSL2**. Native Windows is unsupported. macOS via Homebrew is experimentally supported — community-tested, not covered by CI.
 > *Hitting a wall?* See [**INSTALL.md**](./docs/getting_started/Installation.md) for step-by-step guides and exhaustive troubleshooting.
-
+ 
 ### Step 1 — Clone the Repository
 ```bash
 git clone https://github.com/LiranOG/Granite.git
 cd Granite
 ```
-
+ 
 ### Step 2 — Install Dependencies & Build
-
+ 
 #### 💎 Windows — WSL2 / Ubuntu (the only supported Windows path)
-
+ 
 > [!NOTE]
 > Native Windows builds via PowerShell or Conda are **not supported**. Use WSL2.
-
+ 
 ```bash
 sudo apt update && sudo apt install -y build-essential cmake libhdf5-dev libopenmpi-dev libyaml-cpp-dev
 python3 scripts/run_granite.py build
 ```
-
+ 
 #### 🐧 Linux — Ubuntu / Debian
 ```bash
 sudo apt update && sudo apt install -y build-essential cmake libhdf5-dev libopenmpi-dev libyaml-cpp-dev
 python3 scripts/run_granite.py build
 ```
-
+ 
 #### 🐧 Linux — Fedora / RHEL / Rocky
 ```bash
 sudo dnf groupinstall -y "Development Tools"
@@ -182,59 +182,66 @@ sudo dnf install -y cmake hdf5-devel openmpi-devel yaml-cpp-devel
 module load mpi/openmpi-x86_64
 python3 scripts/run_granite.py build
 ```
-
+ 
 #### 🍎 macOS — Homebrew (experimental, community-tested)
-
+ 
 > [!NOTE]
 > macOS is not covered by CI. These instructions have been community-tested on Apple Silicon (M1/M2) and Intel Macs. Report issues via GitHub.
-
+ 
 ```bash
 brew install cmake hdf5 open-mpi yaml-cpp
 python3 scripts/run_granite.py build
 ```
-
+ 
 ---
-
+ 
 ### Step 3 — Run the Health Check (Pre-Flight)
-
+ 
 Verify Release optimization flags and OpenMP core allocation before any simulation.
-
+ 
 #### 🪟 Windows (PowerShell / CMD / Conda)
 ```powershell
 python scripts/health_check.py
 ```
-
+ 
 #### 🐧 Linux / 💎 WSL2 / 🍎 macOS
 ```bash
 python3 scripts/health_check.py
 ```
-
+ 
 ---
-
+ 
 ### Step 4 — Run the Unit Tests
-
+ 
 #### C++ physics suite
 ```bash
 build/bin/granite_tests
 # or: cd build && ctest --output-on-failure && cd ..
 ```
 Expected: `[  PASSED  ] 107 tests.` (20 suites — CCZ4, GRMHD, AMR, horizon, M1, HDF5 I/O)
-
+ 
 #### Python analysis suite
 ```bash
-source .venv/bin/activate   # if not already active
-python -m pytest tests/python -v
+# One-time setup (Ubuntu / WSL2 / Debian — required before first use)
+sudo apt install python3.12-venv        # needed on Ubuntu 24.04 / WSL2
+python3 -m venv .venv                   # create virtual environment
+source .venv/bin/activate               # activate — repeat each new terminal
+pip install pytest                      # install test runner
+ 
+# Run the tests (venv must be active)
+python3 -m pytest tests/python -v
 ```
 Expected: `X passed` — 0 failures, 0 errors.
-
+ 
 ---
-
+ 
 ### Step 5 — Run the Developer Benchmark
-
+ 
 > [!NOTE]
 > The analytical scripts live in the `granite_analysis` Python package.
 > **One-time setup (Linux / WSL2 / macOS):**
 > ```bash
+> sudo apt install python3.12-venv   # Ubuntu 24.04 / WSL2 only — skip on macOS/Fedora
 > python3 -m venv .venv          # create venv (gitignored)
 > source .venv/bin/activate      # activate — repeat each new terminal
 > pip install -e .[dev]          # install package + dev tools
@@ -245,44 +252,44 @@ Expected: `X passed` — 0 failures, 0 errors.
 > .venv\Scripts\Activate.ps1
 > pip install -e .[dev]
 > ```
-
+ 
 ```bash
 # 1. Integrated pipeline — build → run → live rich dashboard
 python3 scripts/run_granite.py dev
-
+ 
 # 2. Watch mode — auto-rebuild + restart on any src/ change
 python3 scripts/run_granite.py dev --watch
-
+ 
 # 3. Direct CLI on a log file
 python3 -m granite_analysis.cli.dev_benchmark run.log
 python3 -m granite_analysis.cli.dev_benchmark run.log --benchmark B2_eq --quiet --json results.json --csv results.csv
-
+ 
 # 4. Live pipe from the engine
 build/bin/granite_main benchmarks/single_puncture/params.yaml \
     | python3 -m granite_analysis.cli.sim_tracker --json run.json
 ```
-
+ 
 ---
-
+ 
 ### Step 6 — Run a Full Simulation
-
+ 
 ```bash
 # Run a named benchmark (pipes engine output to sim_tracker automatically)
 python3 scripts/run_granite.py run --benchmark gauge_wave
 python3 scripts/run_granite.py run --benchmark single_puncture
 python3 scripts/run_granite.py run --benchmark B2_eq
-
+ 
 # Or pipe the engine manually and export telemetry
 build/bin/granite_main benchmarks/B2_eq/params.yaml \
     | python3 -m granite_analysis.cli.sim_tracker \
         --json telemetry.json \
         --csv  telemetry.csv
 ```
-
+ 
 > [!IMPORTANT]
 > Always run `python3 scripts/health_check.py` before `B2_eq`.
 > See [`docs/user_guide/DEPLOYMENT_AND_PERFORMANCE.md`](./docs/user_guide/DEPLOYMENT_AND_PERFORMANCE.md).
-
+ 
 **What healthy output looks like:**
 ```
   step=80  t=5.0000M  α_center=0.029 [RECOVER]  ‖H‖₂=0.153 [OK]
@@ -292,13 +299,12 @@ build/bin/granite_main benchmarks/B2_eq/params.yaml \
 - `α_center` drops 1 → ~0.003 (lapse collapse), recovers to ~0.03 (trumpet formation) ✓
 - `‖H‖₂ < 1.0` through `t = 6M` — constraints satisfied ✓
 - NaN Forensics: "No NaN events detected" ✓
-
 Export telemetry at any time with `--json out.json` or `--csv out.csv`.
-
+ 
 ---
-
+ 
 ### Step 7 — HPC / SLURM Deployment
-
+ 
 ```bash
 # Generate a SLURM submission script (created at jobs/submit_granite.sbatch)
 python3 scripts/run_granite_hpc.py \
@@ -307,18 +313,18 @@ python3 scripts/run_granite_hpc.py \
     --slurm \
     --mpi-ranks 256 \
     --omp-threads 16
-
+ 
 # Submit on the cluster
 sbatch jobs/submit_granite.sbatch
 ```
-
+ 
 The generated script automatically pipes the engine output through
 `granite_analysis.cli.sim_tracker` for real-time telemetry on the cluster.
-
+ 
 > [!IMPORTANT]
 > Complete A-to-Z setup, dependencies, and full Q&A troubleshooting:
 > [**docs/getting_started/Installation.md**](./docs/getting_started/Installation.md)
-
+ 
 ---
 
 ## 📁 Repository Structure
