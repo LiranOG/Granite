@@ -150,26 +150,33 @@ All results are from **production runs on a single desktop workstation** (Intel 
 > [!WARNING]
 > **v0.6.7.2 — Active Stabilization in Progress**
 >
-> A recent structural reorganisation of the `scripts/` directory introduced several integration issues that are currently being triaged and resolved. Some CLI workflows, Python analysis tools, and virtual-environment setup steps may behave unexpectedly until the patch is complete. All core physics (C++ engine, unit tests, simulation runs) is unaffected — 107/107 tests pass clean.
+> A recent structural reorganisation of the `scripts/` directory introduced several integration issues that are currently being triaged and resolved. Some CLI workflows, Python analysis tools, and virtual environment setup steps may temporarily behave unexpectedly until the patch is complete. All core physics (C++ engine, unit tests, simulation runs) is unaffected — 107/107 tests pass clean.
 >
 > Fixes are being pushed continuously. If something doesn't work as documented, check [`CHANGELOG.md`](./CHANGELOG.md) for the latest patch status or open an [issue](https://github.com/LiranOG/Granite/issues).
 
-> [!WARNING]
-> **Stable baseline for first-time users:** The current `main` branch is under active v0.6.7.x restructuring, including CLI cleanup, Python tooling migration, documentation synchronization, and benchmark-schema updates. If you are not comfortable debugging terminal errors, Python environment issues, or command-integration problems, use the `v0.6.5` tag as the recommended stable baseline.
+> [!TIP]
+> **Stable baseline for first-time users:** The current `main` branch is under active v0.6.7.x restructuring, including CLI cleanup, Python tooling migration, documentation synchronization, and benchmark-schema updates. If you prefer a known-good first-run workflow without debugging current `main`-branch integration changes, use the `v0.6.5` tag as the recommended stable baseline.
 > 
 > Download the ZIP archive from the `v0.6.5` tag, extract it inside WSL/Linux, and follow the commands documented in that tagged version. For live simulation monitoring, use the legacy `sim_tracker.py` workflow included with `v0.6.5`, which was the most stable telemetry path for that release.
-
-> [!NOTE]
-> **OS Requirement:** GRANITE is developed and CI-tested on **Linux** and **WSL2**. Native Windows is unsupported. macOS via Homebrew is experimentally supported — community-tested, not covered by CI.
-> 
-> *Hitting a wall?* See [**INSTALL.md**](./docs/getting_started/Installation.md) for step-by-step guides and exhaustive troubleshooting.
+> ```bash
+> Stable v0.6.5 ZIP workflow
+>1. Open the repository **Tags** page.
+>2. Download **v0.6.5 → zip**.
+>3. Extract the ZIP inside WSL/Linux.
+>4. Follow the build/run commands included in the tagged version.
+>5. Use the legacy `sim_tracker.py` workflow for live telemetry.
 
 ### Step 1 — Clone the Repository
 ```bash
 git clone https://github.com/LiranOG/Granite-NR.git
 cd Granite-NR
 ```
- 
+
+> [!NOTE]
+> **OS Requirement:** GRANITE is developed and CI-tested on **Linux** and **WSL2**. Native Windows is unsupported. macOS via Homebrew is experimentally supported — community-tested, not covered by CI.
+> 
+> *Hitting a wall?* See [**INSTALL.md**](./docs/getting_started/Installation.md) for step-by-step guides and exhaustive troubleshooting.
+
 ### Step 2 — Install Dependencies & Build
  
 #### 💎 Windows — WSL2 / Ubuntu (the only supported Windows path)
