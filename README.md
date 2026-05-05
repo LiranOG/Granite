@@ -161,6 +161,7 @@ All results are from **production runs on a single desktop workstation** (Intel 
 
 > [!NOTE]
 > **OS Requirement:** GRANITE is developed and CI-tested on **Linux** and **WSL2**. Native Windows is unsupported. macOS via Homebrew is experimentally supported — community-tested, not covered by CI.
+> 
 > *Hitting a wall?* See [**INSTALL.md**](./docs/getting_started/Installation.md) for step-by-step guides and exhaustive troubleshooting.
 
 ### Step 1 — Clone the Repository
