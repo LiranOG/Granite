@@ -89,7 +89,7 @@ validated at 4 levels.
 
 ## ⚖️ How GRANITE Compares
 
-No single existing open-source code simultaneously handles all of these capabilities in a unified framework. GRANITE is specifically architected to close this gap.
+The table below shows the current implementation status of GRANITE v0.6.7.2 relative to other open‑source NR codes. Combining all of these capabilities in a single, validated framework is a long‑term goal; the present version is verified for single‑BH and binary‑BH inspiral.
 
 ### Summary Comparison
 
@@ -98,18 +98,19 @@ No single existing open-source code simultaneously handles all of these capabili
 | CCZ4 formulation | ✅ | ✅ | ✅ | ❌ | ✅ |
 | Full GRMHD (Valencia) | ✅ | ✅ | 🔶 | ✅ | ✅ |
 | M1 radiation transport | ✅ | ❌ | ❌ | ❌ | 🔵 |
-| Dynamic AMR (subcycling) | ✅ | ✅ | ✅ | ✅ | ✅ |
-| N > 2 BH simultaneous merger | ❌ | ❌ | ❌ | ❌ | 🔵 | 
+| Dynamic AMR (subcycling) | ✅ | ✅ | ✅ | ✅ | 🔶 |
+| N > 3 BH simultaneous merger | ❌ | ❌ | ❌ | ❌ | 🟡 | 
 | Open license | LGPL | ✅ MIT | ✅ MIT | ✅ BSD | ✅ GPL-3.0 |
 
-> *N>2 BH: Brill-Lindquist multi-BH initial data and 5-BH `B5_star` benchmark configuration exist; production run at research resolution (256³+) requires GPU porting (v0.7 target).*
+> *N>3 BH: Brill-Lindquist multi-BH initial data and 5-BH `B5_star` benchmark configuration exist; production run at research resolution (256³+) requires GPU porting (v0.7 target).*
 
 *(Table abridged. See the full feature matrix below.)*
 
 **Legend:**
 * ✅ = **Fully implemented** (Production-ready and integrated)
-* 🔵 = **Core module built, pending integration** (Mathematical logic and tests pass, pending wiring into the main RK3 loop)
+* 🔵 = **Core module built, pending integration** (Mathematical logic and tests pass)
 * 🔶 = **Partial / in development** (Currently being actively developed)
+* 🟡 = **Under development / Design phase** (Currently being actively developed) No validated results produced yet
 * ❌ = **Not available**
 
 
